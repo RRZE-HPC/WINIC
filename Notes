@@ -1,0 +1,33 @@
+
+cd Desktop/Bachelor_Local/llvm-project/build/own_tools/
+
+CLD
+BSWAP64r r64 
+ADD64rr r64 r64
+
+#TODO
+look at MCInstBuider.h 
+
+important files:
+RegAllocBase.cpp ?
+X86RegisterInfo.td
+X86TargetMachine.h
+
+MCContext.h
+MCSubtargetInfo.h
+MCInst.h
+MCInstDesc.h
+MCRegister.h
+MCRegisterInfo.h
+TargetMachine.h
+TargetSubtargetInfo.h
+TargetRegistry.h
+MachineRegisterInfo.h
+MachineFunction.h
+MachineOperand.h
+MachineInstr.h
+
+
+APX extension adds r16-r31
+Registers are just in a certain order, so as more extensions are supported the index of the last supported register increases
+see TRI->getNumSupportedRegs(*MF)
