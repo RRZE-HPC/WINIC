@@ -55,6 +55,8 @@
 /*
 TODO
 compile and run from inside llvm
+implement loop instruction interference detection
+move to clang for assembling to avoid gcc dependency
 check filtering memory instructions
 test other arches
 add templates for other arches
@@ -413,13 +415,20 @@ double benchmark(std::string Assembly, int N) {
 }
 
 int main(int argc, char **argv) {
+    double n = 1e6;
     if (argc < 2) {
-        errs() << "Usage: " << argv[0] << " <instruction_name>" << " num_instr\n";
+        errs() << "Usage: " << argv[0] << " <instruction_name>" << " [numInstructions]"
+               << " [frequency (GHz)]\n";
         return 1;
     }
+
     int numInst = 6;
     if (argc == 3) {
         numInst = atoi(argv[2]);
+    }
+    double freq = 3.75;
+    if (argc == 4) {
+        freq = atof(argv[3]);
     }
 
     auto generator = BenchmarkGenerator();
@@ -429,8 +438,10 @@ int main(int argc, char **argv) {
     std::string result;
     llvm::raw_string_ostream rso(result);
     std::string assembly = generator.genTPBenchmark(opcode, numInst);
-    double time = benchmark(assembly, 1000000);
-    outs() << time << "\n";
+    double time = benchmark(assembly, n);
+    double tp = time / (1e6 * numInst / freq * (n / 1e9));
+    // outs() << time << "\n";
+    std::printf("%.3f clock cycles\n", tp);
     return 0;
 }
 
