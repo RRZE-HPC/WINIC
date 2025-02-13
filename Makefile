@@ -15,4 +15,4 @@ llvm_instr_gen: ./llvm_instr_gen.cpp ./templates.cpp
 	@$(CC) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 clean:
-	rm -f llvm_instr_gen
+	rm -f llvm_instr_gen experiment
