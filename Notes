@@ -4,6 +4,9 @@ cd Desktop/Bachelor_Local/llvm-project/build/own_tools/
 CLD
 BSWAP64r r64 
 ADD64rr r64 r64
+ADD64ri32 r64 i32
+VFMADD132PDYr ymm ymm ymm
+
 
 #TODO
 look at MCInstBuider.h 
@@ -31,3 +34,8 @@ MachineInstr.h
 APX extension adds r16-r31
 Registers are just in a certain order, so as more extensions are supported the index of the last supported register increases
 see TRI->getNumSupportedRegs(*MF)
+
+What if instructions interfere with instructions used by loop (cmp, jl, inc) (cmp and jl can be fused)
+    run twice with ninst and 2*ninst for runimes a and b
+    use formula x = ninst * (b - 2 * a) / (a - b)
+    to get x interfering instructions and correct TP calculation 
