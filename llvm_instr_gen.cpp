@@ -331,6 +331,49 @@ class BenchmarkGenerator {
     }
 };
 
+double benchmark(std::string Assembly, int N) {
+    std::string sPath = "/dev/shm/temp.s";
+    std::string oPath = "/dev/shm/temp.so";
+    std::ofstream asmFile(sPath);
+    if (!asmFile) {
+        std::cerr << "Failed to create file in /dev/shm/" << std::endl;
+        return 1;
+    }
+    asmFile << Assembly;
+    asmFile.close();
+    // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
+    // + " -o " + o_path;
+    std::string command = "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath;
+    system(command.data());
+
+    // from ibench
+    void *handle;
+    double (*latency)(int);
+    int *ninst;
+    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
+        fprintf(stderr, "dlopen: failed to open .o file\n");
+        exit(EXIT_FAILURE);
+    }
+    if ((latency = (double (*)(int))dlsym(handle, "latency")) == NULL) {
+        fprintf(stderr, "dlsym: couldn't find function latency\n");
+        return (EXIT_FAILURE);
+    }
+    if ((ninst = (int *)dlsym(handle, "ninst")) == NULL) {
+        fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
+        return (EXIT_FAILURE);
+    }
+
+    struct timeval start, end;
+    double benchtime;
+
+    gettimeofday(&start, NULL);
+    (*latency)(N);
+    gettimeofday(&end, NULL);
+    benchtime = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
+    // printf("%.3f (benchtime)\n",  benchtime);
+    return benchtime;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         errs() << "Usage: " << argv[0] << " <instruction_name>" << " num_instr\n";
