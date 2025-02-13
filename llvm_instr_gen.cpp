@@ -4,7 +4,6 @@
 #include "templates.cpp"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
-#include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
@@ -18,13 +17,11 @@
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
-#include "llvm/MC/MCObjectWriter.h"
 #include "llvm/MC/MCParser/MCTargetAsmParser.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
@@ -44,6 +41,9 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
+// #include "llvm/Support/FileSystem.h"
+// #include "llvm/MC/MCObjectWriter.h"
+// #include "llvm/CodeGen/MachineRegisterInfo.h"
 // #include "llvm/lib/Target/X86/X86RegisterInfo.h"
 // #include <llvm/include/llvm/ADT/StringRef.h>
 // #include "llvm/MC/MCAsmInfo.h"
@@ -371,7 +371,7 @@ class BenchmarkGenerator {
     }
 };
 
-double benchmark(std::string Assembly, int N) {
+static double benchmark(std::string Assembly, int N) {
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
@@ -444,23 +444,3 @@ int main(int argc, char **argv) {
     std::printf("%.3f clock cycles\n", tp);
     return 0;
 }
-
-// outs() << TRI->getNumSupportedRegs(*MF) << "\n";
-// const X86Subtarget &ST = MF->getSubtarget<X86Subtarget>();
-// const X86RegisterInfo *RegInfo = ST.getRegisterInfo();
-// outs() << RegInfo->getNumSupportedRegs(*MF) << "\n";
-// outs() << "RegInfo->getNumRegs()" << RegInfo->getNumRegs() << "\n";
-
-// variant put loop increment in mid of instructions
-// stream() << benchTemplate.preLoop;
-// stream() << benchTemplate.beginLoop;
-// unsigned halfSize = instructions.size() / 2;
-// auto it = instructions.begin();
-// for (unsigned i; i < instructions.size(); i++) {
-//     MCInst inst = *it;
-//     MIP->printInst(&inst, 0, "", *MSTI, stream());
-//     stream() << "\n";
-//     if (i == halfSize - 1)
-//         stream() << benchTemplate.midLoop;
-//     it++;
-// }
