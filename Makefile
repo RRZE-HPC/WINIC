@@ -7,6 +7,10 @@ LDFLAGS += -I/mnt/c/Users/User/Desktop/Bachelor_Local/llvm-project/build/lib/Tar
 
 all: llvm_instr_gen
 
+
+test: ./experiment.cpp
+	@$(CC) $(CXXFLAGS) -g -O0 $^ -o $@ $(LDFLAGS)
+
 llvm_instr_gen: ./llvm_instr_gen.cpp ./templates.cpp
 	@$(CC) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
