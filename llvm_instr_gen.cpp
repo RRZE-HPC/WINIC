@@ -34,6 +34,7 @@
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <math.h>
 #include <memory>
 #include <set>
 #include <string>
@@ -54,13 +55,18 @@
 
 /*
 TODO
-compile and run from inside llvm
 implement loop instruction interference detection
 move to clang for assembling to avoid gcc dependency
 check filtering memory instructions
 test other arches
 add templates for other arches
+init registers (e.g. avoid avx-sse transition penalty)
+-compile and run from inside program
 -save callee saved registers
+
+Fragen:
+compilation time
+
 */
 
 // helpful
@@ -93,10 +99,10 @@ class BenchmarkGenerator {
         LLVMInitializeX86Target();
         LLVMInitializeX86TargetInfo();
         LLVMInitializeX86TargetMC();
-        LLVMInitializeX86AsmParser();
         LLVMInitializeX86AsmPrinter();
-        LLVMInitializeX86Disassembler();
-        LLVMInitializeX86TargetMCA();
+        // LLVMInitializeX86AsmParser();
+        // LLVMInitializeX86Disassembler();
+        // LLVMInitializeX86TargetMCA();
 
         StringRef TargetTripleStr = "x86_64-pc-linux";
         // StringRef TargetTripleStr = "x86_64--";
@@ -196,7 +202,10 @@ class BenchmarkGenerator {
         return 0;
     }
 
-    std::string genTPBenchmark(unsigned Opcode, unsigned TargetInstrCount) {
+    // generates a throughput benchmark for the instruction with Opcode. Tries to generate
+    // TargetInstrCount different instructions and ten unrolls them by UnrollCount. Updates
+    // TargetInstrCount to the actual number of instructions in the loop (unrolls included)
+    std::string genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount) {
         std::string result;
         llvm::raw_string_ostream rso(result);
         auto benchTemplate = x86Template();
@@ -209,10 +218,14 @@ class BenchmarkGenerator {
                 benchTemplate.usedRegisters.end())
                 usedRegisters.insert(reg);
         }
-        if (benchTemplate.usedRegisters.size() != usedRegisters.size())
+        if (benchTemplate.usedRegisters.size() != usedRegisters.size()) {
+            errs() << "could not determine all registers used by the template\n";
             return ""; // probably error in template
+        }
 
-        std::list<MCInst> instructions = genTPInnerLoop(Opcode, TargetInstrCount, usedRegisters);
+        std::list<MCInst> instructions = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
+        // update TargetInstructionCount to actual number of instructions generated
+        *TargetInstrCount = instructions.size() * UnrollCount;
 
         // save registers used (genTPInnerLoop updates usedRegisters)
         std::string saveRegs;
@@ -226,23 +239,21 @@ class BenchmarkGenerator {
                 restoreRegs.insert(0, genRestoreRegister(reg).append("\n"));
             }
         }
-        rso << "#define NINST " << instructions.size() << "\n";
+        rso << "#define NINST " << *TargetInstrCount << "\n";
         rso << benchTemplate.preLoop;
         rso << saveRegs;
 
-        // init registers (just repeat loop)
-        for (auto inst : instructions) {
-            MIP->printInst(&inst, 0, "", *MSTI, rso);
-            rso << "\n";
-        }
         rso << benchTemplate.beginLoop;
-        for (auto inst : instructions) {
-            MIP->printInst(&inst, 0, "", *MSTI, rso);
-            rso << "\n";
+        for (unsigned i = 0; i < UnrollCount; i++) {
+            for (auto inst : instructions) {
+                MIP->printInst(&inst, 0, "", *MSTI, rso);
+                rso << "\n";
+            }
         }
 
         rso << benchTemplate.midLoop;
         rso << benchTemplate.endLoop;
+
         rso << restoreRegs;
         rso << benchTemplate.postLoop << "\n";
         return result;
@@ -301,8 +312,8 @@ class BenchmarkGenerator {
                             break;
                         }
                         if (!foundRegister) {
-                            outs() << "all supported registers of this class are in use"
-                                   << "\n";
+                            // outs() << "all supported registers of this class are in use"
+                            //        << "\n";
                             // TODO handle this case properly
                             return instructions;
                         }
@@ -371,7 +382,7 @@ class BenchmarkGenerator {
     }
 };
 
-static double benchmark(std::string Assembly, int N) {
+static double runBenchmark(std::string Assembly, int N) {
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
@@ -391,7 +402,7 @@ static double benchmark(std::string Assembly, int N) {
     double (*latency)(int);
     int *ninst;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        fprintf(stderr, "dlopen: failed to open .o file\n");
+        fprintf(stderr, "dlopen: failed to open .so file\n");
         exit(EXIT_FAILURE);
     }
     if ((latency = (double (*)(int))dlsym(handle, "latency")) == NULL) {
@@ -406,41 +417,88 @@ static double benchmark(std::string Assembly, int N) {
     struct timeval start, end;
     double benchtime;
 
+    // prime function ? feels more reliable, TODO test
+    (*latency)(N);
     gettimeofday(&start, NULL);
     (*latency)(N);
     gettimeofday(&end, NULL);
     benchtime = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
     // printf("%.3f (benchtime)\n",  benchtime);
+    dlclose(handle);
     return benchtime;
 }
 
+// runs two benchmarks to correct eventual interference with loop instructions
+static double measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
+    unsigned numInst1 = 100;
+    unsigned numInst2 = 100; // make the generator generate as many operations as possible
+
+    double n = 1000000;
+    std::string assembly;
+    // numInst gets updated to the actual number of instructions generated by genTPBenchmark
+    assembly = Generator->genTPBenchmark(Opcode, &numInst1, 1);
+    double time_1 = runBenchmark(assembly, n);
+    std::printf("time_1: %.3f \n", time_1);
+    assembly = Generator->genTPBenchmark(Opcode, &numInst2, 2);
+    double time_2 = runBenchmark(assembly, n);
+    std::printf("time_1: %.3f \n", time_2);
+
+    // predict if loop instructions interfere with the execution
+    // see README for explanation TODO
+    double loopInstr = numInst1 * (time_2 - 2 * time_1) / (time_1 - time_2);
+    std::printf(" debug: estimating %.3f instructions interfering with measurement\n", loopInstr);
+
+    int nLoopInstr = std::round(loopInstr);
+    // double uncorrected = time_1 / (1e6 * numInst1 / Frequency * (n / 1e9));
+    double intCorrected = time_1 / (1e6 * (numInst1 + nLoopInstr) / Frequency * (n / 1e9));
+    // double floatCorrected = time_1 / (1e6 * (numInst1 + loopInstr) / Frequency * (n / 1e9));
+
+    // std::printf("%.3f uncorrected tp\n", uncorrected);
+    // std::printf("%.3f intCorrected tp\n", intCorrected);
+    // std::printf("%.3f floatCorrected tp\n", floatCorrected);
+
+    return intCorrected;
+}
+
+static double simpleMeasurement(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency,
+                                unsigned *NumInst, unsigned UnrollCount) {
+    unsigned n = 1e6;
+    // numInst gets updated to the actual number of instructions generated by genTPBenchmark
+    std::string assembly = Generator->genTPBenchmark(Opcode, NumInst, UnrollCount);
+    double time = runBenchmark(assembly, n);
+    double tp = time / (1e6 * *NumInst / Frequency * (n / 1e9));
+    outs() << time << "\n";
+    std::printf("%.3f clock cycles\n", tp);
+    return 0;
+}
+
 int main(int argc, char **argv) {
-    double n = 1e6;
     if (argc < 2) {
         errs() << "Usage: " << argv[0] << " <instruction_name>" << " [numInstructions]"
-               << " [frequency (GHz)]\n";
+               << " [unrollCount]" << " [frequency (GHz)]\n";
         return 1;
     }
-
-    int numInst = 6;
-    if (argc == 3) {
+    StringRef instrName(argv[1]);
+    unsigned numInst = 6;
+    if (argc >= 3) {
         numInst = atoi(argv[2]);
     }
-    double freq = 3.75;
-    if (argc == 4) {
-        freq = atof(argv[3]);
+    unsigned unrollCount = 1;
+    if (argc >= 4) {
+        unrollCount = atof(argv[3]);
+    }
+    double frequency = 3.75;
+    if (argc == 5) {
+        frequency = atof(argv[4]);
     }
 
-    auto generator = BenchmarkGenerator();
+    BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
-    StringRef instrName(argv[1]);
     unsigned opcode = generator.getOpcode(instrName.data());
-    std::string result;
-    llvm::raw_string_ostream rso(result);
-    std::string assembly = generator.genTPBenchmark(opcode, numInst);
-    double time = benchmark(assembly, n);
-    double tp = time / (1e6 * numInst / freq * (n / 1e9));
-    // outs() << time << "\n";
-    std::printf("%.3f clock cycles\n", tp);
+    // numInst gets updated to the actual number of instructions generated by genTPBenchmark
+    double tp = measureThroughput(opcode, &generator, frequency);
+    std::printf("%.3f (clock cycles)\n", tp);
+
+    // simpleMeasurement(opcode, &generator, frequency, numInst, unrollCount);
     return 0;
 }
