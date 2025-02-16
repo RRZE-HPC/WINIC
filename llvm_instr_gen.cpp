@@ -22,6 +22,7 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
@@ -73,6 +74,41 @@ compilation time
 // TRI->getRegAsmName(MCRegister)
 
 using namespace llvm;
+
+enum ErrorCode {
+    SUCCESS,
+    MEMORY_OPERAND,
+    PCREL_OPERAND,
+    UNKNOWN_OPERAND,
+    PSEUDO_INSTRUCTION,
+    MAY_LOAD,
+    MAY_STORE,
+    TEMPLATE_ERROR,
+    GENERIC_ERROR,
+};
+
+static std::string ecToString(ErrorCode EC) {
+    switch (EC) {
+    case SUCCESS:
+        return "SUCCESS";
+    case MEMORY_OPERAND:
+        return "MEMORY_OPERAND";
+    case PCREL_OPERAND:
+        return "PCREL_OPERAND";
+    case UNKNOWN_OPERAND:
+        return "UNKNOWN_OPERAND";
+    case PSEUDO_INSTRUCTION:
+        return "PSEUDO_INSTRUCTION";
+    case MAY_LOAD:
+        return "MAY_LOAD";
+    case MAY_STORE:
+        return "MAY_STORE";
+    case TEMPLATE_ERROR:
+        return "TEMPLATE_ERROR";
+    case GENERIC_ERROR:
+        return "GENERIC_ERROR";
+    }
+}
 
 class BenchmarkGenerator {
   public:
@@ -154,58 +190,11 @@ class BenchmarkGenerator {
         assert(MIP && "Unable to create MCInstPrinter!");
     }
 
-    int createAnyValidInstruction(unsigned Opcode) {
-        const MCInstrDesc &desc = MCII->get(Opcode);
-        if (!isValid(desc))
-            return 1;
-        unsigned numOperands = desc.getNumOperands();
-        std::set<MCRegister> usedRegisters;
-
-        MCInst tempInst;
-        tempInst.setOpcode(Opcode);
-        tempInst.clear();
-
-        for (unsigned j = 0; j < numOperands; ++j) {
-            const MCOperandInfo &opInfo = desc.operands()[j];
-
-            // TIED_TO points to operand which this has to be identical to see
-            // MCInstrDesc.h:41
-            if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-                // this operand must be identical to another operand
-                unsigned TiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-                tempInst.addOperand(tempInst.getOperand(TiedToOp));
-                outs() << "added tied operand again: " << TiedToOp << "\n";
-            } else {
-                // search for unused register and add it as operand
-                const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
-                for (MCRegister reg : RegClass) {
-                    // outs() << "trying: " << Reg.id() << " name: " << TRI->getName(Reg)
-                    // <<
-                    // "\n";
-                    if (reg.id() >= MaxReg) {
-                        outs() << "all supported registers of this class are in use"
-                               << "\n";
-                        // TODO handle this case
-                        break;
-                    }
-                    if (usedRegisters.find(reg) == usedRegisters.end()) {
-                        tempInst.addOperand(MCOperand::createReg(reg));
-                        usedRegisters.insert(reg);
-                        break;
-                    }
-                }
-            }
-        }
-        MIP->printInst(&tempInst, 0, "", *MSTI, outs());
-        outs() << "\n";
-
-        return 0;
-    }
-
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
     // TargetInstrCount different instructions and ten unrolls them by UnrollCount. Updates
     // TargetInstrCount to the actual number of instructions in the loop (unrolls included)
-    std::string genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount) {
+    std::pair<ErrorCode, std::string> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
+                                                     unsigned UnrollCount) {
         std::string result;
         llvm::raw_string_ostream rso(result);
         auto benchTemplate = x86Template();
@@ -220,10 +209,11 @@ class BenchmarkGenerator {
         }
         if (benchTemplate.usedRegisters.size() != usedRegisters.size()) {
             errs() << "could not determine all registers used by the template\n";
-            return ""; // probably error in template
+            return {TEMPLATE_ERROR, ""}; // probably error in template TODO error type
         }
 
-        std::list<MCInst> instructions = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
+        auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
+        if (EC != SUCCESS) return {EC, ""};
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = instructions.size() * UnrollCount;
 
@@ -256,19 +246,19 @@ class BenchmarkGenerator {
 
         rso << restoreRegs;
         rso << benchTemplate.postLoop << "\n";
-        return result;
+        return {SUCCESS, result};
     }
 
     // generates a benchmark loop to measure throughput of an instruction
     // tries to generate targetInstrCount independent instructions for the inner
     // loop might generate less instructions than targetInstrCount if there are
     // not enough registers updates usedRegisters
-    std::list<MCInst> genTPInnerLoop(unsigned Opcode, unsigned TargetInstrCount,
-                                     std::set<MCRegister> &UsedRegisters) {
+    std::pair<ErrorCode, std::list<MCInst>> genTPInnerLoop(unsigned Opcode,
+                                                           unsigned TargetInstrCount,
+                                                           std::set<MCRegister> &UsedRegisters) {
         std::list<MCInst> instructions;
         const MCInstrDesc &desc = MCII->get(Opcode);
-        if (!isValid(desc))
-            return {};
+        if (isValid(desc) != SUCCESS) return {isValid(desc), {}};
         unsigned numOperands = desc.getNumOperands();
 
         // the first numDefs operands are destination operands
@@ -282,8 +272,8 @@ class BenchmarkGenerator {
             for (unsigned j = 0; j < numOperands; ++j) {
                 const MCOperandInfo &opInfo = desc.operands()[j];
 
-                // TIED_TO points to operand which this has to be identical to. see
-                // MCInstrDesc.h:41
+                // TIED_TO points to operand which this has to be identical to.
+                // see MCInstrDesc.h:41
                 if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
                     // this operand must be identical to another operand
                     unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
@@ -315,7 +305,7 @@ class BenchmarkGenerator {
                             // outs() << "all supported registers of this class are in use"
                             //        << "\n";
                             // TODO handle this case properly
-                            return instructions;
+                            return {SUCCESS, instructions};
                         }
                         break;
                     }
@@ -325,19 +315,21 @@ class BenchmarkGenerator {
                     case MCOI::OPERAND_MEMORY:
                         errs() << "instructions accessing memory are not supported at this "
                                   "time";
-                        return {};
+                        return {MEMORY_OPERAND, {}};
                     case MCOI::OPERAND_PCREL:
                         errs() << "branches are not supported at this time";
-                        return {};
+                        return {PCREL_OPERAND, {}};
+                        ;
                     default:
                         errs() << "unknown operand type";
-                        return {};
+                        return {UNKNOWN_OPERAND, {}};
+                        ;
                     }
                 }
             }
             instructions.push_back(inst);
         }
-        return instructions;
+        return {SUCCESS, instructions};
     }
 
     // TODO find ISA independent function in llvm
@@ -365,8 +357,11 @@ class BenchmarkGenerator {
     }
 
     // filter which instructions get exluded
-    bool isValid(MCInstrDesc Instruction) {
-        return !Instruction.isPseudo() && !Instruction.mayLoad() && !Instruction.mayStore();
+    ErrorCode isValid(MCInstrDesc Instruction) {
+        if (Instruction.isPseudo()) return PSEUDO_INSTRUCTION;
+        if (Instruction.mayLoad()) return MAY_LOAD;
+        if (Instruction.mayStore()) return MAY_STORE;
+        return SUCCESS;
     }
 
     // get Opcode for instruction
@@ -382,13 +377,13 @@ class BenchmarkGenerator {
     }
 };
 
-static double runBenchmark(std::string Assembly, int N) {
+static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
     if (!asmFile) {
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return 1;
+        return {GENERIC_ERROR, 1};
     }
     asmFile << Assembly;
     asmFile.close();
@@ -403,15 +398,15 @@ static double runBenchmark(std::string Assembly, int N) {
     int *ninst;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
-        exit(EXIT_FAILURE);
+        return {GENERIC_ERROR, 1};
     }
     if ((latency = (double (*)(int))dlsym(handle, "latency")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find function latency\n");
-        return (EXIT_FAILURE);
+        return {GENERIC_ERROR, 1};
     }
     if ((ninst = (int *)dlsym(handle, "ninst")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
-        return (EXIT_FAILURE);
+        return {GENERIC_ERROR, 1};
     }
 
     struct timeval start, end;
@@ -425,23 +420,33 @@ static double runBenchmark(std::string Assembly, int N) {
     benchtime = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
     // printf("%.3f (benchtime)\n",  benchtime);
     dlclose(handle);
-    return benchtime;
+    return {SUCCESS, benchtime};
 }
 
 // runs two benchmarks to correct eventual interference with loop instructions
-static double measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
+static std::pair<ErrorCode, double>
+measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
     unsigned numInst1 = 100;
     unsigned numInst2 = 100; // make the generator generate as many operations as possible
 
     double n = 1000000;
     std::string assembly;
+    ErrorCode EC;
+    double time_1;
+    double time_2;
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    assembly = Generator->genTPBenchmark(Opcode, &numInst1, 1);
-    double time_1 = runBenchmark(assembly, n);
-    std::printf("time_1: %.3f \n", time_1);
-    assembly = Generator->genTPBenchmark(Opcode, &numInst2, 2);
-    double time_2 = runBenchmark(assembly, n);
-    std::printf("time_1: %.3f \n", time_2);
+    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1);
+    if (EC != SUCCESS) return {EC, 1};
+    std::tie(EC, time_1) = runBenchmark(assembly, n);
+    if (EC != SUCCESS) return {EC, 1};
+
+    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst2, 2);
+    if (EC != SUCCESS) return {EC, 1};
+    std::tie(EC, time_1) = runBenchmark(assembly, n);
+    if (EC != SUCCESS) return {EC, 1};
+
+    // std::printf("time_1: %.3f \n", time_1);
+    // std::printf("time_2: %.3f \n", time_2);
 
     // predict if loop instructions interfere with the execution
     // see README for explanation TODO
@@ -457,18 +462,34 @@ static double measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, 
     // std::printf("%.3f intCorrected tp\n", intCorrected);
     // std::printf("%.3f floatCorrected tp\n", floatCorrected);
 
-    return intCorrected;
+    return {SUCCESS, intCorrected};
 }
 
 static double simpleMeasurement(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency,
                                 unsigned *NumInst, unsigned UnrollCount) {
     unsigned n = 1e6;
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    std::string assembly = Generator->genTPBenchmark(Opcode, NumInst, UnrollCount);
-    double time = runBenchmark(assembly, n);
+    auto [EC, assembly] = Generator->genTPBenchmark(Opcode, NumInst, UnrollCount);
+    auto [EC2, time] = runBenchmark(assembly, n);
     double tp = time / (1e6 * *NumInst / Frequency * (n / 1e9));
     outs() << time << "\n";
     std::printf("%.3f clock cycles\n", tp);
+    return 0;
+}
+
+static int buildDatabase(double Frequency) {
+    BenchmarkGenerator generator = BenchmarkGenerator();
+    generator.setUp();
+    for (unsigned opcode = 0; opcode < generator.MCII->getNumOpcodes(); opcode++) {
+        auto [EC, tp] = measureThroughput(opcode, &generator, Frequency);
+        if (EC != SUCCESS) {
+            outs() << generator.MCII->getName(opcode) << ": " << "skipped for reason "
+                   << ecToString(EC) << "\n";
+            continue;
+        }
+        outs() << generator.MCII->getName(opcode) << ": " << tp << " (clock cycles)\n";
+        std::printf("%s: %.3f (clock cycles)\n", generator.MCII->getName(opcode).data(), tp);
+    }
     return 0;
 }
 
@@ -494,10 +515,11 @@ int main(int argc, char **argv) {
 
     BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
-    unsigned opcode = generator.getOpcode(instrName.data());
+    // unsigned opcode = generator.getOpcode(instrName.data());
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    double tp = measureThroughput(opcode, &generator, frequency);
-    std::printf("%.3f (clock cycles)\n", tp);
+    // double tp = measureThroughput(opcode, &generator, frequency);
+    buildDatabase(frequency);
+    // std::printf("%.3f (clock cycles)\n", tp);
 
     // simpleMeasurement(opcode, &generator, frequency, numInst, unrollCount);
     return 0;
