@@ -11,7 +11,7 @@ all: llvm_instr_gen
 test: ./experiment.cpp
 	@$(CC) $(CXXFLAGS) -g -O0 $^ -o $@ $(LDFLAGS)
 
-llvm_instr_gen: ./llvm_instr_gen.cpp ./templates.cpp
+llvm_instr_gen: ./llvm_instr_gen.cpp ./templates.cpp ./benchmarkGenerator.cpp ./customErrors.cpp
 	@$(CC) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 clean:
