@@ -3,6 +3,7 @@
 #include "MCTargetDesc/X86BaseInfo.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "templates.cpp"
+#include "llvm/Bitcode/LLVMBitCodes.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
@@ -25,7 +26,6 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
@@ -33,10 +33,12 @@
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/TargetParser/X86TargetParser.h"
 #include <algorithm>
+#include <csetjmp>
 #include <cstdlib>
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <fstream>
+#include <getopt.h>
 #include <iostream>
 #include <list>
 #include <math.h>
@@ -46,7 +48,8 @@
 #include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/time.h>
-#include <variant>
+#include <sys/wait.h>
+#include <unistd.h>
 
 // #include "llvm/Support/FileSystem.h"
 // #include "llvm/MC/MCObjectWriter.h"
@@ -61,20 +64,25 @@
 
 /*
 TODO
-replace generic errors
-MCInstrPrinter segfaults when instruction is wrong (or is Prefix)
-move to clang for assembling to avoid gcc dependency
-test other arches
-add templates for other arches
-init registers (e.g. avoid avx-sse transition penalty)
+    replace generic errors
+    move to clang for assembling to avoid gcc dependency
+    test other arches
+    add templates for other arches
+    init registers (e.g. avoid avx-sse transition penalty)
 
--check filtering memory instructions
--implement loop instruction interference detection
--compile and run from inside program
--save callee saved registers
+    -MCInstrPrinter segfaults when instruction is wrong (or is Prefix)
+    -check filtering memory instructions
+    -implement loop instruction interference detection
+    -compile and run from inside program
+    -save callee saved registers
 
-Fragen:
-compilation time
+State
+    Conditional moves measure garbage CMOVNE_F
+    ND and EVEX encoded variants cause ERROR_ASSEMBLY (this is ok, normal variants get measured)
+
+
+Questions:
+    compilation time
 
 */
 
@@ -83,6 +91,14 @@ compilation time
 
 using namespace llvm;
 // using namespace X86;
+
+static bool debug = false;
+template <typename... Args> void dbg(Args &&...args) {
+    if (debug) {
+        (outs() << ... << args) << "\n";
+        outs().flush();
+    }
+}
 
 enum ErrorCode {
     SUCCESS,
@@ -98,9 +114,13 @@ enum ErrorCode {
     IS_RETURN,
     IS_BRANCH,
     IS_CODE_GEN_ONLY,
-    TEMPLATE_ERROR,
-    ASSEMBLY_ERROR,
-    GENERIC_ERROR,
+    ERROR_TEMPLATE,
+    ERROR_ASSEMBLY,
+    ERROR_MMAP,
+    ERROR_FORK,
+    ERROR_SIGSEGV,
+    ILLEGAL_INSTRUCTION,
+    ERROR_GENERIC,
 };
 
 static std::string ecToString(ErrorCode EC) {
@@ -131,12 +151,22 @@ static std::string ecToString(ErrorCode EC) {
         return "IS_BRANCH";
     case IS_CODE_GEN_ONLY:
         return "IS_CODE_GEN_ONLY";
-    case TEMPLATE_ERROR:
-        return "TEMPLATE_ERROR";
-    case ASSEMBLY_ERROR:
-        return "ASSEMBLY_ERROR";
-    case GENERIC_ERROR:
-        return "GENERIC_ERROR";
+    case ERROR_TEMPLATE:
+        return "ERROR_TEMPLATE";
+    case ERROR_ASSEMBLY:
+        return "ERROR_ASSEMBLY";
+    case ERROR_MMAP:
+        return "ERROR_MMAP";
+    case ERROR_FORK:
+        return "ERROR_FORK";
+    case ERROR_SIGSEGV:
+        return "ERROR_SIGSEGV";
+    case ILLEGAL_INSTRUCTION:
+        return "ILLEGAL_INSTRUCTION";
+    case ERROR_GENERIC:
+        return "ERROR_GENERIC";
+    default:
+        return "description missing for this error";
     }
 }
 
@@ -239,7 +269,7 @@ class BenchmarkGenerator {
         }
         if (benchTemplate.usedRegisters.size() != usedRegisters.size()) {
             errs() << "could not determine all registers used by the template\n";
-            return {TEMPLATE_ERROR, ""}; // probably error in template TODO error type
+            return {ERROR_TEMPLATE, ""}; // probably error in template TODO error type
         }
 
         auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
@@ -256,11 +286,11 @@ class BenchmarkGenerator {
                 // this currently also saves registers already saved in the template
                 // which is redundant but not harmful
                 auto [EC1, save] = genSaveRegister(reg);
-                if (EC1 != SUCCESS) return {EC, ""};
+                if (EC1 != SUCCESS) return {EC1, ""};
                 saveRegs.append(save).append("\n");
 
                 auto [EC2, restore] = genRestoreRegister(reg);
-                if (EC != SUCCESS) return {EC, ""};
+                if (EC2 != SUCCESS) return {EC2, ""};
                 restoreRegs.insert(0, restore.append("\n"));
             }
         }
@@ -271,8 +301,8 @@ class BenchmarkGenerator {
         rso << benchTemplate.beginLoop;
         for (unsigned i = 0; i < UnrollCount; i++) {
             for (auto inst : instructions) {
-                // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can we check it?
-                // if found, add check to isValid()
+                // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can we
+                // check it? if found, add check to isValid()
                 std::string temp;
                 llvm::raw_string_ostream tso(temp);
                 MIP->printInst(&inst, 0, "", *MSTI, tso);
@@ -296,6 +326,7 @@ class BenchmarkGenerator {
         if (desc.TSFlags & X86::FEATURE_64BIT) outs() << "FEATURE_64BIT bit\n";
         if (desc.TSFlags & X86::FeatureSSE2) outs() << "FeatureSSE2 bit\n";
         if (desc.TSFlags & X86II::PrefixByte) outs() << "PrefixByte bit\n";
+        outs().flush();
     }
 
     // generates a benchmark loop to measure throughput of an instruction
@@ -385,24 +416,12 @@ class BenchmarkGenerator {
     }
 
     std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
-        std::list<MCRegister> superregs;
-        for (auto reg : TRI->superregs(Reg))
-            superregs.insert(superregs.begin(), reg);
-        if (superregs.empty()) return {SUCCESS, Reg};
-
-        for (unsigned i = 0; i < 10; i++) {
-            if (superregs.size() == 1) break;
-
-            auto r = superregs.front();
-            superregs.pop_front();
-            for (auto sr : TRI->superregs(r))
-                if (std::find(superregs.begin(), superregs.end(), sr) == superregs.end())
-                    superregs.insert(superregs.end(), sr);
+        for (unsigned i = 0; i < 100; i++) {
+            if (TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
+            Reg = *TRI->superregs(Reg).begin(); // take firs superreg
         }
-        // now only one superregister should be left
-        if (superregs.size() == 1) return {SUCCESS, superregs.front()};
 
-        return {GENERIC_ERROR, NULL};
+        return {ERROR_GENERIC, NULL};
     }
 
     // TODO find ISA independent function in llvm
@@ -464,13 +483,22 @@ class BenchmarkGenerator {
     }
 };
 
+// Global jump buffer for recovery
+sigjmp_buf jumpBuffer;
+
+// Signal handler for illegal instruction
+void sigillHandler(int Signum) {
+    // std::cerr << "Caught SIGILL (Illegal Instruction), recovering...\n";
+    siglongjmp(jumpBuffer, 1); // Jump back to safe point
+}
+
 static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
     if (!asmFile) {
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {GENERIC_ERROR, 1};
+        return {ERROR_GENERIC, 1};
     }
     asmFile << Assembly;
     asmFile.close();
@@ -479,7 +507,7 @@ static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     std::string command =
         "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
-    if (system(command.data()) != 0) return {ASSEMBLY_ERROR, 1};
+    if (system(command.data()) != 0) return {ERROR_ASSEMBLY, 1};
 
     // from ibench
     void *handle;
@@ -487,68 +515,82 @@ static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     int *ninst;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
-        return {GENERIC_ERROR, 1};
+        fflush(stdout);
+        return {ERROR_GENERIC, 1};
     }
     if ((latency = (double (*)(int))dlsym(handle, "latency")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find function latency\n");
-        return {GENERIC_ERROR, 1};
+        fflush(stdout);
+        return {ERROR_GENERIC, 1};
     }
     if ((ninst = (int *)dlsym(handle, "ninst")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
-        return {GENERIC_ERROR, 1};
+        fflush(stdout);
+        return {ERROR_GENERIC, 1};
     }
 
     struct timeval start, end;
     double benchtime;
 
-    // prime function ? feels more reliable, TODO test
-    outs() << "benchmarking now\n";
-    (*latency)(N);
-    gettimeofday(&start, NULL);
-    (*latency)(N);
-    gettimeofday(&end, NULL);
+    struct sigaction sa;
+    sa.sa_handler = sigillHandler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGILL, &sa, nullptr);
+
+    if (sigsetjmp(jumpBuffer, 1) == 0) {
+        // prime function ? feels more reliable, TODO test
+        (*latency)(N); // (may cause SIGILL)
+        gettimeofday(&start, NULL);
+        (*latency)(N);
+        gettimeofday(&end, NULL);
+    } else {
+        dlclose(handle);
+        return {ILLEGAL_INSTRUCTION, 1};
+    }
+
     benchtime = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
-    // printf("%.3f (benchtime)\n",  benchtime);
     dlclose(handle);
     return {SUCCESS, benchtime};
 }
 
 // runs two benchmarks to correct eventual interference with loop instructions
+// this may segfault e.g. on privileged instructions like CLGI so dont call from main process
 static std::pair<ErrorCode, double>
 measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
     unsigned numInst1 = 100;
     unsigned numInst2 = 100; // make the generator generate as many operations as possible
 
-    double n = 1000000;
+    double n = 1000000; // loop count
     std::string assembly;
     ErrorCode EC;
-    double time_1;
-    double time_2;
+    double time1;
+    double time2;
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1);
-    if (EC != SUCCESS) return {EC, 1};
-    std::tie(EC, time_1) = runBenchmark(assembly, n);
-    if (EC != SUCCESS) return {EC, 1};
+    if (EC != SUCCESS) return {EC, -1};
+    std::tie(EC, time1) = runBenchmark(assembly, n);
+    if (EC != SUCCESS) return {EC, -1};
 
     std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst2, 2);
-    if (EC != SUCCESS) return {EC, 1};
-    std::tie(EC, time_2) = runBenchmark(assembly, n);
-    if (EC != SUCCESS) return {EC, 1};
+    if (EC != SUCCESS) return {EC, -1};
+    std::tie(EC, time2) = runBenchmark(assembly, n);
+    if (EC != SUCCESS) return {EC, -1};
 
-    // std::printf("time_1: %.3f \n", time_1);
-    // std::printf("time_2: %.3f \n", time_2);
+    // std::printf("time_1: %.3f \n", time1);
+    // std::printf("time_2: %.3f \n", time2);
 
     // predict if loop instructions interfere with the execution
     // see README for explanation TODO
-    double loopInstr = numInst1 * (time_2 - 2 * time_1) / (time_1 - time_2);
+    double loopInstr = numInst1 * (time2 - 2 * time1) / (time1 - time2);
 
     int nLoopInstr = std::round(loopInstr);
-    if (nLoopInstr >= 1)
-        std::printf("debug: estimating %.3f instructions interfering with measurement\n",
-                    loopInstr);
-    // double uncorrected = time_1 / (1e6 * numInst1 / Frequency * (n / 1e9));
-    double intCorrected = time_1 / (1e6 * (numInst1 + nLoopInstr) / Frequency * (n / 1e9));
-    // double floatCorrected = time_1 / (1e6 * (numInst1 + loopInstr) / Frequency * (n / 1e9));
+    // if (nLoopInstr >= 1)
+    // std::printf("debug: estimating %.3f instructions interfering with measurement\n",
+    //             loopInstr);
+    // double uncorrected = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
+    double intCorrected = time1 / (1e6 * (numInst1 + nLoopInstr) / Frequency * (n / 1e9));
+    // double floatCorrected = time1 / (1e6 * (numInst1 + loopInstr) / Frequency * (n / 1e9));
 
     // std::printf("%.3f uncorrected tp\n", uncorrected);
     // std::printf("%.3f intCorrected tp\n", intCorrected);
@@ -565,63 +607,117 @@ static double simpleMeasurement(unsigned Opcode, BenchmarkGenerator *Generator, 
     auto [EC2, time] = runBenchmark(assembly, n);
     double tp = time / (1e6 * *NumInst / Frequency * (n / 1e9));
     outs() << time << "\n";
+    outs().flush();
     std::printf("%.3f clock cycles\n", tp);
+    fflush(stdout);
     return 0;
+}
+
+// calls measureThroughput in a subprocess to recover from segfaults during the benchmarking process
+static std::pair<ErrorCode, double>
+measureThroughputSubprocess(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
+    double *sharedTP = static_cast<double *>(
+        mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+    ErrorCode *sharedEC = static_cast<ErrorCode *>(
+        mmap(NULL, sizeof(ErrorCode), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+
+    if (sharedTP == MAP_FAILED || sharedEC == MAP_FAILED) {
+        perror("mmap");
+        return {ERROR_MMAP, -1};
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        return {ERROR_FORK, -1};
+    }
+
+    if (pid == 0) { // Child process
+        auto [EC, tp] = measureThroughput(Opcode, Generator, Frequency);
+        *sharedTP = tp;
+        *sharedEC = EC;
+        exit(EXIT_SUCCESS);
+    } else { // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1};
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1};
+
+        ErrorCode EC = *sharedEC;
+        double tp = *sharedTP;
+        munmap(sharedTP, sizeof(int));
+        munmap(sharedEC, sizeof(ErrorCode));
+        return {EC, tp};
+    }
 }
 
 static int buildDatabase(double Frequency) {
     BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
     for (unsigned opcode = 0; opcode < generator.MCII->getNumOpcodes(); opcode++) {
-        auto [EC, tp] = measureThroughput(opcode, &generator, Frequency);
+        auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, Frequency);
+        std::string name = generator.MCII->getName(opcode).data();
+        name.resize(19, ' ');
         if (EC != SUCCESS) {
-            std::string name = generator.MCII->getName(opcode).data();
-            name.resize(15, ' ');
+            // if (EC != MAY_LOAD && EC != MAY_STORE && EC != MEMORY_OPERAND)
             outs() << name << ": " << "skipped for reason\t " << ecToString(EC) << "\n";
+            outs().flush();
             continue;
         }
         // outs() << generator.MCII->getName(opcode) << ": " << tp << " (clock cycles)\n";
-        std::printf("%s: %.3f (clock cycles)\n", generator.MCII->getName(opcode).data(), tp);
+        std::printf("%s: %.3f (clock cycles)\n", name.data(), tp);
+        fflush(stdout);
     }
     return 0;
 }
 
 int main(int argc, char **argv) {
-    // if (argc < 2) {
-    //     errs() << "Usage: " << argv[0] << " <instruction_name>" << " [numInstructions]"
-    //            << " [unrollCount]" << " [frequency (GHz)]\n";
-    //     return 1;
-    // }
 
-    StringRef instrName;
-    if (argc >= 2) {
-        instrName = argv[1];
-    }
-    unsigned numInst = 6;
-    if (argc >= 3) {
-        numInst = atoi(argv[2]);
-    }
-    unsigned unrollCount = 1;
-    if (argc >= 4) {
-        unrollCount = atof(argv[3]);
-    }
+    struct option long_options[] = {
+        {"help", no_argument, nullptr, 'h'},
+        {"instruction", required_argument, nullptr, 'i'},
+        {"frequency", required_argument, nullptr, 'v'},
+        {nullptr, 0, nullptr, 0} // End marker
+    };
+    StringRef instrName = "";
+    // unsigned numInst = 6;
+    // unsigned unrollCount = 1;
     double frequency = 3.75;
-    if (argc == 5) {
-        frequency = atof(argv[4]);
+    int opt;
+    while ((opt = getopt_long(argc, argv, "hi:f:", long_options, nullptr)) != -1) {
+        switch (opt) {
+        case 'h':
+            std::cout << "Usage:" << argv[0]
+                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)]\n";
+            return 0;
+        case 'i':
+            instrName = optarg;
+            break;
+        case 'f':
+            frequency = atof(optarg);
+            break;
+        default:
+            return 1;
+        }
     }
 
     BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
 
-    if (argc == 1) buildDatabase(frequency);
-    if (argc >= 2) {
+    if (instrName == "")
+        buildDatabase(frequency);
+    else {
+        debug = true;
         unsigned opcode = generator.getOpcode(instrName.data());
-        generator.temp(opcode);
-        // auto [EC, tp] = measureThroughput(opcode, &generator, frequency);
-        // if (EC != SUCCESS)
-        //     outs() << ecToString(EC) << "\n";
-        // else
-        //     std::printf("%.3f (clock cycles)\n", tp);
+        // generator.temp(opcode);
+        auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
+        if (EC != SUCCESS) {
+            outs() << "failed for reason: " << ecToString(EC) << "\n";
+            outs().flush();
+        } else {
+            std::printf("%.3f (clock cycles)\n", tp);
+            fflush(stdout);
+        }
     }
 
     return 0;
