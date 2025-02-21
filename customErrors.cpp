@@ -19,6 +19,8 @@ enum ErrorCode {
     ERROR_MMAP,
     ERROR_FORK,
     ERROR_SIGSEGV,
+    ERROR_TARGET_DETECT,
+    ERROR_CPU_DETECT,
     ILLEGAL_INSTRUCTION,
     ERROR_GENERIC,
 };
@@ -61,7 +63,11 @@ static std::string ecToString(ErrorCode EC) {
         return "ERROR_FORK";
     case ERROR_SIGSEGV:
         return "ERROR_SIGSEGV";
+    case ERROR_TARGET_DETECT:
+        return "ERROR_TARGET_DETECT";
     case ILLEGAL_INSTRUCTION:
+        return "ERROR_CPU_DETECT";
+    case ERROR_CPU_DETECT:
         return "ILLEGAL_INSTRUCTION";
     case ERROR_GENERIC:
         return "ERROR_GENERIC";
