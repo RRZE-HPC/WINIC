@@ -1,5 +1,6 @@
-#include "MCTargetDesc/X86MCTargetDesc.h"
+// #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "benchmarkGenerator.cpp"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
 #include "llvm/IR/Instructions.h"
@@ -15,6 +16,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/X86TargetParser.h"
+#include <algorithm>
 #include <csetjmp>
 #include <cstdlib>
 #include <dlfcn.h>
@@ -23,6 +25,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <math.h>
+#include <numeric>
 #include <string>
 #include <sys/mman.h>
 #include <sys/select.h>
@@ -76,13 +79,12 @@ using namespace llvm;
 // using namespace X86;
 
 static bool debug = false;
-template <typename... Args> void dbg(Args &&...args) {
+template <typename... Args> static void dbg(Args &&...args) {
     if (debug) {
         (outs() << ... << args) << "\n";
         outs().flush();
     }
 }
-
 
 // Global jump buffer for recovery
 static sigjmp_buf jumpBuffer;
@@ -93,13 +95,14 @@ static void sigillHandler(int Signum) {
     siglongjmp(jumpBuffer, 1); // Jump back to safe point
 }
 
-static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
+static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly, int N,
+                                                            unsigned Runs) {
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
     if (!asmFile) {
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {ERROR_GENERIC, 1};
+        return {ERROR_GENERIC, {-1}};
     }
     asmFile << Assembly;
     asmFile.close();
@@ -108,7 +111,7 @@ static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     std::string command =
         "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
-    if (system(command.data()) != 0) return {ERROR_ASSEMBLY, 1};
+    if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {-1}};
 
     // from ibench
     void *handle;
@@ -117,17 +120,17 @@ static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
         fflush(stdout);
-        return {ERROR_GENERIC, 1};
+        return {ERROR_GENERIC, {-1}};
     }
     if ((latency = (double (*)(int))dlsym(handle, "latency")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find function latency\n");
         fflush(stdout);
-        return {ERROR_GENERIC, 1};
+        return {ERROR_GENERIC, {-1}};
     }
     if ((ninst = (int *)dlsym(handle, "ninst")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
         fflush(stdout);
-        return {ERROR_GENERIC, 1};
+        return {ERROR_GENERIC, {-1}};
     }
 
     struct timeval start, end;
@@ -138,48 +141,55 @@ static std::pair<ErrorCode, double> runBenchmark(std::string Assembly, int N) {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sigaction(SIGILL, &sa, nullptr);
+    std::list<double> benchtimes;
 
     if (sigsetjmp(jumpBuffer, 1) == 0) {
-        // prime function ? feels more reliable, TODO test
-        (*latency)(N); // (may cause SIGILL)
-        gettimeofday(&start, NULL);
-        (*latency)(N);
-        gettimeofday(&end, NULL);
+        for (unsigned i = 0; i < Runs; i++) {
+            gettimeofday(&start, NULL);
+            (*latency)(N);
+            gettimeofday(&end, NULL);
+            benchtimes.insert(benchtimes.end(), (end.tv_sec - start.tv_sec) * 1000000 +
+                                                    (end.tv_usec - start.tv_usec));
+        }
     } else {
         dlclose(handle);
-        return {ILLEGAL_INSTRUCTION, 1};
+        return {ILLEGAL_INSTRUCTION, {-1}};
     }
 
-    benchtime = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
     dlclose(handle);
-    return {SUCCESS, benchtime};
+    return {SUCCESS, benchtimes};
 }
 
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI so dont call from main process
 static std::pair<ErrorCode, double>
 measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
-    unsigned numInst1 = 100;
-    unsigned numInst2 = 100; // make the generator generate as many operations as possible
+    // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
+    // instructions like random value generation
+    unsigned numInst1 = 12;
+    unsigned numInst2 = 12;
 
     double n = 1000000; // loop count
     std::string assembly;
     ErrorCode EC;
-    double time1;
-    double time2;
+    std::list<double> times1;
+    std::list<double> times2;
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1);
     if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, time1) = runBenchmark(assembly, n);
+    std::tie(EC, times1) = runBenchmark(assembly, n, 3);
     if (EC != SUCCESS) return {EC, -1};
 
     std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst2, 2);
     if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, time2) = runBenchmark(assembly, n);
+    std::tie(EC, times2) = runBenchmark(assembly, n, 3);
     if (EC != SUCCESS) return {EC, -1};
 
-    // std::printf("time_1: %.3f \n", time1);
-    // std::printf("time_2: %.3f \n", time2);
+    // take minimum of runs
+    double time1 = *std::min_element(times1.begin(), times1.end());
+    double time2 = *std::min_element(times2.begin(), times2.end());
+    // std::printf("time1: %.3f \n", time1);
+    // std::printf("time2: %.3f \n", time2);
 
     // predict if loop instructions interfere with the execution
     // see README for explanation TODO
@@ -187,8 +197,7 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
 
     int nLoopInstr = std::round(loopInstr);
     // if (nLoopInstr >= 1)
-    // std::printf("debug: estimating %.3f instructions interfering with measurement\n",
-    //             loopInstr);
+    // std::printf("debug: estimating %.3f instructions interfering with measurement\n", loopInstr);
     // double uncorrected = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
     double intCorrected = time1 / (1e6 * (numInst1 + nLoopInstr) / Frequency * (n / 1e9));
     // double floatCorrected = time1 / (1e6 * (numInst1 + loopInstr) / Frequency * (n / 1e9));
@@ -196,7 +205,6 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     // std::printf("%.3f uncorrected tp\n", uncorrected);
     // std::printf("%.3f intCorrected tp\n", intCorrected);
     // std::printf("%.3f floatCorrected tp\n", floatCorrected);
-
     return {SUCCESS, intCorrected};
 }
 
@@ -205,7 +213,8 @@ static double simpleMeasurement(unsigned Opcode, BenchmarkGenerator *Generator, 
     unsigned n = 1e6;
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     auto [EC, assembly] = Generator->genTPBenchmark(Opcode, NumInst, UnrollCount);
-    auto [EC2, time] = runBenchmark(assembly, n);
+    auto [EC2, times] = runBenchmark(assembly, n, 1);
+    double time = std::accumulate(times.begin(), times.end(), 0.0) / times.size();
     double tp = time / (1e6 * *NumInst / Frequency * (n / 1e9));
     outs() << time << "\n";
     outs().flush();
@@ -272,12 +281,46 @@ static int buildDatabase(double Frequency) {
     return 0;
 }
 
+// studies
+static void runBenchmarkStudy(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency,
+                              int N) {
+    ErrorCode EC;
+    std::string assembly;
+    unsigned numInst1 = 12;
+    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1);
+    for (unsigned i = 0; i < 10; i++) {
+        auto [EC, Times] = runBenchmark(assembly, N, 10);
+        for (auto t : Times) {
+            auto tp = t / (1e6 * numInst1 / Frequency * (N / 1e9));
+            std::printf("%.3f, ", tp);
+        }
+        std::printf("\n");
+    }
+}
+
+static void studyUnrollBehavior(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
+    unsigned N = 1000000;
+
+    for (unsigned i = 1; i < 61; i++) {
+        unsigned numInst1 = i;
+        auto [EC, assembly] = Generator->genTPBenchmark(Opcode, &numInst1, 1, true);
+        auto [EC1, Times] = runBenchmark(assembly, N, 10);
+        double time1 = *std::min_element(Times.begin(), Times.end());
+        auto tp = time1 / (1e6 * numInst1 / Frequency * (N / 1e9));
+        std::printf("(%i, %.3f), ", i, tp);
+
+        std::printf("\n");
+    }
+}
+
 int main(int argc, char **argv) {
 
     struct option long_options[] = {
         {"help", no_argument, nullptr, 'h'},
         {"instruction", required_argument, nullptr, 'i'},
         {"frequency", required_argument, nullptr, 'v'},
+        {"cpu", required_argument, nullptr, 'c'},
+        {"march", required_argument, nullptr, 'm'},
         {nullptr, 0, nullptr, 0} // End marker
     };
     StringRef instrName = "";
@@ -285,7 +328,9 @@ int main(int argc, char **argv) {
     // unsigned unrollCount = 1;
     double frequency = 3.75;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hi:f:", long_options, nullptr)) != -1) {
+    std::string cpu = "";
+    std::string march = "";
+    while ((opt = getopt_long(argc, argv, "hi:f:m:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             std::cout << "Usage:" << argv[0]
@@ -297,28 +342,42 @@ int main(int argc, char **argv) {
         case 'f':
             frequency = atof(optarg);
             break;
+        case 'm':
+            march = optarg;
+            break;
+        case 'c':
+            cpu = optarg;
+            break;
         default:
             return 1;
         }
     }
 
     BenchmarkGenerator generator = BenchmarkGenerator();
-    generator.setUp();
+    ErrorCode EC = generator.setUp(march, cpu);
+    if (EC == ERROR_TARGET_DETECT) {
+        errs()
+            << "could not detect target, please specify using --cpu or --arch\n"; // TODO implement
+        exit(EXIT_FAILURE);
+    }
 
     if (instrName == "")
         buildDatabase(frequency);
     else {
         debug = true;
         unsigned opcode = generator.getOpcode(instrName.data());
+
         // generator.temp(opcode);
-        auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
-        if (EC != SUCCESS) {
-            outs() << "failed for reason: " << ecToString(EC) << "\n";
-            outs().flush();
-        } else {
-            std::printf("%.3f (clock cycles)\n", tp);
-            fflush(stdout);
-        }
+        // runBenchmarkStudy(opcode, &generator, frequency, 1000000);
+        studyUnrollBehavior(opcode, &generator, frequency);
+        // auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
+        // if (EC != SUCCESS) {
+        //     outs() << "failed for reason: " << ecToString(EC) << "\n";
+        //     outs().flush();
+        // } else {
+        //     std::printf("%.3f (clock cycles)\n", tp);
+        //     fflush(stdout);
+        // }
     }
 
     return 0;

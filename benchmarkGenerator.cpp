@@ -2,6 +2,7 @@
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "customErrors.cpp"
 #include "templates.cpp"
+#include "llvm-c/Target.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
@@ -28,6 +29,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/TargetParser/X86TargetParser.h"
 #include <algorithm>
@@ -36,6 +38,7 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <iostream>
 #include <list>
 #include <math.h>
 #include <memory>
@@ -68,25 +71,55 @@ class BenchmarkGenerator {
     // SmallVector<char> outVector;
     unsigned MaxReg;
     BenchmarkGenerator() : Ctx(), Mod(std::make_unique<Module>("beehives", Ctx)) {}
-    void setUp() {
-        LLVMInitializeX86Target();
-        LLVMInitializeX86TargetInfo();
-        LLVMInitializeX86TargetMC();
-        LLVMInitializeX86AsmPrinter();
+    ErrorCode setUp(std::string March = "", std::string Cpu = "") {
         // LLVMInitializeX86AsmParser();
         // LLVMInitializeX86Disassembler();
         // LLVMInitializeX86TargetMCA();
-        StringRef TargetTripleStr = "x86_64-pc-linux";
+        // InitializeAllTargets();
+        // InitializeAllTargetInfos();
+        // InitializeAllTargetMCs();
+        // InitializeAllAsmPrinters();
+        // StringRef TargetTripleStr = "x86_64-pc-linux";
+        std::string TargetTripleStr;
+        if (March.empty()) {
+            TargetTripleStr = llvm::sys::getDefaultTargetTriple();
+        } else {
+            TargetTripleStr = (March + "-pc-linux").data();
+        }
+        Triple TargetTriple(TargetTripleStr);
+
+        if (Cpu.empty()) Cpu = llvm::sys::getHostCPUName().str();
+        if (Cpu.empty()) return ERROR_CPU_DETECT;
+        outs() << "detected " << TargetTripleStr << ", march: " << Cpu << "\n";
+        if (TargetTriple.getArch() == Triple::ArchType::x86_64) {
+            LLVMInitializeX86Target();
+            LLVMInitializeX86TargetInfo();
+            LLVMInitializeX86TargetMC();
+            LLVMInitializeX86AsmPrinter();
+        } else if (TargetTriple.getArch() == Triple::ArchType::aarch64) {
+            LLVMInitializeAArch64Target();
+            LLVMInitializeAArch64TargetInfo();
+            LLVMInitializeAArch64TargetMC();
+            LLVMInitializeAArch64AsmPrinter();
+        } else if (TargetTriple.getArch() == Triple::ArchType::riscv64) {
+            LLVMInitializeRISCVTarget();
+            LLVMInitializeRISCVTargetInfo();
+            LLVMInitializeRISCVTargetMC();
+            LLVMInitializeRISCVAsmPrinter();
+        } else {
+            if (TargetTriple.getArch() != llvm::Triple::UnknownArch)
+                errs() << "unsupported architecture: " << TargetTriple.getArchName() << "\n";
+            return ERROR_TARGET_DETECT;
+        }
         // StringRef TargetTripleStr = "x86_64--";
         // copied from InstrRefLDVTest.cpp
         Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"
                            "f80:128-n8:16:32:64-S128");
-        Triple TargetTriple(TargetTripleStr);
         std::string Error;
         const Target *TheTarget = TargetRegistry::lookupTarget("", TargetTriple, Error);
         TargetOptions Options;
         Machine = std::unique_ptr<TargetMachine>(TheTarget->createTargetMachine(
-            Triple::normalize(TargetTripleStr), "znver4", "", Options, std::nullopt, std::nullopt,
+            Triple::normalize(TargetTripleStr), Cpu, "", Options, std::nullopt, std::nullopt,
             CodeGenOptLevel::Aggressive));
         assert(Machine && "Unable to create Machine");
         FunctionType *Type = FunctionType::get(Type::getVoidTy(Ctx), false);
@@ -114,12 +147,16 @@ class BenchmarkGenerator {
         // set syntax variant here
         MIP = TheTarget->createMCInstPrinter(Triple(TargetTripleStr), 1, *MAI, *MCII, *MRI);
         assert(MIP && "Unable to create MCInstPrinter!");
+        return SUCCESS;
     }
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
     // TargetInstrCount different instructions and ten unrolls them by UnrollCount. Updates
     // TargetInstrCount to the actual number of instructions in the loop (unrolls included)
+    // If ContinousUnroll=true it instead ignores the UnrollCount and generates exactly
+    // TargetInstrCount instructions, unrolling dynamically
     std::pair<ErrorCode, std::string> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                     unsigned UnrollCount) {
+                                                     unsigned UnrollCount,
+                                                     bool ContinousUnroll = false) {
         std::string result;
         llvm::raw_string_ostream rso(result);
         auto benchTemplate = x86Template();
@@ -137,8 +174,7 @@ class BenchmarkGenerator {
         }
         auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
         if (EC != SUCCESS) return {EC, ""};
-        // update TargetInstructionCount to actual number of instructions generated
-        *TargetInstrCount = instructions.size() * UnrollCount;
+
         // save registers used (genTPInnerLoop updates usedRegisters)
         std::string saveRegs;
         std::string restoreRegs;
@@ -155,20 +191,40 @@ class BenchmarkGenerator {
                 restoreRegs.insert(0, restore.append("\n"));
             }
         }
+        if (!ContinousUnroll) {
+            // update TargetInstructionCount to actual number of instructions generated
+            *TargetInstrCount = instructions.size() * UnrollCount;
+        }
         rso << "#define NINST " << *TargetInstrCount << "\n";
         rso << benchTemplate.preLoop;
         rso << saveRegs;
         rso << benchTemplate.beginLoop;
-        for (unsigned i = 0; i < UnrollCount; i++) {
-            for (auto inst : instructions) {
+        if (ContinousUnroll) {
+            auto instIter = instructions.begin();
+            for (unsigned i = 0; i < *TargetInstrCount; i++) {
+                if (instIter == instructions.end()) instIter = instructions.begin();
                 // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can we
                 // check it? if found, add check to isValid()
                 std::string temp;
                 llvm::raw_string_ostream tso(temp);
-                MIP->printInst(&inst, 0, "", *MSTI, tso);
+                MIP->printInst(&*instIter, 0, "", *MSTI, tso);
                 if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
-                MIP->printInst(&inst, 0, "", *MSTI, rso);
+                MIP->printInst(&*instIter, 0, "", *MSTI, rso);
                 rso << "\n";
+                ++instIter;
+            }
+        } else {
+            for (unsigned i = 0; i < UnrollCount; i++) {
+                for (auto inst : instructions) {
+                    // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can
+                    // we check it? if found, add check to isValid()
+                    std::string temp;
+                    llvm::raw_string_ostream tso(temp);
+                    MIP->printInst(&inst, 0, "", *MSTI, tso);
+                    if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
+                    MIP->printInst(&inst, 0, "", *MSTI, rso);
+                    rso << "\n";
+                }
             }
         }
         rso << benchTemplate.midLoop;

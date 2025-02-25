@@ -15,5 +15,8 @@ test: ./experiment.cpp
 llvm_instr_gen: ./llvm_instr_gen.cpp ./templates.cpp ./benchmarkGenerator.cpp ./customErrors.cpp
 	@$(CC) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) 
 
+quick: ./quick_exec.cpp
+	@$(CC) $(CXXFLAGS) -g -O0 $^ -o $@ $(LDFLAGS)
+
 clean:
 	rm -f llvm_instr_gen experiment
