@@ -1,4 +1,5 @@
 #include <set>
+#include <string>
 
 class x86Template {
     // the template for x86 benchmarks split up into parts to insert the benchmark loop and
