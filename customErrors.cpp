@@ -66,9 +66,9 @@ static std::string ecToString(ErrorCode EC) {
     case ERROR_TARGET_DETECT:
         return "ERROR_TARGET_DETECT";
     case ILLEGAL_INSTRUCTION:
-        return "ERROR_CPU_DETECT";
-    case ERROR_CPU_DETECT:
         return "ILLEGAL_INSTRUCTION";
+    case ERROR_CPU_DETECT:
+        return "ERROR_CPU_DETECT";
     case ERROR_GENERIC:
         return "ERROR_GENERIC";
     default:
