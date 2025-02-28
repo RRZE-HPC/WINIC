@@ -1,3 +1,6 @@
 llvm_instr_gen
 gcc_out
 venv/
+*.s
+quick
+llvm-project.code-workspace
