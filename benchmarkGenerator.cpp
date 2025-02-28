@@ -1,10 +1,12 @@
-#include "MCTargetDesc/X86BaseInfo.h"
-#include "MCTargetDesc/X86MCTargetDesc.h"
+// #include "MCTargetDesc/X86BaseInfo.h"
+// #include "MCTargetDesc/X86MCTargetDesc.h"
+// #include "X86RegisterInfo.h"
 #include "customErrors.cpp"
 #include "templates.cpp"
 #include "llvm-c/Target.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/Register.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/CodeGen/TargetLowering.h"
@@ -31,7 +33,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
-#include "llvm/TargetParser/X86TargetParser.h"
+// #include "llvm/TargetParser/X86TargetParser.h"
 #include <algorithm>
 #include <csetjmp>
 #include <cstdlib>
@@ -55,6 +57,7 @@ using namespace llvm;
 class BenchmarkGenerator {
   public:
     LLVMContext Ctx;
+    Triple TargetTriple;
     std::unique_ptr<Module> Mod;
     std::unique_ptr<TargetMachine> Machine;
     std::unique_ptr<MachineFunction> MF;
@@ -91,6 +94,7 @@ class BenchmarkGenerator {
         if (Cpu.empty()) Cpu = llvm::sys::getHostCPUName().str();
         if (Cpu.empty()) return ERROR_CPU_DETECT;
         outs() << "detected " << TargetTripleStr << ", march: " << Cpu << "\n";
+        outs().flush();
         if (TargetTriple.getArch() == Triple::ArchType::x86_64) {
             LLVMInitializeX86Target();
             LLVMInitializeX86TargetInfo();
@@ -149,6 +153,7 @@ class BenchmarkGenerator {
         assert(MIP && "Unable to create MCInstPrinter!");
         return SUCCESS;
     }
+
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
     // TargetInstrCount different instructions and ten unrolls them by UnrollCount. Updates
     // TargetInstrCount to the actual number of instructions in the loop (unrolls included)
@@ -159,7 +164,7 @@ class BenchmarkGenerator {
                                                      bool ContinousUnroll = false) {
         std::string result;
         llvm::raw_string_ostream rso(result);
-        auto benchTemplate = x86Template();
+        auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
         // extract list of registers used by the template
         std::set<MCRegister> usedRegisters;
         for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
@@ -174,6 +179,7 @@ class BenchmarkGenerator {
         }
         auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
         if (EC != SUCCESS) return {EC, ""};
+        // TODO continuous unroll is bs right now, last can equal first instruction
 
         // save registers used (genTPInnerLoop updates usedRegisters)
         std::string saveRegs;
@@ -186,7 +192,7 @@ class BenchmarkGenerator {
                 auto [EC1, save] = genSaveRegister(reg);
                 if (EC1 != SUCCESS) return {EC1, ""};
                 saveRegs.append(save).append("\n");
-                auto [EC2, restore] = genRestoreRegister(reg);
+                auto [EC2, restore] = genRestoreRegisterx86(reg);
                 if (EC2 != SUCCESS) return {EC2, ""};
                 restoreRegs.insert(0, restore.append("\n"));
             }
@@ -233,13 +239,21 @@ class BenchmarkGenerator {
         rso << benchTemplate.postLoop << "\n";
         return {SUCCESS, result};
     }
+
     void temp(unsigned Opcode) {
-        const MCInstrDesc &desc = MCII->get(Opcode);
-        if (desc.TSFlags & X86::FEATURE_64BIT) outs() << "FEATURE_64BIT bit\n";
-        if (desc.TSFlags & X86::FeatureSSE2) outs() << "FeatureSSE2 bit\n";
-        if (desc.TSFlags & X86II::PrefixByte) outs() << "PrefixByte bit\n";
-        outs().flush();
+        // const MCInstrDesc &desc = MCII->get(Opcode);
+        // if (desc.TSFlags & X86::FEATURE_64BIT) outs() << "FEATURE_64BIT bit\n";
+        // if (desc.TSFlags & X86::FeatureSSE2) outs() << "FeatureSSE2 bit\n";
+        // if (desc.TSFlags & X86II::PrefixByte) outs() << "PrefixByte bit\n";
+        // outs().flush();
+        for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
+            MCRegister Reg = MCRegister::from(i);
+            outs() << "name: " << TRI->getRegAsmName(Reg) << "\n";
+            outs() << "class: " << TRI->getRegClass(Reg.id()) << "\n";
+            outs() << "phys reg base class: " << TRI->getPhysRegBaseClass(Reg) << "\n";
+        }
     }
+
     // generates a benchmark loop to measure throughput of an instruction
     // tries to generate targetInstrCount independent instructions for the inner
     // loop might generate less instructions than targetInstrCount if there are
@@ -275,6 +289,7 @@ class BenchmarkGenerator {
                         bool foundRegister = false;
                         for (MCRegister reg : RegClass) {
                             if (reg.id() >= MaxReg || reg.id() == 58)
+                                // replace with check for arch and X86::RAX
                                 // RIP register (58) is included in GR64 class which is a bug
                                 // see X86RegisterInfo.td:586
                                 continue;
@@ -318,30 +333,58 @@ class BenchmarkGenerator {
         }
         return {SUCCESS, instructions};
     }
+
     std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
         for (unsigned i = 0; i < 100; i++) {
             if (TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
-            Reg = *TRI->superregs(Reg).begin(); // take firs superreg
+            Reg = *TRI->superregs(Reg).begin(); // take first superreg
         }
         return {ERROR_GENERIC, NULL};
     }
+
     // TODO find ISA independent function in llvm
     std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
+
         ErrorCode EC;
         // we dont want to save sub registers
         std::tie(EC, Reg) = getSupermostRegister(Reg);
         if (EC != SUCCESS) return {EC, ""};
-        MCInst inst;
-        inst.setOpcode(getOpcode("PUSH64r"));
-        inst.clear();
-        inst.addOperand(MCOperand::createReg(Reg));
         std::string result;
-        llvm::raw_string_ostream rso(result); // Wrap the string with raw_ostream
-        MIP->printInst(&inst, 0, "", *MSTI, rso);
+        llvm::raw_string_ostream rso(result); // Wrap with raw_ostream
+
+        rso << "name: " << TRI->getRegAsmName(Reg) << "\n";
+        rso << "class: " << TRI->getRegClass(Reg.id()) << "\n";
+        rso << "phys reg base class: " << TRI->getPhysRegBaseClass(Reg) << "\n";
+
+        switch (MSTI->getTargetTriple().getArch()) {
+        case llvm::Triple::x86_64: {
+            MCInst inst;
+            inst.setOpcode(getOpcode("PUSH64r"));
+            inst.clear();
+            inst.addOperand(MCOperand::createReg(Reg));
+            MIP->printInst(&inst, 0, "", *MSTI, rso);
+            break;
+        }
+        case llvm::Triple::aarch64: {
+            // stack pointer
+            rso << "        sub     sp, sp, #16\n";
+            // store
+            MCInst inst;
+
+            // X86::RAX;
+            // inst.setOpcode(getOpcode("str"));
+            // inst.clear();
+            // inst.addOperand(MCOperand::createReg(Reg));
+            // MIP->printInst(&inst, 0, "", *MSTI, rso);
+            break;
+        }
+        }
+
         return {SUCCESS, result};
     }
+
     // TODO find ISA independent function in llvm
-    std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
+    std::pair<ErrorCode, std::string> genRestoreRegisterx86(MCRegister Reg) {
         ErrorCode EC;
         std::tie(EC, Reg) = getSupermostRegister(Reg);
         if (EC != SUCCESS) return {EC, ""};
@@ -354,6 +397,7 @@ class BenchmarkGenerator {
         MIP->printInst(&inst, 0, "", *MSTI, rso);
         return {SUCCESS, result};
     }
+
     // filter which instructions get exluded
     ErrorCode isValid(MCInstrDesc Instruction) {
         if (Instruction.isPseudo()) return PSEUDO_INSTRUCTION;
@@ -363,9 +407,10 @@ class BenchmarkGenerator {
         if (Instruction.isMetaInstruction()) return IS_META_INSTRUCTION;
         if (Instruction.isReturn()) return IS_RETURN;
         if (Instruction.isBranch()) return IS_BRANCH; // TODO uops has TP, how?
-        if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
+        // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
         return SUCCESS;
     }
+
     // get Opcode for instruction
     // TODO there probably is a mechanism for this in llvm -> find and use
     unsigned getOpcode(std::string InstructionName) {
