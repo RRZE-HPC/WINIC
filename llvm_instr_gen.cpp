@@ -46,6 +46,8 @@
 
 /*
 TODO
+    some instructions e.g. adc on zen4 get a TP penalty when unrolling the loop without
+    breaking the dependency on the flags. try to avoid
     replace generic errors
     move to clang for assembling to avoid gcc dependency
     test other arches
@@ -79,6 +81,7 @@ using namespace llvm;
 // using namespace X86;
 
 static bool debug = false;
+static bool dbgToFile = true;
 template <typename... Args> static void dbg(Args &&...args) {
     if (debug) {
         (outs() << ... << args) << "\n";
@@ -106,6 +109,17 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
     }
     asmFile << Assembly;
     asmFile.close();
+    if (dbgToFile) {
+        std::string DebugPath =
+            "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/own_tools/llvm-bench/debug.s";
+        std::ofstream debugFile(DebugPath);
+        if (!asmFile) {
+            std::cerr << "Failed to create file in /dev/shm/" << std::endl;
+            return {ERROR_GENERIC, {-1}};
+        }
+        debugFile << Assembly;
+        debugFile.close();
+    }
     // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
     // + " -o " + o_path;
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
@@ -196,8 +210,11 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     double loopInstr = numInst1 * (time2 - 2 * time1) / (time1 - time2);
 
     int nLoopInstr = std::round(loopInstr);
-    // if (nLoopInstr >= 1)
-    // std::printf("debug: estimating %.3f instructions interfering with measurement\n", loopInstr);
+
+    if (nLoopInstr != 0) {
+        std::printf("debug: %.3f instructions interfering with measurement\n", loopInstr);
+        fflush(stdout);
+    }
     // double uncorrected = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
     double intCorrected = time1 / (1e6 * (numInst1 + nLoopInstr) / Frequency * (n / 1e9));
     // double floatCorrected = time1 / (1e6 * (numInst1 + loopInstr) / Frequency * (n / 1e9));
@@ -261,10 +278,12 @@ measureThroughputSubprocess(unsigned Opcode, BenchmarkGenerator *Generator, doub
     }
 }
 
-static int buildDatabase(double Frequency) {
+// measure the first maxNum instructions or all if maxNum is zero or not supplied
+static int buildDatabase(double Frequency, unsigned MaxNum = 0) {
     BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
-    for (unsigned opcode = 0; opcode < generator.MCII->getNumOpcodes(); opcode++) {
+    if (MaxNum == 0) MaxNum = generator.MCII->getNumOpcodes();
+    for (unsigned opcode = 0; opcode < MaxNum; opcode++) {
         auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, Frequency);
         std::string name = generator.MCII->getName(opcode).data();
         name.resize(19, ' ');
@@ -321,6 +340,7 @@ int main(int argc, char **argv) {
         {"frequency", required_argument, nullptr, 'v'},
         {"cpu", required_argument, nullptr, 'c'},
         {"march", required_argument, nullptr, 'm'},
+        {"number", required_argument, nullptr, 'n'},
         {nullptr, 0, nullptr, 0} // End marker
     };
     StringRef instrName = "";
@@ -330,11 +350,12 @@ int main(int argc, char **argv) {
     int opt;
     std::string cpu = "";
     std::string march = "";
-    while ((opt = getopt_long(argc, argv, "hi:f:m:", long_options, nullptr)) != -1) {
+    unsigned maxNum = 0;
+    while ((opt = getopt_long(argc, argv, "hi:f:m:n:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             std::cout << "Usage:" << argv[0]
-                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)]\n";
+                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--number nMax]\n";
             return 0;
         case 'i':
             instrName = optarg;
@@ -347,6 +368,9 @@ int main(int argc, char **argv) {
             break;
         case 'c':
             cpu = optarg;
+            break;
+        case 'n':
+            maxNum = atoi(optarg);
             break;
         default:
             return 1;
@@ -362,7 +386,7 @@ int main(int argc, char **argv) {
     }
 
     if (instrName == "")
-        buildDatabase(frequency);
+        buildDatabase(frequency, maxNum);
     else {
         debug = true;
         unsigned opcode = generator.getOpcode(instrName.data());
