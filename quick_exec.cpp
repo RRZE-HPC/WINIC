@@ -23,7 +23,7 @@ static void sigillHandler(int Signum) {
 }
 
 static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, double Frequency) {
-    std::string sPath = "/dev/shm/temp.s";
+    std::string sPath = "./debug.s";
     std::string oPath = "/dev/shm/temp.so";
     // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
     // + " -o " + o_path;
@@ -64,7 +64,7 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
     if (sigsetjmp(jumpBuffer, 1) == 0) {
         for (unsigned i = 0; i < Runs; i++) {
             gettimeofday(&start, NULL);
-            //actual call to benchmarked function
+            // actual call to benchmarked function
             (*latency)(N);
             gettimeofday(&end, NULL);
             benchtimes.insert(benchtimes.end(), (end.tv_sec - start.tv_sec) * 1000000 +
@@ -82,14 +82,18 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
 
 int main(int argc, char **argv) {
     unsigned numInst = 12;
-    double Frequency = 3.75;
-    unsigned N = 1000000;
+    if (argc != 2) {
+        std::cerr << "usage: quick <frequency>";
+        exit(EXIT_FAILURE);
+    }
+    double Frequency = atof(argv[1]);
+    unsigned N = 10000000;
     auto times = runBenchmark(N, 3, &numInst, Frequency);
     for (auto time : times) {
         std::cout << time << " ";
     }
     double time1 = *std::min_element(times.begin(), times.end());
-    std::cout <<" avg: " << time1 << " numInst: " << numInst << "\n";
+    std::cout << " min: " << time1 << " numInst: " << numInst << "\n";
 
     double tp = time1 / (1e6 * numInst / Frequency * (N / 1e9));
     std::printf("%.3f (clock cycles)\n", tp);
