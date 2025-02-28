@@ -1,15 +1,140 @@
 
-cd Desktop/Bachelor_Local/llvm-project/build/own_tools/
+cd bachelor/llvm-project/build/own_tools/llvm-bench
+salloc --nodes=1 -w icx36 --time=02:00:00
+srun --cpu-freq=1900000-1900000:performance ./llvm_instr_gen -i ADC16ri8 -f 1.9
+srun --cpu-freq=1900000-1900000:performance ./quick 1.9
+
+Testfront
+    salloc --nodes=1 -w icx36 --time=02:00:00
+    salloc --nodes=1 -w genoa1 --time=02:00:00
+
+    module load cmake gcc python
+    mkdir -p llvm-project/build && cd llvm-project/build
+    cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON ../llvm
+    cmake --build . -- -j 32
+    mkdir own_tools && cd own_tools
+    git clone https://github.com/TobiasRTR/llvm-bench.git
+
+    #build with clangd
+    cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra"
+    cmake --build . --target clangd -- -j 32
 
 CLD
 BSWAP64r r64 
 ADD64rr r64 r64
 ADD64ri32 r64 i32
+ADC16i16 i16 always works on ax, how to measure TP
 VFMADD132PDYr ymm ymm ymm
 
 
+    #TP 0.254 unrolled
+	adc	ax, 42
+	adc	cx, 42
+	adc	dx, 42
+	adc	si, 42
+	adc	bx, 42
+	adc	r9w, 42
+	adc	r10w, 42
+	adc	r11w, 42
+	adc	r14w, 42
+	adc	r15w, 42
+	adc	r12w, 42
+	adc	r13w, 42
+    clc
+
+    #TP 0.336 unrolled
+	adc	r14w, 1
+    xor eax, eax
+	adc	cx, 1
+    xor eax, eax
+	adc	dx, 1
+    xor eax, eax
+	adc	si, 1
+    xor eax, eax
+	adc	bx, 1
+    xor eax, eax
+	adc	r9w, 1
+    xor eax, eax
+	adc	r10w, 1
+    xor eax, eax
+	adc	r11w, 1
+    xor eax, eax
+
+    #TP 0.253 unrolled
+    adc cx, 1
+    add	r13w, 1
+	adc	bx, 1
+    add	r14w, 1
+	adc	r9w, 1
+    add	r15w, 1
+	adc	r10w, 1
+    add cx, 1
+	adc	r11w, 1
+    add	bx, 1
+    adc	r12w, 1
+    add	r9w, 1
+    adc	r13w, 1
+    add	r10w, 1
+    adc	r14w, 1
+    add	r11w, 1
+    adc	r15w, 1
+    add	r12w, 1
+
+    #TP 0.377 unrolled
+    adox	ecx, ebx
+	adox	edx, ebx
+	adox	r9d, ebx
+	adox	r10d, ebx
+	adox	r11d, ebx
+	adox	r12d, ebx
+	adox	r13d, ebx
+	adox	r14d, ebx
+    xor eax, eax
+
+    #TP 0.258 unrolled
+    adox	ecx, ebx
+    add	r12d, 1
+	adox	edx, ebx
+    add	r13d, 1
+	adox	r9d, ebx
+    add	r14d, 1
+	adox	r10d, ebx
+    add ecx, 1
+	adox	r11d, ebx
+    add	edx, 1
+	adox	r12d, ebx
+    add	r9d, 1
+	adox	r13d, ebx
+    add	r10d, 1
+	adox	r14d, ebx
+    add	r11d, 1
+
+    
+    #TP 0.336 unrolled
+    adox	ecx, ebx
+    xor eax, eax
+	adox	edx, ebx
+    xor eax, eax
+	adox	r9d, ebx
+    xor eax, eax
+	adox	r10d, ebx
+    xor eax, eax
+	adox	r11d, ebx
+    xor eax, eax
+	adox	r12d, ebx
+    xor eax, eax
+	adox	r13d, ebx
+    xor eax, eax
+	adox	r14d, ebx
+    xor eax, eax
+
+
+
+
 #TODO
-look at MCInstBuider.h 
+write meta script to setup llvm, insert and compile llvm-bench
+look at shallow cloing llvm for this
+compile llvm with Debug for development
 
 important files:
 RegAllocBase.cpp ?
@@ -39,3 +164,46 @@ What if instructions interfere with instructions used by loop (cmp, jl, inc) (cm
     run twice with ninst and 2*ninst for runimes a and b
     use formula x = ninst * (b - 2 * a) / (a - b)
     to get x interfering instructions and correct TP calculation 
+
+
+SSE names
+    fma, order of operands, packed, double 
+    VFMADD132PD xmm1 xmm2 xmm3
+        xmm1 = xmm1*xmm3 + xmm2
+    VFMADD213PD xmm1 xmm2 xmm3
+        xmm1 = xmm2*xmm1 + xmm3
+    VFMADD231PD xmm1 xmm2 xmm3
+        xmm1 = xmm2*xmm3 + xmm1
+
+    in llvm:
+    VFMADD132PDYm
+    VFMADD132PD VR256 VR256 f256mem
+
+    VFMADD132PDYr
+    VFMADD132PD VR256 VR256 VR256
+
+    VFMADD132PDm
+    VFMADD132PD VR128 VR128 f128mem
+
+    LLVM: 
+    fma, order, packed, double, 256Bit(Y), 3rd operand register
+    VFMADD132PDYr
+
+
+    VFMADD132PDZ128m:
+    fma, order, packed, 512Bit, ?, memory
+    VR128X
+
+    General (VFMADD132PDZ256mbkz)
+    VFMADD {132|213|231}   {P|S}          {D|S}             { |Y|Z}       {128|256| }   {m|r}             {b| }       {k|kz| }
+            operand order   packed|scalar  douvble|single       |AVX512    xmm|ymm|zmm   mem|reg (3rd op)  broadcast   destination_mask|zero_where_mask_0
+
+    128|256 only available when Z (avx512)
+    memory variant ignored in osaca?
+    broadcast: uses a 64bit memory operand and boradcasts the value to the avx register before the fmadd
+
+
+AArch64 names
+    ADDSWrs 
+    ADDS {W,X} r {x|i|s}
+    add {32bit,64bit} register? {extended, immediate shifted}
