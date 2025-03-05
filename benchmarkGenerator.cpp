@@ -40,7 +40,6 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <iostream>
 #include <list>
 #include <math.h>
 #include <memory>
