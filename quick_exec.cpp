@@ -28,8 +28,9 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
     // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
     // + " -o " + o_path;
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
+    // "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
     std::string command =
-        "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
+        "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> compiler_out";
     if (system(command.data()) != 0) return {-1};
 
     // from ibench
@@ -83,7 +84,7 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
 int main(int argc, char **argv) {
     unsigned numInst = 12;
     if (argc != 2) {
-        std::cerr << "usage: quick <frequency>";
+        std::cerr << "usage: quick <frequency>\n";
         exit(EXIT_FAILURE);
     }
     double Frequency = atof(argv[1]);
