@@ -4,7 +4,6 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCInst.h"
@@ -33,6 +32,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifndef CLANG_PATH
+    #define CLANG_PATH "usr/bin/clang"
+#endif
+
 // #include "llvm/Support/FileSystem.h"
 // #include "llvm/MC/MCObjectWriter.h"
 // #include "llvm/CodeGen/MachineRegisterInfo.h"
@@ -49,15 +52,20 @@ TODO
     some instructions e.g. adc on zen4 get a TP penalty when unrolling the loop without
     breaking the dependency on the flags. try to avoid
     replace generic errors
-    move to clang for assembling to avoid gcc dependency
-    test other arches
-    add templates for other arches
+    plan release packaging
+    test if variant with clang assembler works on x86
+    configure llvm installation to include clang but be as fast as possible
     init registers (e.g. avoid avx-sse transition penalty)
     instructions with weird values
-        ADD_FST0r
-        XOR8rr_NOREX
-        ADC16ri8
-
+    test riscv?
+    add templates for riscv
+    ADD_FST0r
+    XOR8rr_NOREX
+    ADC16ri8
+    
+    -move to clang for assembling to avoid gcc dependency
+    -    ->check if equal number of successful measurements
+    -    ->check if syntaxVariants are still correct
     -MCInstrPrinter segfaults when instruction is wrong (or is Prefix)
     -check filtering memory instructions
     -implement loop instruction interference detection
@@ -70,7 +78,9 @@ State
 
 
 Questions:
-    compilation time
+    where to verify aarch data
+    how to set/read clock frequency on arm
+    likwid broken on arm
 
 */
 
@@ -78,18 +88,9 @@ Questions:
 // TRI->getRegAsmName(MCRegister)
 
 using namespace llvm;
-// using namespace X86;
-
-static bool debug = false;
 static bool dbgToFile = true;
-template <typename... Args> static void dbg(Args &&...args) {
-    if (debug) {
-        (outs() << ... << args) << "\n";
-        outs().flush();
-    }
-}
 
-// Global jump buffer for recovery
+// Global jump buffer for recovery from illegal instruction
 static sigjmp_buf jumpBuffer;
 
 // Signal handler for illegal instruction
@@ -113,8 +114,8 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
         std::string DebugPath =
             "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/own_tools/llvm-bench/debug.s";
         std::ofstream debugFile(DebugPath);
-        if (!asmFile) {
-            std::cerr << "Failed to create file in /dev/shm/" << std::endl;
+        if (!debugFile) {
+            std::cerr << "Failed to create debug file" << std::endl;
             return {ERROR_GENERIC, {-1}};
         }
         debugFile << Assembly;
@@ -123,8 +124,10 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
     // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
     // + " -o " + o_path;
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
-    std::string command =
-        "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
+    // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2> gcc_out";
+    std::string compiler = CLANG_PATH;
+    std::string command = compiler + 
+        " -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> assembler_out";
     if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {-1}};
 
     // from ibench
@@ -243,6 +246,7 @@ static double simpleMeasurement(unsigned Opcode, BenchmarkGenerator *Generator, 
 // calls measureThroughput in a subprocess to recover from segfaults during the benchmarking process
 static std::pair<ErrorCode, double>
 measureThroughputSubprocess(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
+    // allocate memory for communicating result
     double *sharedTP = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
     ErrorCode *sharedEC = static_cast<ErrorCode *>(
@@ -340,7 +344,7 @@ int main(int argc, char **argv) {
         {"frequency", required_argument, nullptr, 'v'},
         {"cpu", required_argument, nullptr, 'c'},
         {"march", required_argument, nullptr, 'm'},
-        {"number", required_argument, nullptr, 'n'},
+        {"ninst", required_argument, nullptr, 'n'},
         {nullptr, 0, nullptr, 0} // End marker
     };
     StringRef instrName = "";
@@ -355,7 +359,7 @@ int main(int argc, char **argv) {
         switch (opt) {
         case 'h':
             std::cout << "Usage:" << argv[0]
-                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--number nMax]\n";
+                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--ninst nMax]\n";
             return 0;
         case 'i':
             instrName = optarg;
@@ -385,23 +389,24 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (instrName == "")
+    if (instrName == "") { // generator.temp(0);
+        dbgToFile = false;
         buildDatabase(frequency, maxNum);
-    else {
-        debug = true;
+    } else {
+        // debug = true;
         unsigned opcode = generator.getOpcode(instrName.data());
 
         // generator.temp(opcode);
         // runBenchmarkStudy(opcode, &generator, frequency, 1000000);
-        studyUnrollBehavior(opcode, &generator, frequency);
-        // auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
-        // if (EC != SUCCESS) {
-        //     outs() << "failed for reason: " << ecToString(EC) << "\n";
-        //     outs().flush();
-        // } else {
-        //     std::printf("%.3f (clock cycles)\n", tp);
-        //     fflush(stdout);
-        // }
+        // studyUnrollBehavior(opcode, &generator, frequency);
+        auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
+        if (EC != SUCCESS) {
+            outs() << "failed for reason: " << ecToString(EC) << "\n";
+            outs().flush();
+        } else {
+            std::printf("%.3f (clock cycles)\n", tp);
+            fflush(stdout);
+        }
     }
 
     return 0;

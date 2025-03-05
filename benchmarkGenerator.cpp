@@ -54,6 +54,14 @@
 
 using namespace llvm;
 
+static bool debug = false;
+template <typename... Args> static void dbg(Args &&...args) {
+    if (debug) {
+        (outs() << ... << args) << "\n";
+        outs().flush();
+    }
+}
+
 class BenchmarkGenerator {
   public:
     LLVMContext Ctx;
@@ -73,8 +81,12 @@ class BenchmarkGenerator {
     // SourceMgr SrcMgr;
     // SmallVector<char> outVector;
     unsigned MaxReg;
+    Triple::ArchType Arch;
+
     BenchmarkGenerator() : Ctx(), Mod(std::make_unique<Module>("beehives", Ctx)) {}
     ErrorCode setUp(std::string March = "", std::string Cpu = "") {
+        dbg("setUp");
+
         // LLVMInitializeX86AsmParser();
         // LLVMInitializeX86Disassembler();
         // LLVMInitializeX86TargetMCA();
@@ -146,10 +158,14 @@ class BenchmarkGenerator {
         assert(MAI && "Unable to create asm info!");
         MCII = TheTarget->createMCInstrInfo();
         assert(MCII && "Unable to create MCInnstr info!");
-        MSTI = TheTarget->createMCSubtargetInfo(TargetTripleStr, "znver4", "");
+        MSTI = TheTarget->createMCSubtargetInfo(TargetTripleStr, Cpu, "");
         assert(MSTI && "Unable to create MCSubtargetInfo!");
-        // set syntax variant here
-        MIP = TheTarget->createMCInstPrinter(Triple(TargetTripleStr), 1, *MAI, *MCII, *MRI);
+        Arch = MSTI->getTargetTriple().getArch(); // for convenience
+        // set syntaxVariant here
+        if (Arch == Triple::ArchType::x86_64)
+            MIP = TheTarget->createMCInstPrinter(Triple(TargetTripleStr), 1, *MAI, *MCII, *MRI);
+        else
+            MIP = TheTarget->createMCInstPrinter(Triple(TargetTripleStr), 1, *MAI, *MCII, *MRI);
         assert(MIP && "Unable to create MCInstPrinter!");
         return SUCCESS;
     }
@@ -162,6 +178,7 @@ class BenchmarkGenerator {
     std::pair<ErrorCode, std::string> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
                                                      unsigned UnrollCount,
                                                      bool ContinousUnroll = false) {
+
         std::string result;
         llvm::raw_string_ostream rso(result);
         auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
@@ -179,6 +196,7 @@ class BenchmarkGenerator {
         }
         auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
         if (EC != SUCCESS) return {EC, ""};
+        dbg("inner loop generated");
         // TODO continuous unroll is bs right now, last can equal first instruction
 
         // save registers used (genTPInnerLoop updates usedRegisters)
@@ -189,18 +207,21 @@ class BenchmarkGenerator {
                 // generate code to save and restore register
                 // this currently also saves registers already saved in the template
                 // which is redundant but not harmful
+                dbg("calling genSave");
                 auto [EC1, save] = genSaveRegister(reg);
                 if (EC1 != SUCCESS) return {EC1, ""};
-                saveRegs.append(save).append("\n");
-                auto [EC2, restore] = genRestoreRegisterx86(reg);
+                saveRegs.append(save);
+                dbg("calling genRestore");
+                auto [EC2, restore] = genRestoreRegister(reg);
                 if (EC2 != SUCCESS) return {EC2, ""};
-                restoreRegs.insert(0, restore.append("\n"));
+                restoreRegs.insert(0, restore);
             }
         }
         if (!ContinousUnroll) {
             // update TargetInstructionCount to actual number of instructions generated
             *TargetInstrCount = instructions.size() * UnrollCount;
         }
+        dbg("starting to build");
         rso << "#define NINST " << *TargetInstrCount << "\n";
         rso << benchTemplate.preLoop;
         rso << saveRegs;
@@ -246,11 +267,17 @@ class BenchmarkGenerator {
         // if (desc.TSFlags & X86::FeatureSSE2) outs() << "FeatureSSE2 bit\n";
         // if (desc.TSFlags & X86II::PrefixByte) outs() << "PrefixByte bit\n";
         // outs().flush();
+
         for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
+            outs() << "lets see if it can handle " << i << " ?\n";
             MCRegister Reg = MCRegister::from(i);
-            outs() << "name: " << TRI->getRegAsmName(Reg) << "\n";
-            outs() << "class: " << TRI->getRegClass(Reg.id()) << "\n";
-            outs() << "phys reg base class: " << TRI->getPhysRegBaseClass(Reg) << "\n";
+            // outs() << "name: " << TRI->getRegAsmName(Reg) << "\n";
+            // outs() << "class: " << TRI->getRegClassName(TRI->getRegClass(Reg.id())) << "\n";
+            outs() << "name: " << MRI->getName(Reg) << "\n";
+            outs() << "class: " << MRI->getRegClassName(&MRI->getRegClass(i)) << "\n";
+            outs().flush();
+
+            // outs() << "phys reg base class: " << TRI->getPhysRegBaseClass(Reg) << "\n";
         }
     }
 
@@ -263,6 +290,7 @@ class BenchmarkGenerator {
                                                            std::set<MCRegister> &UsedRegisters) {
         std::list<MCInst> instructions;
         const MCInstrDesc &desc = MCII->get(Opcode);
+        dbg("genTPInnerLoop");
         if (isValid(desc) != SUCCESS) return {isValid(desc), {}};
         // MSTI->getFeatureBits().test(X86::FeatureFMA); TODO
         // STI.hasFeature(X86::Is16Bit) maybe also works
@@ -284,11 +312,14 @@ class BenchmarkGenerator {
                 } else {
                     switch (opInfo.OperandType) {
                     case MCOI::OPERAND_REGISTER: {
+                        dbg("adding register");
+
                         // search for unused register and add it as operand
                         const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
                         bool foundRegister = false;
                         for (MCRegister reg : RegClass) {
-                            if (reg.id() >= MaxReg || reg.id() == 58)
+                            if (Arch == Triple::ArchType::x86_64 &&
+                                (reg.id() >= MaxReg || reg.id() == 58))
                                 // replace with check for arch and X86::RAX
                                 // RIP register (58) is included in GR64 class which is a bug
                                 // see X86RegisterInfo.td:586
@@ -335,6 +366,7 @@ class BenchmarkGenerator {
     }
 
     std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
+
         for (unsigned i = 0; i < 100; i++) {
             if (TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
             Reg = *TRI->superregs(Reg).begin(); // take first superreg
@@ -344,6 +376,7 @@ class BenchmarkGenerator {
 
     // TODO find ISA independent function in llvm
     std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
+        dbg("genSaveRegister");
 
         ErrorCode EC;
         // we dont want to save sub registers
@@ -352,49 +385,49 @@ class BenchmarkGenerator {
         std::string result;
         llvm::raw_string_ostream rso(result); // Wrap with raw_ostream
 
-        rso << "name: " << TRI->getRegAsmName(Reg) << "\n";
-        rso << "class: " << TRI->getRegClass(Reg.id()) << "\n";
-        rso << "phys reg base class: " << TRI->getPhysRegBaseClass(Reg) << "\n";
-
-        switch (MSTI->getTargetTriple().getArch()) {
+        switch (Arch) {
         case llvm::Triple::x86_64: {
             MCInst inst;
             inst.setOpcode(getOpcode("PUSH64r"));
             inst.clear();
             inst.addOperand(MCOperand::createReg(Reg));
             MIP->printInst(&inst, 0, "", *MSTI, rso);
+            rso << "\n";
             break;
         }
-        case llvm::Triple::aarch64: {
-            // stack pointer
-            rso << "        sub     sp, sp, #16\n";
-            // store
-            MCInst inst;
-
-            // X86::RAX;
-            // inst.setOpcode(getOpcode("str"));
-            // inst.clear();
-            // inst.addOperand(MCOperand::createReg(Reg));
-            // MIP->printInst(&inst, 0, "", *MSTI, rso);
-            break;
-        }
+        case llvm::Triple::aarch64:
+            return {SUCCESS, ""}; // all registers saved in template
+        default:
+            return {ERROR_GENERIC, ""};
         }
 
         return {SUCCESS, result};
     }
 
     // TODO find ISA independent function in llvm
-    std::pair<ErrorCode, std::string> genRestoreRegisterx86(MCRegister Reg) {
+    std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
+        dbg("genRestoreRegister");
         ErrorCode EC;
         std::tie(EC, Reg) = getSupermostRegister(Reg);
         if (EC != SUCCESS) return {EC, ""};
-        MCInst inst;
-        inst.setOpcode(getOpcode("POP64r"));
-        inst.clear();
-        inst.addOperand(MCOperand::createReg(Reg));
         std::string result;
         llvm::raw_string_ostream rso(result);
-        MIP->printInst(&inst, 0, "", *MSTI, rso);
+
+        switch (Arch) {
+        case llvm::Triple::x86_64: {
+            MCInst inst;
+            inst.setOpcode(getOpcode("POP64r"));
+            inst.clear();
+            inst.addOperand(MCOperand::createReg(Reg));
+            MIP->printInst(&inst, 0, "", *MSTI, rso);
+            rso << "\n";
+            break;
+        }
+        case llvm::Triple::aarch64:
+            return {SUCCESS, ""}; // all registers restored in template
+        default:
+            return {ERROR_GENERIC, ""};
+        }
         return {SUCCESS, result};
     }
 
