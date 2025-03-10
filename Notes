@@ -2,20 +2,13 @@
 cd bachelor/llvm-project/build/own_tools/llvm-bench
 salloc --nodes=1 -w icx36 --time=02:00:00 -C hwperf
 srun --cpu-freq=1900000-1900000:performance cat /proc/cpuinfo | grep MHz
-srun --cpu-freq=1900000-1900000:performance ./llvm_instr_gen -i ADC16ri8 -f 1.9
-srun --cpu-freq=1900000-1900000:performance ./llvm_instr_gen -f 1.9 > AArch64.log
+srun --cpu-freq=1900000-1900000:performance ./llvm_instr_gen -f 1.9 -i ADC16ri8 
+srun --cpu-freq=1900000-1900000:performance ./llvm_instr_gen -f 1.9 > genoa1.log
 srun --cpu-freq=1900000-1900000:performance ./quick 1.9
+./llvm_instr_gen -f 2.2 > warmup.log
 
+srun --cpu-freq=1900000-1900000:performance ./llvm_instr_gen -f 1.9 -i MMX_PMULLWrr 
 
-#Probliemo, geht mit module load  likwid/5.3.0
-ihpc149h@testfront1:~/bachelor/llvm-project/build/own_tools/llvm-bench$ salloc --nodes=1 -w warmup --time=02:00:00 -C hwperf
-salloc: Granted job allocation 113286
-salloc: Waiting for resource configuration
-salloc: Nodes warmup are ready for job
-2 sockets, 2 NUMA-nodes; TransparentHugePages madvise; NumaBalancing on; PerfCounterAccess allowed
-ihpc149h@warmup:~/bachelor/llvm-project/build/own_tools/llvm-bench$ module load likwid
-ihpc149h@warmup:~/bachelor/llvm-project/build/own_tools/llvm-bench$ likwid-perfctr -i
-Illegal instruction (core dumped)
 
 Testfront
     salloc --nodes=1 -w icx36 --time=02:00:00
@@ -226,3 +219,28 @@ AArch64 names
     ADDSWrs 
     ADDS {W,X} r {x|i|s}
     add {32bit,64bit} register? {extended, immediate shifted}
+
+
+clangd path is in workspace
+
+
+	adox	eax, ecx
+    test r12, r12
+	adox	edx, esi
+    test r12, r12
+	adox	ebx, r9d
+    test r12, r12
+	adox	r10d, r11d
+    test r12, r12
+	adox	r14d, r15d
+    test r12, r12
+	adox	eax, ecx
+    test r12, r12
+	adox	edx, esi
+    test r12, r12
+	adox	ebx, r9d
+    test r12, r12
+	adox	r10d, r11d
+    test r12, r12
+	adox	r14d, r15d
+    test r12, r12
