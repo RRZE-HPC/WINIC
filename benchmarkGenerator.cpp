@@ -177,8 +177,7 @@ class BenchmarkGenerator {
     // If ContinousUnroll=true it instead ignores the UnrollCount and generates exactly
     // TargetInstrCount instructions, unrolling dynamically
     std::pair<ErrorCode, std::string> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                     unsigned UnrollCount,
-                                                     bool ContinousUnroll = false) {
+                                                     unsigned UnrollCount) {
 
         std::string result;
         llvm::raw_string_ostream rso(result);
@@ -218,41 +217,24 @@ class BenchmarkGenerator {
                 restoreRegs.insert(0, restore);
             }
         }
-        if (!ContinousUnroll) {
-            // update TargetInstructionCount to actual number of instructions generated
-            *TargetInstrCount = instructions.size() * UnrollCount;
-        }
+        // update TargetInstructionCount to actual number of instructions generated
+        *TargetInstrCount = instructions.size() * UnrollCount;
+
         dbg("starting to build");
         rso << "#define NINST " << *TargetInstrCount << "\n";
         rso << benchTemplate.preLoop;
         rso << saveRegs;
         rso << benchTemplate.beginLoop;
-        if (ContinousUnroll) {
-            auto instIter = instructions.begin();
-            for (unsigned i = 0; i < *TargetInstrCount; i++) {
-                if (instIter == instructions.end()) instIter = instructions.begin();
-                // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can we
-                // check it? if found, add check to isValid()
+        for (unsigned i = 0; i < UnrollCount; i++) {
+            for (auto inst : instructions) {
+                // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can
+                // we check it? if found, add check to isValid()
                 std::string temp;
                 llvm::raw_string_ostream tso(temp);
-                MIP->printInst(&*instIter, 0, "", *MSTI, tso);
+                MIP->printInst(&inst, 0, "", *MSTI, tso);
                 if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
-                MIP->printInst(&*instIter, 0, "", *MSTI, rso);
+                MIP->printInst(&inst, 0, "", *MSTI, rso);
                 rso << "\n";
-                ++instIter;
-            }
-        } else {
-            for (unsigned i = 0; i < UnrollCount; i++) {
-                for (auto inst : instructions) {
-                    // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can
-                    // we check it? if found, add check to isValid()
-                    std::string temp;
-                    llvm::raw_string_ostream tso(temp);
-                    MIP->printInst(&inst, 0, "", *MSTI, tso);
-                    if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
-                    MIP->printInst(&inst, 0, "", *MSTI, rso);
-                    rso << "\n";
-                }
             }
         }
         rso << benchTemplate.midLoop;
@@ -334,7 +316,7 @@ class BenchmarkGenerator {
                                     UsedRegisters.begin(), UsedRegisters.end(),
                                     [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
                                 continue;
-                            // if operand is readonly, use the same register as the reference
+                            // this operand is readonly, use the same registers as the reference
                             // instruction
                             if (j >= desc.getNumDefs() && refInst)
                                 reg = refInst->getOperand(j).getReg();

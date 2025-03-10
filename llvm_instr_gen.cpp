@@ -301,8 +301,7 @@ static int buildDatabase(double Frequency, unsigned MaxNum = 0) {
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
         "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
-        "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"
-    };
+        "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
     if (MaxNum == 0) MaxNum = generator.MCII->getNumOpcodes();
@@ -341,21 +340,6 @@ static void runBenchmarkStudy(unsigned Opcode, BenchmarkGenerator *Generator, do
             auto tp = t / (1e6 * numInst1 / Frequency * (N / 1e9));
             std::printf("%.3f, ", tp);
         }
-        std::printf("\n");
-    }
-}
-
-static void studyUnrollBehavior(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
-    unsigned N = 1000000;
-
-    for (unsigned i = 1; i < 61; i++) {
-        unsigned numInst1 = i;
-        auto [EC, assembly] = Generator->genTPBenchmark(Opcode, &numInst1, 1, true);
-        auto [EC1, Times] = runBenchmark(assembly, N, 10);
-        double time1 = *std::min_element(Times.begin(), Times.end());
-        auto tp = time1 / (1e6 * numInst1 / Frequency * (N / 1e9));
-        std::printf("(%i, %.3f), ", i, tp);
-
         std::printf("\n");
     }
 }
@@ -418,8 +402,8 @@ int main(int argc, char **argv) {
         gettimeofday(&start, NULL);
         buildDatabase(frequency, maxNum);
         gettimeofday(&end, NULL);
-        auto totalRuntime = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
-        printf("total runtime: %ld\n", totalRuntime);
+        auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
+        printf("total runtime: %f (s)\n", totalRuntime);
     } else {
         // debug = true;
         unsigned opcode = generator.getOpcode(instrName.data());
