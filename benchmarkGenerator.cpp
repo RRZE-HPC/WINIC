@@ -225,14 +225,21 @@ class BenchmarkGenerator {
         rso << benchTemplate.preLoop;
         rso << saveRegs;
         rso << benchTemplate.beginLoop;
+        // check for some cases not covered by isValid()
+        auto inst = instructions.front();
+        std::string temp;
+        llvm::raw_string_ostream tso(temp);
+        MIP->printInst(&inst, 0, "", *MSTI, tso);
+        // TODO this is very ugly,
+        // these # instructions have isCodeGenOnly flag, how can
+        // we check it? if found, add check to isValid()
+        if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
+
+        // some pseudo instructions are not marked as pseudo (ABS_Fp32)
+        if (temp.find_first_not_of('\t') == std::string::npos) return {DOES_NOT_EMIT_INST, ""};
+
         for (unsigned i = 0; i < UnrollCount; i++) {
             for (auto inst : instructions) {
-                // TODO this is very ugly, these # instructions have isCodeGenOnly flag, how can
-                // we check it? if found, add check to isValid()
-                std::string temp;
-                llvm::raw_string_ostream tso(temp);
-                MIP->printInst(&inst, 0, "", *MSTI, tso);
-                if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
                 MIP->printInst(&inst, 0, "", *MSTI, rso);
                 rso << "\n";
             }

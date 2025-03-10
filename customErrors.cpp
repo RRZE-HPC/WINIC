@@ -14,6 +14,7 @@ enum ErrorCode {
     IS_RETURN,
     IS_BRANCH,
     IS_CODE_GEN_ONLY,
+    DOES_NOT_EMIT_INST,
     ERROR_TEMPLATE,
     ERROR_ASSEMBLY,
     ERROR_MMAP,
@@ -53,6 +54,8 @@ static std::string ecToString(ErrorCode EC) {
         return "IS_BRANCH";
     case IS_CODE_GEN_ONLY:
         return "IS_CODE_GEN_ONLY";
+    case DOES_NOT_EMIT_INST:
+        return "DOES_NOT_EMIT_INST";
     case ERROR_TEMPLATE:
         return "ERROR_TEMPLATE";
     case ERROR_ASSEMBLY:
