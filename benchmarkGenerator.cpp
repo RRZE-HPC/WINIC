@@ -44,6 +44,7 @@
 #include <list>
 #include <math.h>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <sys/mman.h>
@@ -295,8 +296,9 @@ class BenchmarkGenerator {
         // MSTI->getFeatureBits().test(X86::FeatureFMA); TODO
         // STI.hasFeature(X86::Is16Bit) maybe also works
         unsigned numOperands = desc.getNumOperands();
-        // registers used every time a read only register has to be selected
-        std::list<MCRegister> readOnlyRegisters;
+        // this is a copy of the first generated instruction, all other instructions will use the
+        // same registers as this one if they are only read
+        std::optional<MCInst> refInst;
         // the first numDefs operands are destination operands
         // outs() << "desc.getNumDefs() " << desc.getNumDefs() << "\n";
         for (unsigned i = 0; i < TargetInstrCount; ++i) {
@@ -332,21 +334,11 @@ class BenchmarkGenerator {
                                     UsedRegisters.begin(), UsedRegisters.end(),
                                     [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
                                 continue;
-                            if (j >= desc.getNumDefs()) {
-                                // this operand is readonly, search for a readonly marked register
-                                // of the correct type to use instead of the selected register
-                                for (auto r : readOnlyRegisters) {
-                                    if (RegClass.contains(r)) {
-                                        reg = r;
-                                        break;
-                                    }
-                                }
-                                // or mark the selected one readonly it if there is no marked
-                                // register of this type yet
-                                if (std::find(readOnlyRegisters.begin(), readOnlyRegisters.end(),
-                                              reg) == readOnlyRegisters.end())
-                                    readOnlyRegisters.insert(readOnlyRegisters.end(), reg);
-                            }
+                            // if operand is readonly, use the same register as the reference
+                            // instruction
+                            if (j >= desc.getNumDefs() && refInst)
+                                reg = refInst->getOperand(j).getReg();
+
                             inst.addOperand(MCOperand::createReg(reg));
                             UsedRegisters.insert(reg);
                             foundRegister = true;
@@ -377,6 +369,9 @@ class BenchmarkGenerator {
                     }
                 }
             }
+            // assign first instruction generated as reference instruction
+            if (!refInst) refInst = inst;
+
             instructions.push_back(inst);
         }
         return {SUCCESS, instructions};
