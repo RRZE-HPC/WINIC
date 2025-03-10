@@ -1,4 +1,5 @@
 // #include "MCTargetDesc/X86MCTargetDesc.h"
+#include "MCTargetDesc/X86BaseInfo.h"
 #include "benchmarkGenerator.cpp"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
@@ -48,23 +49,23 @@
 
 /*
 TODO
-    some instructions e.g. adc on zen4 get a TP penalty when unrolling the loop without
-    breaking the dependency on the flags. try to avoid
+    reuse readonly regs for TP bench, in some cases there are too few instructions (MMX_PMULLWrr)
+    some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without
+        breaking the dependency on the flags. try to avoid
     replace generic errors
-    plan release packaging
-    test if variant with clang assembler works on x86
-    configure llvm installation to include clang but be as fast as possible
     init registers (e.g. avoid avx-sse transition penalty)
-    instructions with weird values
-    test riscv?
-    add templates for riscv
-    ADD_FST0r
-    XOR8rr_NOREX
-    ADC16ri8
+    look at rounding in loop overhead calculation
+    test lukewarm (sve)
+    test riscv add templates for riscv plan release packaging configure llvm installation
+    to include clang but be as fast as possible
+    instructions with weird values ADD_FST0r XOR8rr_NOREX
+        ADC16ri8
+
 
     -move to clang for assembling to avoid gcc dependency
     -    ->check if equal number of successful measurements
     -    ->check if syntaxVariants are still correct
+    -test if variant with clang assembler works on x86
     -MCInstrPrinter segfaults when instruction is wrong (or is Prefix)
     -check filtering memory instructions
     -implement loop instruction interference detection
@@ -78,13 +79,17 @@ State
 
 Questions:
     where to verify aarch data
-    how to set/read clock frequency on arm
-    likwid broken on arm
+    -how to set/read clock frequency on arm
+        warmup: 2.2GHz
+        grace admin
+    likwid broken on arm likwid/grace
+    TP only to determine number of execution units?
 
 */
 
 // helpful
 // TRI->getRegAsmName(MCRegister)
+// llvm::X86::getFeaturesForCPU(StringRef CPU, SmallVectorImpl<StringRef> &Features)
 
 using namespace llvm;
 static bool dbgToFile = true;
@@ -269,6 +274,8 @@ measureThroughputSubprocess(unsigned Opcode, BenchmarkGenerator *Generator, doub
     }
 }
 
+
+
 // measure the first maxNum instructions or all if maxNum is zero or not supplied
 static int buildDatabase(double Frequency, unsigned MaxNum = 0) {
     BenchmarkGenerator generator = BenchmarkGenerator();
@@ -276,15 +283,16 @@ static int buildDatabase(double Frequency, unsigned MaxNum = 0) {
     if (MaxNum == 0) MaxNum = generator.MCII->getNumOpcodes();
     for (unsigned opcode = 0; opcode < MaxNum; opcode++) {
         auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, Frequency);
+        // get instruction information
         std::string name = generator.MCII->getName(opcode).data();
-        name.resize(19, ' ');
+        name.resize(27, ' ');
+        
         if (EC != SUCCESS) {
-            // if (EC != MAY_LOAD && EC != MAY_STORE && EC != MEMORY_OPERAND)
             outs() << name << ": " << "skipped for reason\t " << ecToString(EC) << "\n";
             outs().flush();
             continue;
         }
-        // outs() << generator.MCII->getName(opcode) << ": " << tp << " (clock cycles)\n";
+
         std::printf("%s: %.3f (clock cycles)\n", name.data(), tp);
         fflush(stdout);
     }
@@ -371,12 +379,12 @@ int main(int argc, char **argv) {
     BenchmarkGenerator generator = BenchmarkGenerator();
     ErrorCode EC = generator.setUp(march, cpu);
     if (EC == ERROR_TARGET_DETECT) {
-        errs()
-            << "could not detect target, please specify using --cpu or --arch\n"; // TODO implement
+        errs() << "could not detect target, please specify using --cpu or --arch\n"; // TODO
+                                                                                     // implement
         exit(EXIT_FAILURE);
     }
 
-    if (instrName == "") { // generator.temp(0);
+    if (instrName == "") {
         dbgToFile = false;
         buildDatabase(frequency, maxNum);
     } else {
