@@ -48,49 +48,7 @@
 // #include "llvm/Support/raw_ostream.h"
 // #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 
-/*
-TODO
-    reuse readonly regs for TP bench, in some cases there are too few instructions (MMX_PMULLWrr)
-    some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without
-        breaking the dependency on the flags. try to avoid
-    replace generic errors
-    init registers (e.g. avoid avx-sse transition penalty)
-    look at rounding in loop overhead calculation
-    test lukewarm (sve)
-    test riscv add templates for riscv plan release packaging configure llvm installation
-    to include clang but be as fast as possible
-    instructions with weird values ADD_FST0r XOR8rr_NOREX
-        ADC16ri8
 
-
-    -move to clang for assembling to avoid gcc dependency
-    -    ->check if equal number of successful measurements
-    -    ->check if syntaxVariants are still correct
-    -test if variant with clang assembler works on x86
-    -MCInstrPrinter segfaults when instruction is wrong (or is Prefix)
-    -check filtering memory instructions
-    -implement loop instruction interference detection
-    -compile and run from inside program
-    -save callee saved registers
-
-State
-    Conditional moves measure garbage CMOVNE_F
-    ND and EVEX encoded variants cause ERROR_ASSEMBLY (this is ok, normal variants get measured)
-
-
-Questions:
-    where to verify aarch data
-    -how to set/read clock frequency on arm
-        warmup: 2.2GHz
-        grace admin
-    likwid broken on arm likwid/grace
-    TP only to determine number of execution units?
-
-*/
-
-// helpful
-// TRI->getRegAsmName(MCRegister)
-// llvm::X86::getFeaturesForCPU(StringRef CPU, SmallVectorImpl<StringRef> &Features)
 
 using namespace llvm;
 static bool dbgToFile = true;
