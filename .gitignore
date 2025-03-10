@@ -6,3 +6,12 @@ venv/
 quick
 llvm-project.code-workspace
 templates_old.cpp
+analysis/xmlToAssembler.py
+.gitignore
+analysis/compare_data.py
+unused_code.cpp
+run_genoa.sh
+analysis/instructions.xml
+core
+compiler_out
+mystery
