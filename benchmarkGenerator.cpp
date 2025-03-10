@@ -36,6 +36,7 @@
 // #include "llvm/TargetParser/X86TargetParser.h"
 #include <algorithm>
 #include <csetjmp>
+#include <cstddef>
 #include <cstdlib>
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -294,12 +295,15 @@ class BenchmarkGenerator {
         // MSTI->getFeatureBits().test(X86::FeatureFMA); TODO
         // STI.hasFeature(X86::Is16Bit) maybe also works
         unsigned numOperands = desc.getNumOperands();
+        // registers used every time a read only register has to be selected
+        std::list<MCRegister> readOnlyRegisters;
         // the first numDefs operands are destination operands
         // outs() << "desc.getNumDefs() " << desc.getNumDefs() << "\n";
         for (unsigned i = 0; i < TargetInstrCount; ++i) {
             MCInst inst;
             inst.setOpcode(Opcode);
             inst.clear();
+            // fill every operand of the instruction with a valid reg/imm
             for (unsigned j = 0; j < numOperands; ++j) {
                 const MCOperandInfo &opInfo = desc.operands()[j];
                 // TIED_TO points to operand which this has to be identical to.
@@ -317,17 +321,32 @@ class BenchmarkGenerator {
                         const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
                         bool foundRegister = false;
                         for (MCRegister reg : RegClass) {
-                            if (Arch == Triple::ArchType::x86_64 &&
-                                (reg.id() >= MaxReg || reg.id() == 58))
-                                // replace with check for arch and X86::RAX
+                            if ((Arch == Triple::ArchType::x86_64 && reg.id() == 58) ||
+                                reg.id() >= MaxReg)
+                                // TODO replace with check for arch and X86::RAX
                                 // RIP register (58) is included in GR64 class which is a bug
                                 // see X86RegisterInfo.td:586
                                 continue;
-                            // check if sub or superregisters are in use
+                            // check if sub- or superregisters are in use
                             if (std::any_of(
                                     UsedRegisters.begin(), UsedRegisters.end(),
                                     [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
                                 continue;
+                            if (j >= desc.getNumDefs()) {
+                                // this operand is readonly, search for a readonly marked register
+                                // of the correct type to use instead of the selected register
+                                for (auto r : readOnlyRegisters) {
+                                    if (RegClass.contains(r)) {
+                                        reg = r;
+                                        break;
+                                    }
+                                }
+                                // or mark the selected one readonly it if there is no marked
+                                // register of this type yet
+                                if (std::find(readOnlyRegisters.begin(), readOnlyRegisters.end(),
+                                              reg) == readOnlyRegisters.end())
+                                    readOnlyRegisters.insert(readOnlyRegisters.end(), reg);
+                            }
                             inst.addOperand(MCOperand::createReg(reg));
                             UsedRegisters.insert(reg);
                             foundRegister = true;
@@ -336,7 +355,6 @@ class BenchmarkGenerator {
                         if (!foundRegister) {
                             // outs() << "all supported registers of this class are in use"
                             //        << "\n";
-                            // TODO handle this case properly
                             return {SUCCESS, instructions};
                         }
                         break;
