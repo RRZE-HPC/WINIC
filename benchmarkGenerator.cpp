@@ -1,6 +1,7 @@
-// #include "MCTargetDesc/X86BaseInfo.h"
+#include "MCTargetDesc/X86BaseInfo.h"
 // #include "MCTargetDesc/X86MCTargetDesc.h"
-// #include "X86RegisterInfo.h"
+#include "MCTargetDesc/X86MCTargetDesc.h"
+#include "X86RegisterInfo.h"
 #include "customErrors.cpp"
 #include "templates.cpp"
 #include "llvm-c/Target.h"
@@ -8,6 +9,7 @@
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/Register.h"
 #include "llvm/CodeGen/RegisterBankInfo.h"
+#include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/CodeGen/TargetLowering.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
@@ -172,37 +174,35 @@ class BenchmarkGenerator {
     }
 
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
-    // TargetInstrCount different instructions and ten unrolls them by UnrollCount. Updates
+    // TargetInstrCount different instructions and then unrolls them by UnrollCount. Updates
     // TargetInstrCount to the actual number of instructions in the loop (unrolls included)
-    // If ContinousUnroll=true it instead ignores the UnrollCount and generates exactly
-    // TargetInstrCount instructions, unrolling dynamically
+    // If a InterleaveInst is provided it gets inserted after each generated instruction
+    // UsedRegisters has to contain all registers used by the InterleaveInst
+    // TargetInstructionCount will still be set to the number of generated instructions only
     std::pair<ErrorCode, std::string> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                     unsigned UnrollCount) {
-
+                                                     unsigned UnrollCount,
+                                                     std::string InterleaveInst = "",
+                                                     std::set<MCRegister> UsedRegisters = {}) {
         std::string result;
         llvm::raw_string_ostream rso(result);
         auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
         // extract list of registers used by the template
-        std::set<MCRegister> usedRegisters;
+        // TODO optimize
         for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
             MCRegister reg = MCRegister::from(i);
             if (benchTemplate.usedRegisters.find(TRI->getRegAsmName(reg).lower().data()) !=
                 benchTemplate.usedRegisters.end())
-                usedRegisters.insert(reg);
+                UsedRegisters.insert(reg);
         }
-        if (benchTemplate.usedRegisters.size() != usedRegisters.size()) {
-            errs() << "could not determine all registers used by the template\n";
-            return {ERROR_TEMPLATE, ""}; // probably error in template TODO error type
-        }
-        auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, usedRegisters);
+
+        auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, ""};
         dbg("inner loop generated");
-        // TODO continuous unroll is bs right now, last can equal first instruction
 
         // save registers used (genTPInnerLoop updates usedRegisters)
         std::string saveRegs;
         std::string restoreRegs;
-        for (MCRegister reg : usedRegisters) {
+        for (MCRegister reg : UsedRegisters) {
             if (TRI->isCalleeSavedPhysReg(reg, *MF)) {
                 // generate code to save and restore register
                 // this currently also saves registers already saved in the template
@@ -225,23 +225,120 @@ class BenchmarkGenerator {
         rso << benchTemplate.preLoop;
         rso << saveRegs;
         rso << benchTemplate.beginLoop;
-        // check for some cases not covered by isValid()
-        auto inst = instructions.front();
-        std::string temp;
-        llvm::raw_string_ostream tso(temp);
-        MIP->printInst(&inst, 0, "", *MSTI, tso);
-        // TODO this is very ugly,
-        // these # instructions have isCodeGenOnly flag, how can
-        // we check it? if found, add check to isValid()
-        if (temp.find("#") != std::string::npos) return {IS_CODE_GEN_ONLY, ""};
-
-        // some pseudo instructions are not marked as pseudo (ABS_Fp32)
-        if (temp.find_first_not_of('\t') == std::string::npos) return {DOES_NOT_EMIT_INST, ""};
-
         for (unsigned i = 0; i < UnrollCount; i++) {
             for (auto inst : instructions) {
                 MIP->printInst(&inst, 0, "", *MSTI, rso);
                 rso << "\n";
+                if (!InterleaveInst.empty()) rso << InterleaveInst << "\n";
+            }
+        }
+        rso << benchTemplate.midLoop;
+        rso << benchTemplate.endLoop;
+        rso << restoreRegs;
+        rso << benchTemplate.postLoop << "\n";
+        return {SUCCESS, result};
+    }
+    // generates a benchmark with TargetInstrCount1 times the instruction with Opcode1 and
+    // TargetInstrCount2 times the instruction with Opcode2 and then unrolls them by UnrollCount.
+    // Fails if not not enough registers were available to generate the requested number of
+    // instructions.
+    std::pair<ErrorCode, std::string> genOverlapBenchmark(unsigned Opcode1, unsigned Opcode2,
+                                                          unsigned TargetInstrCount1,
+                                                          unsigned TargetInstrCount2,
+                                                          unsigned UnrollCount,
+                                                          std::string FixedInstr2 = "") {
+        std::set<MCRegister> UsedRegisters = {};
+        std::string result;
+        llvm::raw_string_ostream rso(result);
+        auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
+        // extract list of registers used by the template
+        // TODO optimize
+        for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
+            MCRegister reg = MCRegister::from(i);
+            if (benchTemplate.usedRegisters.find(TRI->getRegAsmName(reg).lower().data()) !=
+                benchTemplate.usedRegisters.end())
+                UsedRegisters.insert(reg);
+        }
+
+        // auto [EC, instruction1] = genInst(Opcode1, UsedRegisters);
+        // if (EC != SUCCESS) return {EC, ""};
+        // auto [EC2, instruction2] = genInst(Opcode2, UsedRegisters);
+        // if (EC2 != SUCCESS) return {EC2, ""};
+        unsigned innerInstCount1 = 12;
+        // find a balance between the two instructions to distribute the registers evenly
+        // this is not necessary if the second instruction is fixed
+
+        while (!FixedInstr2.empty()) {
+            auto usedRegs = UsedRegisters;
+            auto [EC, instructions1] = genTPInnerLoop(Opcode1, innerInstCount1, usedRegs);
+
+            auto [EC2, instructions2] = genTPInnerLoop(Opcode2, 12, usedRegs);
+            if (instructions2.size() >= instructions1.size()) break;
+            // outs() << "instructions1 " << instructions1.size() << "\n";
+            // outs() << "instructions2 " << instructions2.size() << "\n";
+            // too many registers used for the first instruction -> adjust
+            innerInstCount1--;
+        }
+        auto [EC, instructionPool1] = genTPInnerLoop(Opcode1, innerInstCount1, UsedRegisters);
+        if (EC != SUCCESS) return {EC, ""};
+        auto [EC2, instructionPool2] = genTPInnerLoop(Opcode2, innerInstCount1, UsedRegisters);
+        if (EC2 != SUCCESS) return {EC2, ""};
+        // now both sets of instrucions are of near equal length
+        //  check if the desired number of instructions was generated
+        // if (totalTargetInstrCount != instructions1.size() + instructions2.size())
+        //     return {ERROR_GENERIC, ""};
+
+        // save registers used (genTPInnerLoop updates UsedRegisters)
+        std::string saveRegs;
+        std::string restoreRegs;
+        for (MCRegister reg : UsedRegisters) {
+            if (TRI->isCalleeSavedPhysReg(reg, *MF)) {
+                // generate code to save and restore register
+                // this currently also saves registers already saved in the template
+                // which is redundant but not harmful
+                dbg("calling genSave");
+                auto [EC1, save] = genSaveRegister(reg);
+                if (EC1 != SUCCESS) return {EC1, ""};
+                saveRegs.append(save);
+                dbg("calling genRestore");
+                auto [EC2, restore] = genRestoreRegister(reg);
+                if (EC2 != SUCCESS) return {EC2, ""};
+                restoreRegs.insert(0, restore);
+            }
+        }
+        // update TargetInstructionCount to actual number of instructions generated
+        // *TargetInstrCount1 = instructions.size() * UnrollCount;
+
+        dbg("starting to build");
+        unsigned totalTargetInstrCount = TargetInstrCount1 + TargetInstrCount2;
+        rso << "#define NINST " << totalTargetInstrCount << "\n";
+        rso << benchTemplate.preLoop;
+        rso << saveRegs;
+        rso << benchTemplate.beginLoop;
+        auto iter1 = instructionPool1.begin();
+        auto iter2 = instructionPool2.begin();
+        for (unsigned i = 0; i < UnrollCount; i++) {
+            for (unsigned i = 0; i < TargetInstrCount1; i++) {
+                MIP->printInst(&*iter1, 0, "", *MSTI, rso);
+                rso << "\n";
+                iter1++;
+                // go to beginning once all instructions used
+                if (iter1 == instructionPool1.end()) iter1 = instructionPool1.begin();
+                // MIP->printInst(&inst, 0, "", *MSTI, outs());
+                // outs() << "\n";
+            }
+            for (unsigned i = 0; i < TargetInstrCount2; i++) {
+                if (FixedInstr2.empty()) {
+                    MIP->printInst(&*iter2, 0, "", *MSTI, rso);
+                    rso << "\n";
+                    iter2++;
+                    // go to beginning once all instructions used
+                    if (iter2 == instructionPool2.end()) iter2 = instructionPool2.begin();
+                    // MIP->printInst(&inst, 0, "", *MSTI, outs());
+                    // outs() << "\n";
+                } else {
+                    rso << FixedInstr2 << "\n";
+                }
             }
         }
         rso << benchTemplate.midLoop;
@@ -281,6 +378,7 @@ class BenchmarkGenerator {
         std::list<MCInst> instructions;
         const MCInstrDesc &desc = MCII->get(Opcode);
         dbg("genTPInnerLoop");
+        // TODO do this much earlier
         if (isValid(desc) != SUCCESS) return {isValid(desc), {}};
         // MSTI->getFeatureBits().test(X86::FeatureFMA); TODO
         // STI.hasFeature(X86::Is16Bit) maybe also works
@@ -366,6 +464,76 @@ class BenchmarkGenerator {
         return {SUCCESS, instructions};
     }
 
+    std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::set<MCRegister> &UsedRegisters) {
+        const MCInstrDesc &desc = MCII->get(Opcode);
+        unsigned numOperands = desc.getNumOperands();
+
+        MCInst inst;
+        inst.setOpcode(Opcode);
+        inst.clear();
+        // fill every operand of the instruction with a valid reg/imm
+        for (unsigned j = 0; j < numOperands; ++j) {
+            const MCOperandInfo &opInfo = desc.operands()[j];
+            // TIED_TO points to operand which this has to be identical to.
+            // see MCInstrDesc.h:41
+            if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
+                // this operand must be identical to another operand
+                unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+                inst.addOperand(inst.getOperand(tiedToOp));
+            } else {
+                switch (opInfo.OperandType) {
+                case MCOI::OPERAND_REGISTER: {
+                    dbg("adding register");
+
+                    // search for unused register and add it as operand
+                    const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
+                    bool foundRegister = false;
+                    for (MCRegister reg : RegClass) {
+                        if ((Arch == Triple::ArchType::x86_64 && reg.id() == 58) ||
+                            reg.id() >= MaxReg)
+                            // TODO replace with check for arch and X86::RAX
+                            // RIP register (58) is included in GR64 class which is a bug
+                            // see X86RegisterInfo.td:586
+                            continue;
+                        // check if sub- or superregisters are in use
+                        if (std::any_of(
+                                UsedRegisters.begin(), UsedRegisters.end(),
+                                [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
+                            continue;
+
+                        inst.addOperand(MCOperand::createReg(reg));
+                        UsedRegisters.insert(reg);
+                        foundRegister = true;
+                        break;
+                    }
+                    if (!foundRegister) {
+                        // outs() << "all supported registers of this class are in use"
+                        //        << "\n";
+                        return {ERROR_GENERIC, {}};
+                    }
+                    break;
+                }
+                case MCOI::OPERAND_IMMEDIATE:
+                    inst.addOperand(MCOperand::createImm(42));
+                    break;
+                case MCOI::OPERAND_MEMORY:
+                    // errs() << "instructions accessing memory are not supported at this "
+                    //           "time\n";
+                    return {MEMORY_OPERAND, {}};
+                case MCOI::OPERAND_PCREL:
+                    // errs() << "branches are not supported at this time\n";
+                    return {PCREL_OPERAND, {}};
+                    ;
+                default:
+                    // errs() << "unknown operand type\n";
+                    return {UNKNOWN_OPERAND, {}};
+                    ;
+                }
+            }
+        }
+        return {SUCCESS, inst};
+    }
+
     std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
 
         for (unsigned i = 0; i < 100; i++) {
@@ -433,15 +601,28 @@ class BenchmarkGenerator {
     }
 
     // filter which instructions get exluded
-    ErrorCode isValid(MCInstrDesc Instruction) {
-        if (Instruction.isPseudo()) return PSEUDO_INSTRUCTION;
-        if (Instruction.mayLoad()) return MAY_LOAD;
-        if (Instruction.mayStore()) return MAY_STORE;
-        if (Instruction.isCall()) return IS_CALL;
-        if (Instruction.isMetaInstruction()) return IS_META_INSTRUCTION;
-        if (Instruction.isReturn()) return IS_RETURN;
-        if (Instruction.isBranch()) return IS_BRANCH; // TODO uops has TP, how?
+    ErrorCode isValid(MCInstrDesc Desc) {
+        if (Desc.isPseudo()) return PSEUDO_INSTRUCTION;
+        if (Desc.mayLoad()) return MAY_LOAD;
+        if (Desc.mayStore()) return MAY_STORE;
+        if (Desc.isCall()) return IS_CALL;
+        if (Desc.isMetaInstruction()) return IS_META_INSTRUCTION;
+        if (Desc.isReturn()) return IS_RETURN;
+        if (Desc.isBranch()) return IS_BRANCH; // TODO uops has TP, how?
         // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
+        // Two more checks which only work after generating an instruction TODO find other way
+        std::set<MCRegister> emptySet;
+        auto [EC, inst] = genInst(Desc.getOpcode(), emptySet);
+        if (EC != SUCCESS) return EC;
+        std::string temp;
+        llvm::raw_string_ostream tso(temp);
+        MIP->printInst(&inst, 0, "", *MSTI, tso);
+        // this is very ugly, these # instructions have isCodeGenOnly flag, how can
+        // we check it?
+        if (temp.find("#") != std::string::npos) return IS_CODE_GEN_ONLY;
+
+        // some pseudo instructions are not marked as pseudo (ABS_Fp32)
+        if (temp.find_first_not_of('\t') == std::string::npos) return DOES_NOT_EMIT_INST;
         return SUCCESS;
     }
 
