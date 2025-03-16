@@ -1,21 +1,32 @@
 
 
 TODO
-    something is causing free() invalid
-    some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without
-        breaking the dependency on the flags. try to avoid
+    something is causing free(): invalid (genoa)
+    some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without breaking the dependency on the flags. try to avoid
+    some instructions always work on e.g. rax -> currently latency not TP is measured (XOR16i16)
     replace generic errors
     init registers (e.g. avoid avx-sse transition penalty)
-    look at rounding in loop overhead calculation
+    latency benchmarks
     test lukewarm (sve)
-    test riscv add templates for riscv plan release packaging configure llvm installation
-    to include clang but be as fast as possible
-    instructions with weird values 
+    test riscv
+        add templates for riscv plan release packaging configure llvm installation to include clang but be as fast as possible
+    instructions with weird values
         ADD_FST0r 
         XOR8rr_NOREX
         ADC16ri8 - adcs are broken bc of flags dependency
-        COM_Fpr32 - was an undetected pseudo instruction
+        CLC
+        CMC
+        COM_FIPr
+        DIV16r
+        IMUL16r
+        LAHF
+        MUL32r
+        MUL8r
 
+    done:
+    instructions with weird values
+        -COM_Fpr32 - was an undetected pseudo instruction
+    -remove rounding in loop overhead calculation
     -reuse readonly regs for TP bench, in some cases there are too few instructions (MMX_PMULLWrr)
     -move to clang for assembling to avoid gcc dependency
     -    ->check if equal number of successful measurements
@@ -24,20 +35,20 @@ TODO
     -MCInstrPrinter segfaults when instruction is wrong (or is Prefix)
     -check filtering memory instructions
     -implement loop instruction interference detection
-    -compile and run from inside program
+    -compile and run benchmarks from inside program
     -save callee saved registers
 
 State
     Conditional moves measure garbage CMOVNE_F
     ND and EVEX encoded variants cause ERROR_ASSEMBLY (this is ok, normal variants get measured)
-
-
-Questions:
-    where to verify aarch data
+    where to verify aarch data -osaca
     -how to set/read clock frequency on arm
         warmup: 2.2GHz
         grace admin
     likwid broken on arm likwid/grace
+
+Questions:
+    always same immediate correct?
     TP only to determine number of execution units?
 
 
@@ -45,6 +56,8 @@ Questions:
 helpful
     TRI->getRegAsmName(MCRegister)
     llvm::X86::getFeaturesForCPU(StringRef CPU, SmallVectorImpl<StringRef> &Features)
+    desc.hasImplicitUseOfPhysReg(MCRegister::from(X86::EFLAGS))
+    MCII->getName(opcode).data()
 
 
 cd bachelor/llvm-project/build/own_tools/llvm-bench
@@ -85,6 +98,87 @@ VFMADD132PDYr ymm ymm ymm
 AArch64:
 ABSWr
 FMADDDrrr
+
+Später: Portbelegung
+
+Sei A Instruktion mit Lat_A, TPr_A und B Instruktion mit Lat_B, TPr_B
+A und B nutzen nur einen Port während ihrer Ausführung TODO was wenn nicht
+Sei TPr_B < Lat_A
+Sei T die Anzahl von Taktzyklen, die eine Latenzkette von A, beliebiger aber fester Länge braucht
+Sei TI_n die Anzahl von Taktzyklen, die die Kette braucht wenn n unabhängige Bs nach jedem A eingefügt werden
+    Wenn A und B unterschiedliche Ports nutzen bleibt T bei n *  <= Lat_A / TPr_B gleich
+    Wenn A und B die selben Ports nutzen steigt T bereits vorher
+
+zusätzlich: falls überlappung nicht erkannt weil nutzung des uberlappenden ports sehr gering,
+finde trotzdem indirekt durch instruktion die den Port hauptsächlich verwendet
+
+
+MUL8r -> latenz wird gemessen weil immer auf al
+    Lösug: interleave mit mov rax, 42
+    -> TP = 1.0
+    Frage: muss man noch die 0.25 vom mov abziehen? -> 0.75
+    oder nicht -> 1.0
+        Lösung: interleave mit MOV bricht dependency
+        miss MUL:MOV 1:1: und 1:2
+        wenn TP_MUL gleich bleibt muss mov auf anderen Ports laufen
+        wenn TP_MUL sinkt sind es die gleichen Ports
+        Bedingung: TP_MOV muss kleiner gleich 1/2 TP_MUL sein
+
+Sei TP_MOV <= TP_MUL /2
+Sei T_11 die Zeit von MUL und MOV 1:1 interleaved
+Sei T_12 der Zeit von MUL und MOV 1:2 interleaved
+    Wenn MUL und MOV gleiche Ports nutzen:
+        Die zusätzlichen MOVs müssen die Ausführungszeit verlängern
+        -> T_12 > T_11
+    Wenn MUL und MOV Verschiedene Ports nutzen:
+        TP_MOV <= TP_MUL / 2 -> T_MOV <= T_MUL / 2 
+        2 * T_MOV <= 2 * (T_MUL / 2 )
+        -> 2 * T_MOV <= T_MUL
+        MUL und MOV auf verschiedenen Ports
+        -> MOVs verschwinden hinter MULs und erhöhen die Laufzeit nicht
+
+
+
+ADC kein TP
+ADD TP=0.25 bricht adc dependency
+wenn beide auf verschiedenen ports laufen gibt es eine ratio bei der beide tps kleiner gleich dem minimalen einzel TP sind
+wenn 1:1 run: keine dependencys
+    wenn gleiche Ports: TP_comb = TPadc + TPadd
+    wenn verschiedene Ports: 
+
+
+if flags dependency:
+    interleave with dependency breaking instruction bi 1:1 and 9:1
+    if TP_combined > TP_bi:
+        TP = TP_combined - TP_mov (same ports)
+    else (TP_combined == TP_bi)
+        TP <= TP_combined (no final answer since either equal to TP_bi or limited by TP_bi)
+    
+
+if instruction only one register (add eax, imm)
+    interleave with mov eax, imm with TP_mov
+    if TP_combined > TP_mov
+        if same ports
+            TP = TP_combined - TP_mov
+        else different ports (how to detect???)
+            TP = TP_combined
+    else 
+        TP = 
+
+alternative
+    measure TP_add 
+    measure TP_add with add_eax every 1/TP_add instructions
+    if results are same -> TP is same
+    for uops case: TP_add = 0.25 TP_add_eax = 0.33
+        TP_combined = 3/4*0.25 + 1/4*0.33 = 0.27
+        but this is not the case
+
+    code:
+    add	eax, 42
+	add	r13d, 42
+	add	r14d, 42
+	add	r15d, 42
+    -> TP 0.25
 
 
     #TP 0.254 unrolled
