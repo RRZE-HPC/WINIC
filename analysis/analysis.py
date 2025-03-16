@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import parse_master_3000 as pm
 
 
 def primedFunctio():
@@ -424,4 +425,35 @@ def adc():
     plt.savefig("adc_clear.png")
 
 
-adc()
+def ratioStudy(path, inst1, inst2):
+    with open("analysis/" + path, "r") as f:
+        data = f.read()
+    n = 6  # cut away front and back
+    ratios = np.array(pm.parse_relative_to(data, "time", 0, -3, "custom", custom_delim=[" "]))[n:-n]
+    times = np.array(pm.parse_relative_to(data, "time", 0, 9, "float_exp"), dtype=float)[n:-n]
+    tp1 = np.array(pm.parse_relative_to(data, "tp_1", 0, 9, "float_exp"), dtype=float)[n:-n]
+    tp2 = np.array(pm.parse_relative_to(data, "tp_2", 0, 9, "float_exp"), dtype=float)[n:-n]
+    tp_comb = np.array(pm.parse_relative_to(data, "tp_comb", 0, 9, "float_exp"), dtype=float)[n:-n]
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    ax1.scatter(ratios, tp1, c="g", marker="^")
+    ax1.scatter(ratios, tp2, c="orange")
+    ax1.scatter(ratios, tp_comb, c="r")
+    # ax2.scatter(ratios, times, c="r")
+
+    ax1.axhline(min(tp1), c="g", label=f"TP {inst1}")
+    ax1.axhline(min(tp2), c="orange", label=f"TP {inst2}")
+
+    plt.title(f"Throughputs of {inst1}:{inst2} interleaved")
+    # plt.xlabel("instructions in loop")
+    ax1.set_ylabel("TP (cycles/instruction)")
+    # ax2.set_ylabel("Execution Time ()", c="r")
+    ax1.tick_params(rotation=45)
+    ax1.legend()
+    plt.tight_layout()
+    plt.savefig(f"analysis/{path}.png")
+
+
+ratioStudy("ratio_mul_mov.log", "MUL8r", "MOV64ri32")
+# ratioStudy("ratio_and_adc.log", "AND16ri8", "ADC16ri8")
+# ratioAndStudy()
