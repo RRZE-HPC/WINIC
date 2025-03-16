@@ -224,6 +224,9 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     double corrected2_4 = time2 / (1e6 * (numInst2 + loopInstr4) / Frequency * (n / 1e9));
     if (!InterlInst.empty()) {
         // we did interleave test, this changes the TP
+        //TODO this is flawed, need to detect if interleaved instruction runs on same ports or not
+        // we can implement this once we have Latency values 
+
         if (InterlInst == "	test	rax, rax") {
             outs() << "correcting " << corrected2_4 << " with TEST64rr"
                    << throughputDatabase[Generator->getOpcode("TEST64rr")] << "\n";
@@ -354,10 +357,52 @@ static void runBenchmarkStudy(unsigned Opcode, BenchmarkGenerator *Generator, do
     }
 }
 
+static void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLimit,
+                            BenchmarkGenerator *Generator, double Frequency) {
+
+    std::list<std::pair<unsigned, unsigned>> ratios;
+    ratios.push_back({1, 1});
+    for (unsigned i = 2; i < InstLimit; i++) {
+        ratios.push_front({i, 1});
+        ratios.push_back({1, i});
+    }
+    for (auto ratio : ratios) {
+        ErrorCode EC;
+        std::string assembly;
+        unsigned numInst1 = ratio.first;
+        unsigned numInst2 = ratio.second;
+        std::string ratio_string = std::to_string(ratio.first) + ":" + std::to_string(ratio.second);
+
+        // std::tie(EC, assembly) =
+        //     Generator->genOverlapBenchmark(Opcode1, Opcode2, numInst1, numInst2, 20);
+        std::tie(EC, assembly) =
+            Generator->genOverlapBenchmark(Opcode1, Opcode2, numInst1, numInst2, 20, "\tmov	rax, 42");
+        if (EC != SUCCESS) {
+            outs() << ratio_string << " cannot generate ratio\n";
+            continue;
+        }
+        std::list<double> times1;
+        unsigned n = 1e6;
+        std::tie(EC, times1) = runBenchmark(assembly, n, 3);
+
+        if (EC != SUCCESS)
+            outs() << ratio_string << " cannot run ratio\n";
+        else {
+            double time1 = *std::min_element(times1.begin(), times1.end());
+            double tp1 = time1 / (1e6 * numInst1 * 20 / Frequency * (n / 1e9));
+            double tp2 = time1 / (1e6 * numInst2 * 20 / Frequency * (n / 1e9));
+            double tp_comb = time1 / (1e6 * (numInst1 + numInst2) * 20 / Frequency * (n / 1e9));
+            outs() << ratio_string << " time " << time1 << " tp_1 " << tp1 << " tp_2 " << tp2
+                   << " tp_comb " << tp_comb << "\n";
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     struct option long_options[] = {
         {"help", no_argument, nullptr, 'h'},
         {"instruction", required_argument, nullptr, 'i'},
+        {"instruction2", required_argument, nullptr, 's'},
         {"frequency", required_argument, nullptr, 'v'},
         {"cpu", required_argument, nullptr, 'c'},
         {"march", required_argument, nullptr, 'm'},
@@ -365,6 +410,7 @@ int main(int argc, char **argv) {
         {nullptr, 0, nullptr, 0} // End marker
     };
     StringRef instrName = "";
+    StringRef instrName2 = "";
     // unsigned numInst = 6;
     // unsigned unrollCount = 1;
     double frequency = 3.75;
@@ -372,7 +418,7 @@ int main(int argc, char **argv) {
     std::string cpu = "";
     std::string march = "";
     unsigned maxNum = 0;
-    while ((opt = getopt_long(argc, argv, "hi:f:m:n:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hi:f:m:n:s:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             std::cout << "Usage:" << argv[0]
@@ -380,6 +426,9 @@ int main(int argc, char **argv) {
             return 0;
         case 'i':
             instrName = optarg;
+            break;
+        case 's':
+            instrName2 = optarg;
             break;
         case 'f':
             frequency = atof(optarg);
@@ -416,27 +465,30 @@ int main(int argc, char **argv) {
         printf("total runtime: %f (s)\n", totalRuntime);
     } else {
         // debug = true;
-        unsigned opcode = generator.getOpcode(instrName.data());
+        unsigned opcode1 = generator.getOpcode(instrName.data());
+        unsigned opcode2 = generator.getOpcode(instrName2.data());
 
         // generator.temp(opcode);
         // runBenchmarkStudy(opcode, &generator, frequency, 1000000);
         // studyUnrollBehavior(opcode, &generator, frequency);
-        if (generator.Arch == Triple::ArchType::x86_64) {
-            auto [EC, tp] =
-                measureThroughputSubprocess(generator.getOpcode("TEST64rr"), &generator, frequency);
-            if (EC == SUCCESS) throughputDatabase[generator.getOpcode("TEST64rr")] = tp;
-            auto [EC2, tp2] = measureThroughputSubprocess(generator.getOpcode("MOV64ri32"),
-                                                          &generator, frequency);
-            if (EC2 == SUCCESS) throughputDatabase[generator.getOpcode("MOV64ri32")] = tp2;
-        }
-        auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
-        if (EC != SUCCESS) {
-            outs() << "failed for reason: " << ecToString(EC) << "\n";
-            outs().flush();
-        } else {
-            std::printf("%.3f (clock cycles)\n", tp);
-            fflush(stdout);
-        }
+        runOverlapStudy(opcode1, opcode2, 16, &generator, frequency);
+        // if (generator.Arch == Triple::ArchType::x86_64) {
+        //     auto [EC, tp] =
+        //         measureThroughputSubprocess(generator.getOpcode("TEST64rr"), &generator,
+        //         frequency);
+        //     if (EC == SUCCESS) throughputDatabase[generator.getOpcode("TEST64rr")] = tp;
+        //     auto [EC2, tp2] = measureThroughputSubprocess(generator.getOpcode("MOV64ri32"),
+        //                                                   &generator, frequency);
+        //     if (EC2 == SUCCESS) throughputDatabase[generator.getOpcode("MOV64ri32")] = tp2;
+        // }
+        // auto [EC, tp] = measureThroughputSubprocess(opcode, &generator, frequency);
+        // if (EC != SUCCESS) {
+        //     outs() << "failed for reason: " << ecToString(EC) << "\n";
+        //     outs().flush();
+        // } else {
+        //     std::printf("%.3f (clock cycles)\n", tp);
+        //     fflush(stdout);
+        // }
     }
 
     return 0;
