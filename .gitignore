@@ -3,6 +3,7 @@ gcc_out
 venv/
 *.s
 *.log
+*.png
 quick
 llvm-project.code-workspace
 templates_old.cpp
@@ -15,3 +16,4 @@ analysis/instructions.xml
 core
 compiler_out
 mystery
+analysis/parse_master_3000.py
