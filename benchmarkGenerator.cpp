@@ -5,6 +5,7 @@
 #include "customErrors.cpp"
 #include "templates.cpp"
 #include "llvm-c/Target.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/Register.h"
@@ -16,6 +17,7 @@
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/RuntimeLibcalls.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCCodeEmitter.h"
@@ -29,6 +31,7 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
@@ -41,6 +44,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <dlfcn.h>
+#include <elf.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <list>
@@ -54,6 +58,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <utility>
 
 using namespace llvm;
 
@@ -172,6 +177,131 @@ class BenchmarkGenerator {
         assert(MIP && "Unable to create MCInstPrinter!");
         return SUCCESS;
     }
+
+    // generates a latency benchmark for the instruction with Opcode. Generates
+    // TargetInstrCount instructions.
+    // If a InterleaveInst is provided it gets inserted after each generated instruction
+    // UsedRegisters has to contain all registers used by the InterleaveInst
+    // TargetInstructionCount will still be set to the number of generated instructions only
+    // returns an error code, the generated assembly code and the opcode of the interleave
+    // instruction if generated, -1 otherwise
+    std::tuple<ErrorCode, std::string, int>
+    genLatBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
+                    std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
+                        *HelperInstructions,
+                    std::set<MCRegister> UsedRegisters = {}) {
+        std::string result;
+        llvm::raw_string_ostream rso(result);
+        auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
+        // extract list of registers used by the template
+        // TODO optimize
+        for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
+            MCRegister reg = MCRegister::from(i);
+            if (benchTemplate.usedRegisters.find(TRI->getRegAsmName(reg).lower().data()) !=
+                benchTemplate.usedRegisters.end())
+                UsedRegisters.insert(reg);
+        }
+
+        ErrorCode EC;
+        MCInst interleaveInst;
+        bool useInterleave = false;
+        MCInst measureInst;
+        // determine which regs the instruction can read and write including implicit ones like
+        // FLAGS
+        auto reads = getPossibleReadRegs(Opcode);
+        auto writes = getPossibleWriteRegs(Opcode);
+
+        // remove used registers from reads and writes
+        reads = regDifference(reads, UsedRegisters);
+        writes = regDifference(writes, UsedRegisters);
+        // to generate a latency chain the instruction has to read and write to the same register
+        std::set<MCRegister> common = regIntersect(reads, writes);
+
+        if (common.empty()) {
+            dbg("detected no common registers, need helper");
+            // cannot generate a latency chain on its own, find helper instruction
+            // search the helperInstructions map for an instruction with opposite reads and writes
+            for (auto [helperOpcode, helperReadRegs, helperWriteRegs] : *HelperInstructions) {
+                // for a register written by the instruction we need a helper instruction that reads
+                // it and vice versa
+                auto fittingHelperReadRegs = regIntersect(helperReadRegs, writes);
+                auto fittingHelperWriteRegs = regIntersect(helperWriteRegs, reads);
+
+                if (!fittingHelperReadRegs.empty() && !fittingHelperWriteRegs.empty()) {
+                    // found a helper instruction
+                    dbg("found helper instruction");
+                    MCRegister helperReadReg = *fittingHelperReadRegs.begin();
+                    MCRegister helperWriteReg = *fittingHelperWriteRegs.begin();
+                    std::tie(EC, measureInst) =
+                        genInst(Opcode, UsedRegisters, true, helperWriteReg, helperReadReg);
+                    if (EC != SUCCESS) return {EC, "", -1};
+                    std::tie(EC, interleaveInst) =
+                        genInst(helperOpcode, UsedRegisters, true, helperReadReg, helperWriteReg);
+                    // we should always be able to generate the helper instruction
+                    if (EC != SUCCESS) return {ERROR_UNREACHABLE, "", -1};
+                    useInterleave = true;
+                    break;
+                }
+            }
+            if (!useInterleave) return {ERROR_NO_HELPER, "", -1};
+        } else {
+            dbg("detected common registers");
+            // default behavior
+            std::tie(EC, measureInst) = genInst(Opcode, UsedRegisters, true);
+            if (EC != SUCCESS) return {EC, "", -1};
+            // save this as helper for other instructions if not present yet
+            bool present = false;
+            for (auto helperInst : *HelperInstructions) {
+                auto [helperOpcode, helperReadRegs, helperWriteRegs] = helperInst;
+                if (helperOpcode == Opcode) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present)
+                HelperInstructions->insert(HelperInstructions->end(), {Opcode, reads, writes});
+        }
+
+        dbg("inner loop generated");
+
+        // save registers used (genTPInnerLoop updates usedRegisters)
+        std::string saveRegs;
+        std::string restoreRegs;
+        for (MCRegister reg : UsedRegisters) {
+            if (TRI->isCalleeSavedPhysReg(reg, *MF)) {
+                // generate code to save and restore register
+                // this currently also saves registers already saved in the template
+                // which is redundant but not harmful
+                dbg("calling genSave");
+                auto [EC1, save] = genSaveRegister(reg);
+                if (EC1 != SUCCESS) return {EC1, "", -1};
+                saveRegs.append(save);
+                dbg("calling genRestore");
+                auto [EC2, restore] = genRestoreRegister(reg);
+                if (EC2 != SUCCESS) return {EC2, "", -1};
+                restoreRegs.insert(0, restore);
+            }
+        }
+
+        rso << "#define NINST " << *TargetInstrCount << "\n";
+        rso << benchTemplate.preLoop;
+        rso << saveRegs;
+        rso << benchTemplate.beginLoop;
+        for (unsigned i = 0; i < *TargetInstrCount; ++i) {
+            MIP->printInst(&measureInst, 0, "", *MSTI, rso);
+            rso << "\n";
+            if (useInterleave) {
+                MIP->printInst(&interleaveInst, 0, "", *MSTI, rso);
+                rso << "\n";
+            }
+        }
+        rso << benchTemplate.midLoop;
+        rso << benchTemplate.endLoop;
+        rso << restoreRegs;
+        rso << benchTemplate.postLoop << "\n";
+        return {SUCCESS, result, interleaveInst.getOpcode()};
+    }
+
 
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
     // TargetInstrCount different instructions and then unrolls them by UnrollCount. Updates
@@ -348,25 +478,6 @@ class BenchmarkGenerator {
         return {SUCCESS, result};
     }
 
-    void temp(unsigned Opcode) {
-        // const MCInstrDesc &desc = MCII->get(Opcode);
-        // if (desc.TSFlags & X86::FEATURE_64BIT) outs() << "FEATURE_64BIT bit\n";
-        // if (desc.TSFlags & X86::FeatureSSE2) outs() << "FeatureSSE2 bit\n";
-        // if (desc.TSFlags & X86II::PrefixByte) outs() << "PrefixByte bit\n";
-        // outs().flush();
-
-        for (unsigned i = 0; i < MRI->getNumRegs(); i++) {
-            outs() << "lets see if it can handle " << i << " ?\n";
-            MCRegister Reg = MCRegister::from(i);
-            // outs() << "name: " << TRI->getRegAsmName(Reg) << "\n";
-            // outs() << "class: " << TRI->getRegClassName(TRI->getRegClass(Reg.id())) << "\n";
-            outs() << "name: " << MRI->getName(Reg) << "\n";
-            outs() << "class: " << MRI->getRegClassName(&MRI->getRegClass(i)) << "\n";
-            outs().flush();
-
-            // outs() << "phys reg base class: " << TRI->getPhysRegBaseClass(Reg) << "\n";
-        }
-    }
 
     // generates a benchmark loop to measure throughput of an instruction
     // tries to generate targetInstrCount independent instructions for the inner
@@ -464,9 +575,50 @@ class BenchmarkGenerator {
         return {SUCCESS, instructions};
     }
 
-    std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::set<MCRegister> &UsedRegisters) {
+    /**
+     * \brief Generate an instruction
+     *
+     * This function takes an opcode and generates a valid MCInst.
+     *
+     * \param Opcode Opcode of the instruction.
+     * \param UsedRegisters A blacklist of registers not to be used.
+     * \param ReuseRegisters If true, the same register will be used for multiple operands.
+     * \param RequireReadRegister This register will always be used for operands read if possible,
+     * overriding UsedRegisters and ReuseRegisters. If not possible, the instruction will not be
+     * generated.
+     * \param RequireWriteRegister This register will always be used for operands written if
+     * possible, overriding UsedRegisters and ReuseRegisters. If not possible, the instruction will
+     * not be generated.
+     * \return ErrorCode and generated instruction.
+     */
+    std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::set<MCRegister> &UsedRegisters,
+                                         bool ReuseRegisters = false,
+                                         MCRegister RequireReadRegister = -1,
+                                         MCRegister RequireWriteRegister = -1) {
         const MCInstrDesc &desc = MCII->get(Opcode);
         unsigned numOperands = desc.getNumOperands();
+        std::set<MCRegister> localUsedRegisters;
+        bool satisfiedReadRequirement = false;
+        bool satisfiedWriteRequirement = false;
+        if (RequireReadRegister != -1) {
+            // check if reqirements get satisfied by implicit uses/defs
+            for (auto implUseReg : desc.implicit_uses()) {
+                if (RequireReadRegister == MCRegister::from(implUseReg)) {
+                    satisfiedReadRequirement = true;
+                    break;
+                }
+            }
+
+            for (MCPhysReg implDefReg : desc.implicit_defs()) {
+                if (RequireWriteRegister == MCRegister::from(implDefReg)) {
+                    satisfiedWriteRequirement = true;
+                    break;
+                }
+            }
+
+            // outs() << "require read reg " << MRI->getName(RequireReadRegister) << "\n";
+            // outs() << "require write reg " << MRI->getName(RequireWriteRegister) << "\n";
+        }
 
         MCInst inst;
         inst.setOpcode(Opcode);
@@ -485,8 +637,23 @@ class BenchmarkGenerator {
                 case MCOI::OPERAND_REGISTER: {
                     dbg("adding register");
 
-                    // search for unused register and add it as operand
+                    // check if required reg can be used
                     const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
+                    if (RequireReadRegister != -1 && j >= desc.getNumDefs() &&
+                        regInRegClass(RequireReadRegister, RegClass)) {
+                        inst.addOperand(MCOperand::createReg(RequireReadRegister));
+                        localUsedRegisters.insert(RequireReadRegister);
+                        satisfiedReadRequirement = true;
+                        break;
+                    }
+                    if (RequireWriteRegister != -1 && j < desc.getNumDefs() &&
+                        regInRegClass(RequireWriteRegister, RegClass)) {
+                        inst.addOperand(MCOperand::createReg(RequireWriteRegister));
+                        localUsedRegisters.insert(RequireWriteRegister);
+                        satisfiedWriteRequirement = true;
+                        break;
+                    }
+                    // search for unused register and add it as operand
                     bool foundRegister = false;
                     for (MCRegister reg : RegClass) {
                         if ((Arch == Triple::ArchType::x86_64 && reg.id() == 58) ||
@@ -500,16 +667,22 @@ class BenchmarkGenerator {
                                 UsedRegisters.begin(), UsedRegisters.end(),
                                 [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
                             continue;
+                        if (!ReuseRegisters &&
+                            std::any_of(
+                                localUsedRegisters.begin(), localUsedRegisters.end(),
+                                [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
+                            continue;
 
                         inst.addOperand(MCOperand::createReg(reg));
-                        UsedRegisters.insert(reg);
+
+                        localUsedRegisters.insert(reg);
                         foundRegister = true;
                         break;
                     }
                     if (!foundRegister) {
                         // outs() << "all supported registers of this class are in use"
                         //        << "\n";
-                        return {ERROR_GENERIC, {}};
+                        return {ERROR_NO_REGISTERS, {}};
                     }
                     break;
                 }
@@ -523,14 +696,17 @@ class BenchmarkGenerator {
                 case MCOI::OPERAND_PCREL:
                     // errs() << "branches are not supported at this time\n";
                     return {PCREL_OPERAND, {}};
-                    ;
                 default:
                     // errs() << "unknown operand type\n";
                     return {UNKNOWN_OPERAND, {}};
-                    ;
                 }
             }
         }
+        if (RequireReadRegister != -1 && !satisfiedReadRequirement)
+            return {ERROR_GEN_REQUIREMENT, {}};
+        if (RequireWriteRegister != -1 && !satisfiedWriteRequirement)
+            return {ERROR_GEN_REQUIREMENT, {}};
+        UsedRegisters.insert(localUsedRegisters.begin(), localUsedRegisters.end());
         return {SUCCESS, inst};
     }
 
@@ -540,7 +716,7 @@ class BenchmarkGenerator {
             if (TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
             Reg = *TRI->superregs(Reg).begin(); // take first superreg
         }
-        return {ERROR_GENERIC, NULL};
+        return {ERROR_UNREACHABLE, NULL};
     }
 
     // TODO find ISA independent function in llvm
@@ -567,7 +743,7 @@ class BenchmarkGenerator {
         case llvm::Triple::aarch64:
             return {SUCCESS, ""}; // all registers saved in template
         default:
-            return {ERROR_GENERIC, ""};
+            return {ERROR_UNSUPPORTED_ARCH, ""};
         }
 
         return {SUCCESS, result};
@@ -595,9 +771,16 @@ class BenchmarkGenerator {
         case llvm::Triple::aarch64:
             return {SUCCESS, ""}; // all registers restored in template
         default:
-            return {ERROR_GENERIC, ""};
+            return {ERROR_UNSUPPORTED_ARCH, ""};
         }
         return {SUCCESS, result};
+    }
+
+
+    bool regInRegClass(MCRegister Reg, MCRegisterClass RegClass) {
+        for (MCRegister reg : RegClass)
+            if (reg == Reg) return true;
+        return false;
     }
 
     // filter which instructions get exluded
@@ -636,5 +819,64 @@ class BenchmarkGenerator {
         }
         errs() << "Instruction not found: " << InstructionName << "\n";
         return 1;
+    }
+
+    /**
+    get all registers which can be read by an instruction including implicit uses
+    */
+    std::set<MCRegister> getPossibleReadRegs(unsigned Opcode) {
+        std::set<MCRegister> reads;
+        const MCInstrDesc &desc = MCII->get(Opcode);
+        for (unsigned i = desc.getNumDefs(); i < desc.getNumOperands(); i++) {
+            if (desc.operands()[i].OperandType != MCOI::OPERAND_REGISTER) continue;
+            auto regClass = MRI->getRegClass(desc.operands()[i].RegClass);
+            for (auto reg : regClass) {
+                reads.insert(reg);
+            }
+        }
+        for (auto reg : desc.implicit_uses()) {
+            reads.insert(MCRegister::from(reg));
+        }
+        return reads;
+    }
+
+    /**
+    get all registers which can be written by an instruction including implicit defs
+    */
+    std::set<MCRegister> getPossibleWriteRegs(unsigned Opcode) {
+        std::set<MCRegister> writes;
+        const MCInstrDesc &desc = MCII->get(Opcode);
+        for (unsigned i = 0; i < desc.getNumDefs(); i++) {
+            if (desc.operands()[i].OperandType != MCOI::OPERAND_REGISTER) continue;
+            auto regClass = MRI->getRegClass(desc.operands()[i].RegClass);
+            for (auto reg : regClass) {
+                writes.insert(reg);
+            }
+        }
+        for (auto reg : desc.implicit_defs()) {
+            writes.insert(MCRegister::from(reg));
+        }
+        return writes;
+    }
+
+    std::set<MCRegister> regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {
+        std::set<MCRegister> result;
+        std::set_intersection(A.begin(), A.end(), B.begin(), B.end(),
+                              std::inserter(result, result.begin()));
+        return result;
+    }
+
+    std::set<MCRegister> regDifference(std::set<MCRegister> A, std::set<MCRegister> B) {
+        std::set<MCRegister> result;
+        std::set_difference(A.begin(), A.end(), B.begin(), B.end(),
+                            std::inserter(result, result.begin()));
+        return result;
+    }
+
+    std::set<MCRegister> regUnion(std::set<MCRegister> A, std::set<MCRegister> B) {
+        std::set<MCRegister> result;
+        std::set_union(A.begin(), A.end(), B.begin(), B.end(),
+                       std::inserter(result, result.begin()));
+        return result;
     }
 };

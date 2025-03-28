@@ -14,15 +14,23 @@ enum ErrorCode {
     IS_RETURN,
     IS_BRANCH,
     IS_CODE_GEN_ONLY,
+    SKIP_MANUALLY,
     DOES_NOT_EMIT_INST,
     ERROR_TEMPLATE,
+    ERROR_NO_HELPER,
     ERROR_ASSEMBLY,
     ERROR_MMAP,
     ERROR_FORK,
     ERROR_SIGSEGV,
     ERROR_TARGET_DETECT,
     ERROR_CPU_DETECT,
+    ERROR_FILE,
     ILLEGAL_INSTRUCTION,
+    ERROR_UNREACHABLE,
+    ERROR_NO_REGISTERS,
+    ERROR_GEN_REQUIREMENT,
+    ERROR_UNSUPPORTED_ARCH,
+    ERROR_SIGFPE,
     ERROR_GENERIC,
 };
 
@@ -54,10 +62,14 @@ static std::string ecToString(ErrorCode EC) {
         return "IS_BRANCH";
     case IS_CODE_GEN_ONLY:
         return "IS_CODE_GEN_ONLY";
+    case SKIP_MANUALLY:
+        return "SKIP_MANUALLY";
     case DOES_NOT_EMIT_INST:
         return "DOES_NOT_EMIT_INST";
     case ERROR_TEMPLATE:
         return "ERROR_TEMPLATE";
+    case ERROR_NO_HELPER:
+        return "ERROR_NO_HELPER";
     case ERROR_ASSEMBLY:
         return "ERROR_ASSEMBLY";
     case ERROR_MMAP:
@@ -72,6 +84,18 @@ static std::string ecToString(ErrorCode EC) {
         return "ILLEGAL_INSTRUCTION";
     case ERROR_CPU_DETECT:
         return "ERROR_CPU_DETECT";
+    case ERROR_FILE:
+        return "ERROR_FILE";
+    case ERROR_UNREACHABLE:
+        return "ERROR_UNREACHABLE";
+    case ERROR_NO_REGISTERS:
+        return "ERROR_NO_REGISTERS";
+    case ERROR_GEN_REQUIREMENT:
+        return "ERROR_GEN_REQUIREMENT";
+    case ERROR_UNSUPPORTED_ARCH:
+        return "ERROR_UNSUPPORTED_ARCH";
+    case ERROR_SIGFPE:
+        return "ERROR_SIGFPE";
     case ERROR_GENERIC:
         return "ERROR_GENERIC";
     default:
