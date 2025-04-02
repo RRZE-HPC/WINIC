@@ -19,6 +19,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/X86TargetParser.h"
+#include "llvm/Transforms/IPO/Attributor.h"
 #include <algorithm>
 #include <csetjmp>
 #include <csignal>
@@ -31,6 +32,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <math.h>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <sys/mman.h>
@@ -75,7 +77,7 @@ static void signalHandler(int Signum) {
     if (globalHandle) {
         dlclose(globalHandle); // Cleanup
         globalHandle = nullptr;
-        dbg("dlclose called\n");
+        dbg(__func__, "dlclose called\n");
     }
     lastSignal = Signum;
     siglongjmp(jumpBuffer, 1); // Jump back to safe point
@@ -83,6 +85,7 @@ static void signalHandler(int Signum) {
 
 static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly, int N,
                                                             unsigned Runs) {
+    dbgContext = "runBenchmark";
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
@@ -103,21 +106,56 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
         debugFile << Assembly;
         debugFile.close();
     }
-    // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
-    // + " -o " + o_path;
+
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2>
     // gcc_out";
-    std::string compiler = CLANG_PATH;
-    std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " + oPath;
-    if (dbgToFile)
-        command += " 2> assembler_out.log";
-    else
-        command += " 2> /dev/null";
-    if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {-1}};
+
+    // slightly worse performance than fork
+    //  std::string compiler = CLANG_PATH;
+    //  std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " + oPath;
+    //  if (dbgToFile)
+    //      command += " 2> assembler_out.log";
+    //  else
+    //      command += " 2> /dev/null";
+    //  if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {-1}};
+
+    // slightly better performance
+    pid_t pid = fork();
+    if (pid == 0) { // Child
+        if (dbgToFile) {
+            int fd = open("assembler_out.log", O_WRONLY);
+            if (fd == -1) {
+                perror("open assembler_out.log failed");
+                _exit(127);
+            }
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            execl(CLANG_PATH, "clang", "-x", "assembler-with-cpp", "-shared", sPath.data(), "-o",
+                  oPath.data(), nullptr);
+        } else {
+            int fd = open("/dev/null", O_WRONLY);
+            if (fd == -1) {
+                perror("open /dev/null failed");
+                _exit(127);
+            }
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            execl(CLANG_PATH, "clang", "-x", "assembler-with-cpp", "-shared", sPath.data(), "-o",
+                  oPath.data(), nullptr);
+        }
+        _exit(127);       // execlp failed
+    } else if (pid > 0) { // Parent
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            if (WEXITSTATUS(status) == 127) return {ERROR_EXEC, {-1}};
+            return {ERROR_ASSEMBLY, {-1}};
+        }
+    }
+    dbg(__func__, "assembly done");
 
     // from ibench
-    // void *handle;
     double (*latency)(int);
     int *ninst;
     if ((globalHandle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
@@ -145,7 +183,7 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
     // sigaction(SIGILL, &sa, nullptr);
 
     std::list<double> benchtimes;
-
+    dbg(__func__, "starting benchmark");
     // if (sigsetjmp(jumpBuffer, 1) == 0) {
     for (unsigned i = 0; i < Runs; i++) {
         gettimeofday(&start, NULL);
@@ -329,6 +367,23 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     double corrected1_2 = time1 / (1e6 * (numInst1 + loopInstr2) / Frequency * (n / 1e9));
     // if a helper instruction was used subtract its latency
     if (helperOpcode != -1) corrected1_2 -= latencyDatabase[helperOpcode];
+    if (corrected1_2 > 0) {
+        // reasonable result, save this as helper for other instructions if not present yet
+        //TODO is this check neccesary?
+        bool alreadyInHelpers = false;
+        for (auto helperInst : helperInstructions) {
+            auto [helperOpcode, helperReadRegs, helperWriteRegs] = helperInst;
+            if (helperOpcode == Opcode) {
+                alreadyInHelpers = true;
+                break;
+            }
+        }
+        if (!alreadyInHelpers) {
+            auto reads = Generator->getPossibleReadRegs(Opcode);
+            auto writes = Generator->getPossibleWriteRegs(Opcode);
+            helperInstructions.insert(helperInstructions.end(), {Opcode, reads, writes});
+        }
+    }
 
     return {SUCCESS, corrected1_2};
 }
@@ -419,8 +474,8 @@ static void displayProgress(int progress, int total) {
     std::cerr << "] " << int(ratio * 100.0) << "% " << progress << "/" << total << std::flush;
 }
 
-// measure the first maxNum instructions or all if maxNum is zero or not supplied
-static int buildTPDatabase(double Frequency, unsigned MaxNum = 0) {
+// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
+static int buildTPDatabase(double Frequency, unsigned MaxOpcode = 0) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
@@ -428,7 +483,7 @@ static int buildTPDatabase(double Frequency, unsigned MaxNum = 0) {
         "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     BenchmarkGenerator generator = BenchmarkGenerator();
     generator.setUp();
-    if (MaxNum == 0) MaxNum = generator.MCII->getNumOpcodes();
+    if (MaxOpcode == 0) MaxOpcode = generator.MCII->getNumOpcodes();
 
     // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
     // with other instructions
@@ -443,7 +498,7 @@ static int buildTPDatabase(double Frequency, unsigned MaxNum = 0) {
         if (EC2 == SUCCESS) throughputDatabase[generator.getOpcode("MOV64ri32")] = tp2;
     }
 
-    for (unsigned opcode = 0; opcode < MaxNum; opcode++) {
+    for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
         std::string name = generator.MCII->getName(opcode).data();
         if (skipInstructions.find(name) != skipInstructions.end()) {
             outs() << name << ": " << "skipped for reason\t " << "skippedManually" << "\n";
@@ -466,8 +521,8 @@ static int buildTPDatabase(double Frequency, unsigned MaxNum = 0) {
     return 0;
 }
 
-// measure the first maxNum instructions or all if maxNum is zero or not supplied
-static int buildLatDatabase(double Frequency, unsigned MaxNum = 0) {
+// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
+static int buildLatDatabase(double Frequency, unsigned MaxOpcode = 0) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
@@ -481,16 +536,12 @@ static int buildLatDatabase(double Frequency, unsigned MaxNum = 0) {
         skipOpcodes.insert(generator.getOpcode(name));
     }
 
-    if (MaxNum == 0) MaxNum = generator.MCII->getNumOpcodes();
-    latencyDatabase.resize(MaxNum, -1.0);
-    errorCodeDatabase.resize(MaxNum, ERROR_NO_HELPER);
-
     bool gotNewMeasurement = true;
     // rerun multiple times if more helper instructions are available now
     while (gotNewMeasurement) {
         gotNewMeasurement = false;
-        for (unsigned opcode = 0; opcode < MaxNum; opcode++) {
-            displayProgress(opcode, MaxNum);
+        for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
+            displayProgress(opcode, MaxOpcode);
             if (errorCodeDatabase[opcode] != ERROR_NO_HELPER) continue;
 
             if (skipOpcodes.find(opcode) != skipOpcodes.end()) {
@@ -505,7 +556,7 @@ static int buildLatDatabase(double Frequency, unsigned MaxNum = 0) {
         }
     }
     // print results
-    for (unsigned opcode = 0; opcode < MaxNum; opcode++) {
+    for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
         std::string name = generator.MCII->getName(opcode).data();
         name.resize(27, ' ');
 
@@ -583,6 +634,7 @@ int main(int argc, char **argv) {
     struct option long_options[] = {
         {"help", no_argument, nullptr, 'h'},
         {"instruction", required_argument, nullptr, 'i'},
+        {"instruction2", required_argument, nullptr, 'j'},
         {"frequency", required_argument, nullptr, 'f'},
         {"cpu", required_argument, nullptr, 'c'},
         {"march", required_argument, nullptr, 'm'},
@@ -605,7 +657,7 @@ int main(int argc, char **argv) {
     int opt;
     std::string cpu = "";
     std::string march = "";
-    unsigned maxNum = 0;
+    unsigned maxOpcode = 0;
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " {TP|LAT|INTERLEAVE|DEV} [options]\n";
         return 1;
@@ -639,7 +691,7 @@ int main(int argc, char **argv) {
             case 'i':
                 instrName = optarg;
                 break;
-            case 's':
+            case 'j':
                 instrName2 = optarg;
                 break;
             case 'f':
@@ -652,7 +704,7 @@ int main(int argc, char **argv) {
                 cpu = optarg;
                 break;
             case 'n':
-                maxNum = atoi(optarg);
+                maxOpcode = atoi(optarg);
                 break;
             default:
                 return 1;
@@ -684,7 +736,7 @@ int main(int argc, char **argv) {
                 cpu = optarg;
                 break;
             case 'n':
-                maxNum = atoi(optarg);
+                maxOpcode = atoi(optarg);
                 break;
             default:
                 return 1;
@@ -695,8 +747,10 @@ int main(int argc, char **argv) {
         std::cerr << "Unknown subprogram: " << mode << "\n";
         return 1;
     }
-    // srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen LAT -f 2.4 -n 1000 >
-    // genoaLat.log
+    dbgToFile = false;
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
     BenchmarkGenerator generator = BenchmarkGenerator();
     ErrorCode EC = generator.setUp(march, cpu);
     if (EC == ERROR_TARGET_DETECT) {
@@ -704,9 +758,6 @@ int main(int argc, char **argv) {
                                                                                      // implement
         exit(EXIT_FAILURE);
     }
-    dbgToFile = false;
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
 
     // setup signal handler to recover from various signals
     struct sigaction sa;
@@ -718,6 +769,9 @@ int main(int argc, char **argv) {
     sigaction(SIGILL, &sa, nullptr);  // Handle illegal instructions
     sigaction(SIGFPE, &sa, nullptr);  // Handle floating-point exceptions
 
+    if (maxOpcode == 0) maxOpcode = generator.MCII->getNumOpcodes();
+    latencyDatabase.resize(maxOpcode, -1.0);
+    errorCodeDatabase.resize(maxOpcode, ERROR_NO_HELPER);
     // generator.temp(opcode);
     // runBenchmarkStudy(opcode, &generator, frequency, 1000000);
     // studyUnrollBehavior(opcode, &generator, frequency);
@@ -730,7 +784,7 @@ int main(int argc, char **argv) {
     }
     case TP: {
         if (instrName == "") {
-            buildTPDatabase(frequency, maxNum);
+            buildTPDatabase(frequency, maxOpcode);
             break;
         }
         dbgToFile = true;
@@ -755,10 +809,11 @@ int main(int argc, char **argv) {
     }
     case LAT: {
         if (instrName == "") {
-            buildLatDatabase(frequency, maxNum);
+            buildLatDatabase(frequency, maxOpcode);
             break;
         }
         dbgToFile = true;
+        debug = true;
         unsigned opcode = generator.getOpcode(instrName.data());
 
         auto [EC, tp] = measureSafely(opcode, &generator, frequency, "l");
@@ -773,23 +828,31 @@ int main(int argc, char **argv) {
     }
     case DEV: {
         dbgToFile = true;
-        if (instrName == "") outs() << "need instruction\n";
-        auto [EC, lat] = measureSafely(generator.getOpcode("ADC16ri8"), &generator, frequency, "l");
+        debug = true;
+        // ADC16ri8 CMP16ri
+        // TODO debug this VADDBF16Z128rrk -> VCMPSDZrri
+        std::string instr1 = "VADDBF16Z128rrk";
+        std::string instr2 = "VCMPSDZrri";
+        if (instrName != "") instr1 = instrName.data();
+        if (instrName2 != "") instr2 = instrName2.data();
+
+        auto [EC, lat] = measureSafely(generator.getOpcode(instr1), &generator, frequency, "l");
         if (EC != SUCCESS) {
             outs() << "lat failed for reason: " << ecToString(EC) << "\n";
             outs().flush();
+            exit(1);
         }
-        latencyDatabase[generator.getOpcode("ADC16ri8")] = lat;
-        auto [EC2, lat2] =
-            measureSafely(generator.getOpcode("CMP16ri"), &generator, frequency, "l");
+        dbg(__func__, "latency: ", lat);
+        latencyDatabase[generator.getOpcode(instr1)] = lat;
+        dbg(__func__, "added");
+        auto [EC2, lat2] = measureSafely(generator.getOpcode(instr2), &generator, frequency, "l");
         if (EC2 != SUCCESS) {
             outs() << "lat2 failed for reason: " << ecToString(EC2) << "\n";
             outs().flush();
         }
-        latencyDatabase[generator.getOpcode("CMP16ri")] = lat2;
-        std::printf("ADC16ri8: %.3f (clock cycles)\n", lat);
-        std::printf("CMP16ri: %.3f (clock cycles)\n", lat2);
-        // generator.isLatencyHelperInstruction(generator.getOpcode(instrName.data()),
+        latencyDatabase[generator.getOpcode(instr2)] = lat2;
+        std::printf("%s: %.3f (clock cycles)\n", instr1.data(), lat);
+        std::printf("%s: %.3f (clock cycles)\n", instr2.data(), lat2);
         // X86::RAX);
     }
     }

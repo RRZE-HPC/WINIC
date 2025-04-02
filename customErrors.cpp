@@ -31,6 +31,7 @@ enum ErrorCode {
     ERROR_GEN_REQUIREMENT,
     ERROR_UNSUPPORTED_ARCH,
     ERROR_SIGFPE,
+    ERROR_EXEC,
     ERROR_GENERIC,
 };
 
@@ -96,6 +97,8 @@ static std::string ecToString(ErrorCode EC) {
         return "ERROR_UNSUPPORTED_ARCH";
     case ERROR_SIGFPE:
         return "ERROR_SIGFPE";
+    case ERROR_EXEC:
+        return "ERROR_EXEC";
     case ERROR_GENERIC:
         return "ERROR_GENERIC";
     default:

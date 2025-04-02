@@ -2,6 +2,7 @@
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "X86RegisterInfo.h"
+#include "customDebug.cpp"
 #include "customErrors.cpp"
 #include "templates.cpp"
 #include "llvm-c/Target.h"
@@ -38,6 +39,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
+
 // #include "llvm/TargetParser/X86TargetParser.h"
 #include <algorithm>
 #include <csetjmp>
@@ -62,14 +64,6 @@
 
 using namespace llvm;
 
-static bool debug = false;
-template <typename... Args> static void dbg(Args &&...args) {
-    if (debug) {
-        (outs() << ... << args) << "\n";
-        outs().flush();
-    }
-}
-
 class BenchmarkGenerator {
   public:
     LLVMContext Ctx;
@@ -93,7 +87,6 @@ class BenchmarkGenerator {
 
     BenchmarkGenerator() : Ctx(), Mod(std::make_unique<Module>("beehives", Ctx)) {}
     ErrorCode setUp(std::string March = "", std::string Cpu = "") {
-        dbg("setUp");
 
         // LLVMInitializeX86AsmParser();
         // LLVMInitializeX86Disassembler();
@@ -190,6 +183,7 @@ class BenchmarkGenerator {
                     std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
                         *HelperInstructions,
                     std::set<MCRegister> UsedRegisters = {}) {
+        dbg(__func__, "generating latency benchmark for ", MCII->getName(Opcode).data());
         std::string result;
         llvm::raw_string_ostream rso(result);
         auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
@@ -218,7 +212,7 @@ class BenchmarkGenerator {
         std::set<MCRegister> common = regIntersect(reads, writes);
 
         if (common.empty()) {
-            dbg("detected no common registers, need helper");
+            dbg(__func__, "detected no common registers, need helper");
             // cannot generate a latency chain on its own, find helper instruction
             // search the helperInstructions map for an instruction with opposite reads and writes
             for (auto [helperOpcode, helperReadRegs, helperWriteRegs] : *HelperInstructions) {
@@ -229,7 +223,7 @@ class BenchmarkGenerator {
 
                 if (!fittingHelperReadRegs.empty() && !fittingHelperWriteRegs.empty()) {
                     // found a helper instruction
-                    dbg("found helper instruction");
+                    dbg(__func__, "found helper instruction");
                     MCRegister helperReadReg = *fittingHelperReadRegs.begin();
                     MCRegister helperWriteReg = *fittingHelperWriteRegs.begin();
                     std::tie(EC, measureInst) =
@@ -240,29 +234,20 @@ class BenchmarkGenerator {
                     // we should always be able to generate the helper instruction
                     if (EC != SUCCESS) return {ERROR_UNREACHABLE, "", -1};
                     useInterleave = true;
+                    // dbg(__func__," using helper instruction ",
+                    // MCII->getName(helperOpcode).data());
+                    std::cout << MCII->getName(Opcode).data() << " using helper instruction "
+                           << MCII->getName(helperOpcode).data() << "\n" << std::flush;
                     break;
                 }
             }
             if (!useInterleave) return {ERROR_NO_HELPER, "", -1};
         } else {
-            dbg("detected common registers");
+            dbg(__func__, "detected common registers");
             // default behavior
             std::tie(EC, measureInst) = genInst(Opcode, UsedRegisters, true);
             if (EC != SUCCESS) return {EC, "", -1};
-            // save this as helper for other instructions if not present yet
-            bool present = false;
-            for (auto helperInst : *HelperInstructions) {
-                auto [helperOpcode, helperReadRegs, helperWriteRegs] = helperInst;
-                if (helperOpcode == Opcode) {
-                    present = true;
-                    break;
-                }
-            }
-            if (!present)
-                HelperInstructions->insert(HelperInstructions->end(), {Opcode, reads, writes});
         }
-
-        dbg("inner loop generated");
 
         // save registers used (genTPInnerLoop updates usedRegisters)
         std::string saveRegs;
@@ -272,11 +257,10 @@ class BenchmarkGenerator {
                 // generate code to save and restore register
                 // this currently also saves registers already saved in the template
                 // which is redundant but not harmful
-                dbg("calling genSave");
+                dbg(__func__, "generating save/restore code");
                 auto [EC1, save] = genSaveRegister(reg);
                 if (EC1 != SUCCESS) return {EC1, "", -1};
                 saveRegs.append(save);
-                dbg("calling genRestore");
                 auto [EC2, restore] = genRestoreRegister(reg);
                 if (EC2 != SUCCESS) return {EC2, "", -1};
                 restoreRegs.insert(0, restore);
@@ -302,7 +286,6 @@ class BenchmarkGenerator {
         return {SUCCESS, result, interleaveInst.getOpcode()};
     }
 
-
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
     // TargetInstrCount different instructions and then unrolls them by UnrollCount. Updates
     // TargetInstrCount to the actual number of instructions in the loop (unrolls included)
@@ -327,7 +310,7 @@ class BenchmarkGenerator {
 
         auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, ""};
-        dbg("inner loop generated");
+        dbg(__func__, "inner loop generated");
 
         // save registers used (genTPInnerLoop updates usedRegisters)
         std::string saveRegs;
@@ -337,11 +320,11 @@ class BenchmarkGenerator {
                 // generate code to save and restore register
                 // this currently also saves registers already saved in the template
                 // which is redundant but not harmful
-                dbg("calling genSave");
+                dbg(__func__, "calling genSave");
                 auto [EC1, save] = genSaveRegister(reg);
                 if (EC1 != SUCCESS) return {EC1, ""};
                 saveRegs.append(save);
-                dbg("calling genRestore");
+                dbg(__func__, "calling genRestore");
                 auto [EC2, restore] = genRestoreRegister(reg);
                 if (EC2 != SUCCESS) return {EC2, ""};
                 restoreRegs.insert(0, restore);
@@ -350,7 +333,7 @@ class BenchmarkGenerator {
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = instructions.size() * UnrollCount;
 
-        dbg("starting to build");
+        dbg(__func__, "starting to build");
         rso << "#define NINST " << *TargetInstrCount << "\n";
         rso << benchTemplate.preLoop;
         rso << saveRegs;
@@ -426,11 +409,9 @@ class BenchmarkGenerator {
                 // generate code to save and restore register
                 // this currently also saves registers already saved in the template
                 // which is redundant but not harmful
-                dbg("calling genSave");
                 auto [EC1, save] = genSaveRegister(reg);
                 if (EC1 != SUCCESS) return {EC1, ""};
                 saveRegs.append(save);
-                dbg("calling genRestore");
                 auto [EC2, restore] = genRestoreRegister(reg);
                 if (EC2 != SUCCESS) return {EC2, ""};
                 restoreRegs.insert(0, restore);
@@ -439,7 +420,6 @@ class BenchmarkGenerator {
         // update TargetInstructionCount to actual number of instructions generated
         // *TargetInstrCount1 = instructions.size() * UnrollCount;
 
-        dbg("starting to build");
         unsigned totalTargetInstrCount = TargetInstrCount1 + TargetInstrCount2;
         rso << "#define NINST " << totalTargetInstrCount << "\n";
         rso << benchTemplate.preLoop;
@@ -478,7 +458,6 @@ class BenchmarkGenerator {
         return {SUCCESS, result};
     }
 
-
     // generates a benchmark loop to measure throughput of an instruction
     // tries to generate targetInstrCount independent instructions for the inner
     // loop might generate less instructions than targetInstrCount if there are
@@ -488,7 +467,6 @@ class BenchmarkGenerator {
                                                            std::set<MCRegister> &UsedRegisters) {
         std::list<MCInst> instructions;
         const MCInstrDesc &desc = MCII->get(Opcode);
-        dbg("genTPInnerLoop");
         // TODO do this much earlier
         if (isValid(desc) != SUCCESS) return {isValid(desc), {}};
         // MSTI->getFeatureBits().test(X86::FeatureFMA); TODO
@@ -515,7 +493,7 @@ class BenchmarkGenerator {
                 } else {
                     switch (opInfo.OperandType) {
                     case MCOI::OPERAND_REGISTER: {
-                        dbg("adding register");
+                        dbg(__func__, "adding register");
 
                         // search for unused register and add it as operand
                         const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
@@ -635,7 +613,7 @@ class BenchmarkGenerator {
             } else {
                 switch (opInfo.OperandType) {
                 case MCOI::OPERAND_REGISTER: {
-                    dbg("adding register");
+                    dbg(__func__, "adding register");
 
                     // check if required reg can be used
                     const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
@@ -721,8 +699,6 @@ class BenchmarkGenerator {
 
     // TODO find ISA independent function in llvm
     std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
-        dbg("genSaveRegister");
-
         ErrorCode EC;
         // we dont want to save sub registers
         std::tie(EC, Reg) = getSupermostRegister(Reg);
@@ -751,7 +727,6 @@ class BenchmarkGenerator {
 
     // TODO find ISA independent function in llvm
     std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
-        dbg("genRestoreRegister");
         ErrorCode EC;
         std::tie(EC, Reg) = getSupermostRegister(Reg);
         if (EC != SUCCESS) return {EC, ""};
@@ -775,7 +750,6 @@ class BenchmarkGenerator {
         }
         return {SUCCESS, result};
     }
-
 
     bool regInRegClass(MCRegister Reg, MCRegisterClass RegClass) {
         for (MCRegister reg : RegClass)
@@ -812,8 +786,10 @@ class BenchmarkGenerator {
     // get Opcode for instruction
     // TODO there probably is a mechanism for this in llvm -> find and use
     unsigned getOpcode(std::string InstructionName) {
+        dbg(__func__, "getting opcode for ", InstructionName.data());
         for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i) {
             if (MCII->getName(i) == InstructionName) {
+                dbg(__func__, "found opcode ", i);
                 return i;
             }
         }
