@@ -1,16 +1,21 @@
 
 
 TODO
-    something is causing free(): invalid (genoa)
+    latency genInst not optimal, VANDNPSZ128rr uses same reg for both reads allowing for optimization to happen
+    TEST CASE IF HELPER LATENCY BIGGER THAN INSTRUCTION LATENCY
+    something is causing free(): invalid (genoa, TP)
+    /usr/bin/ld: warning: /tmp/temp-c3f742.o: missing .note.GNU-stack section implies executable stack
+    /usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+        ->tmp memory or file system?
     some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without breaking the dependency on the flags. try to avoid
-    some instructions always work on e.g. rax -> currently latency not TP is measured (XOR16i16)
-    replace generic errors
     init registers (e.g. avoid avx-sse transition penalty)
-    latency benchmarks
+    check latency results with uops
+    test lukewarm Latency
     test lukewarm (sve)
     test riscv
         add templates for riscv plan release packaging configure llvm installation to include clang but be as fast as possible
-    instructions with weird values
+    dont spawn subprocess for every instruction
+    instructions with weird TP values
         ADD_FST0r 
         XOR8rr_NOREX
         ADC16ri8 - adcs are broken bc of flags dependency
@@ -21,11 +26,18 @@ TODO
         IMUL16r
         LAHF
         MUL32r
-        MUL8r
+        MUL8r - broken because always on same register
+    instructions with weird LAT values
+        CDQ
+        CMP16ri
+
 
     done:
     instructions with weird values
         -COM_Fpr32 - was an undetected pseudo instruction
+    -rename ERRORS
+    -Helper instructions have to be handled outside of the subprocess otherwise they dont see each other
+    -dont use subprocess
     -remove rounding in loop overhead calculation
     -reuse readonly regs for TP bench, in some cases there are too few instructions (MMX_PMULLWrr)
     -move to clang for assembling to avoid gcc dependency
@@ -59,19 +71,28 @@ helpful
     desc.hasImplicitUseOfPhysReg(MCRegister::from(X86::EFLAGS))
     MCII->getName(opcode).data()
 
+use 2.4Ghz on genoa1 and 2.3Ghz on genoa2
 
 cd bachelor/llvm-project/build/own_tools/llvm-bench
 salloc --nodes=1 -w icx36 --time=02:00:00 -C hwperf
 srun --cpu-freq=2400000-2400000:performance cat /proc/cpuinfo | grep MHz
+srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen LAT -f 2.4 -i ADC16ri8
+srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen DEV -f 2.4 -i ADC16ri8
 srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen -f 2.4 -i ADC16ri8 
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen -f 2.4 > genoa.log
+srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen TP -f 2.4 > genoa.log
+srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen LAT -f 2.4 -n 10000 > genoaLatDebug.log
 srun --cpu-freq=2400000-2400000:performance ./quick 2.4
 ./llvm_instr_gen -f 2.2 > warmup.log
 
 srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen -f 2.4 -i MMX_PMULLWrr 
 
+benchmark
+    perf record -g ./llvm_instr_gen LAT -f 2.4 -n 1000
+    perf record -g --call-graph dwarf ./llvm_instr_gen LAT -f 2.4 -n 1000
+    perf script | ./FlameGraph/stackcollapse-perf.pl > out.folded
+    ./FlameGraph/flamegraph.pl out.folded > flamegraph_debugClang.svg
 
-Testfront
+Testfront setup
     salloc --nodes=1 -w icx36 --time=02:00:00
     salloc --nodes=1 -w genoa1 --time=02:00:00
 
@@ -83,8 +104,16 @@ Testfront
     git clone https://github.com/TobiasRTR/llvm-bench.git
 
     #build with clangd or all
-    cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra"
+    cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra"
     cmake --build . --target clangd/all -- -j 64
+
+
+    build_x86_2 (this will be 150GB)
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
+    cmake --build . --target install -- -j 64
+
+total runtime: 34.612634 (s) lat n= 1000
+
 
 x86:
 CLD
@@ -139,39 +168,60 @@ Sei T_12 der Zeit von MUL und MOV 1:2 interleaved
 
 
 
-ADC kein TP
-ADD TP=0.25 bricht adc dependency
-wenn beide auf verschiedenen ports laufen gibt es eine ratio bei der beide tps kleiner gleich dem minimalen einzel TP sind
-wenn 1:1 run: keine dependencys
-    wenn gleiche Ports: TP_comb = TPadc + TPadd
-    wenn verschiedene Ports: 
+Paper
+    Latency on adc	ax, 42 not possible, use auto detected interleave instruction 
+    which reads adc and writes flags, subtract TP of interleave instruction (e.g. cmp)
+
+    ADC kein TP
+    ADD TP=0.25 bricht adc dependency
+    wenn beide auf verschiedenen ports laufen gibt es eine ratio bei der beide tps kleiner gleich dem minimalen einzel TP sind
+    wenn 1:1 run: keine dependencys
+        wenn gleiche Ports: TP_comb = TPadc + TPadd
+        wenn verschiedene Ports: 
 
 
-if flags dependency:
-    interleave with dependency breaking instruction bi 1:1 and 9:1
-    if TP_combined > TP_bi:
-        TP = TP_combined - TP_mov (same ports)
-    else (TP_combined == TP_bi)
-        TP <= TP_combined (no final answer since either equal to TP_bi or limited by TP_bi)
-    
+    if flags dependency:
+        interleave with dependency breaking instruction bi 1:1 and 9:1
+        if TP_combined > TP_bi:
+            TP = TP_combined - TP_mov (same ports)
+        else (TP_combined == TP_bi)
+            TP <= TP_combined (no final answer since either equal to TP_bi or limited by TP_bi)
+        
 
-if instruction only one register (add eax, imm)
-    interleave with mov eax, imm with TP_mov
-    if TP_combined > TP_mov
-        if same ports
-            TP = TP_combined - TP_mov
-        else different ports (how to detect???)
-            TP = TP_combined
-    else 
-        TP = 
+    if instruction only one register (add eax, imm)
+        interleave with mov eax, imm with TP_mov
+        if TP_combined > TP_mov
+            if same ports
+                TP = TP_combined - TP_mov
+            else different ports (how to detect???)
+                TP = TP_combined
+        else 
+            TP = 
 
-alternative
-    measure TP_add 
-    measure TP_add with add_eax every 1/TP_add instructions
-    if results are same -> TP is same
-    for uops case: TP_add = 0.25 TP_add_eax = 0.33
-        TP_combined = 3/4*0.25 + 1/4*0.33 = 0.27
-        but this is not the case
+    alternative
+        measure TP_add 
+        measure TP_add with add_eax every 1/TP_add instructions
+        if results are same -> TP is same
+        for uops case: TP_add = 0.25 TP_add_eax = 0.33
+            TP_combined = 3/4*0.25 + 1/4*0.33 = 0.27
+            but this is not the case
+
+
+profiling:
+perf record -g ./my_program
+perf script | ./FlameGraph/stackcollapse-perf.pl > out.folded
+./FlameGraph/flamegraph.pl out.folded > flamegraph.svg
+
+cmake .. -DLIBELF_INCLUDE_DIRS=/home/woody/ihpc/ihpc149h/USER-SPACK/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.0/libelf-0.8.13-uisotbgdwwepizf5ukbn5l7mopfyxkh4/include \
+-DLIBELF_LIBRARIES=/home/woody/ihpc/ihpc149h/USER-SPACK/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.0/libelf-0.8.13-uisotbgdwwepizf5ukbn5l7mopfyxkh4/lib/libelf.so \
+-DLIBDW_INCLUDE_DIR=/home/woody/ihpc/ihpc149h/USER-SPACK/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.0/libelf-0.8.13-uisotbgdwwepizf5ukbn5l7mopfyxkh4/includ \
+-DLIBDW_LIBRARIES=/home/woody/ihpc/ihpc149h/USER-SPACK/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.0/libelf-0.8.13-uisotbgdwwepizf5ukbn5l7mopfyxkh4/lib/libdw.so
+/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/own_tools/llvm-bench/hotspot/build//extra-cmake-modules/build/install/usr/local/share/ECM/cmake/
+cmake .. -DCMAKE_PREFIX_PATH=/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/own_tools/llvm-bench/hotspot/build//extra-cmake-modules/build/install/usr/local/share/ECM/cmake/
+
+
+cmake .. -DLIBELF_LIBRARIES=apps/SPACK/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.0/libelf-0.8.13-uisotbgdwwepizf5ukbn5l7mopfyxkh4/lib/libelf.so
+-DLIBELF_INCLUDE_DIRS=apps/SPACK/0.18.1/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.0/libelf-0.8.13-uisotbgdwwepizf5ukbn5l7mopfyxkh4/include 
 
     code:
     add	eax, 42
@@ -364,6 +414,7 @@ AArch64 names
 
 
 clangd path is in workspace
+clangd include paths in .clangd
 
 
 	adox	eax, ecx
