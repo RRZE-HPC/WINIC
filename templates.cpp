@@ -6,6 +6,7 @@
 #include <string>
 
 struct Template {
+    std::string preInit;
     std::string preLoop;
     std::string beginLoop;
     std::string midLoop;
@@ -13,9 +14,9 @@ struct Template {
     std::string postLoop;
     std::set<std::string> usedRegisters;
 
-    Template(std::string preLoop, std::string beginLoop, std::string midLoop, std::string endLoop,
+    Template(std::string preInit,std::string preLoop, std::string beginLoop, std::string endLoop,
              std::string postLoop, std::set<std::string> usedRegisters)
-        : preLoop(std::move(preLoop)), beginLoop(std::move(beginLoop)), midLoop(std::move(midLoop)),
+        : preInit(std::move(preInit)), preLoop(std::move(preLoop)), beginLoop(std::move(beginLoop)),
           endLoop(std::move(endLoop)), postLoop(std::move(postLoop)),
           usedRegisters(std::move(usedRegisters)) {
         // for readability of this file strings have a leading newline
@@ -46,6 +47,15 @@ static Template X86Template = {
 ninst:
 .long NINST
 .text
+
+.globl init
+.type init, @function
+.align 32
+init:
+)", R"(
+    ret
+.size init, .-init
+
 .globl latency
 .type latency, @function
 .align 32
@@ -61,7 +71,6 @@ loop:
         inc       i
 )", R"(
         cmp       i, N
-)", R"(
         jl        loop
 done:
 )", R"(
@@ -80,6 +89,15 @@ static Template AArch64Template = {
 ninst:
 .long NINST
 .text
+
+.globl init
+.type init, @function
+.align 32
+init:
+)", R"(
+    ret
+.size init, .-init
+
 .globl latency
 .type latency, @function
 .align 2
@@ -109,7 +127,6 @@ latency:
 loop:
 )", R"(
         subs      x4, x4, #1
-)", R"(
         bne       loop
 done:
 )", R"(

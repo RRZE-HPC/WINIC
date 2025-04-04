@@ -107,6 +107,8 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
         debugFile.close();
     }
 
+    dbg(__func__, "assembling benchmark");
+
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2>
     // gcc_out";
@@ -153,49 +155,39 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
             return {ERROR_ASSEMBLY, {-1}};
         }
     }
-    dbg(__func__, "assembly done");
 
     // from ibench
     double (*latency)(int);
+    void (*init)();
     int *ninst;
     if ((globalHandle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
-        fflush(stdout);
         return {ERROR_FILE, {-1}};
     }
     if ((latency = (double (*)(int))dlsym(globalHandle, "latency")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find function latency\n");
-        fflush(stdout);
+        return {ERROR_GENERIC, {-1}};
+    }
+    if ((init = (void (*)())dlsym(globalHandle, "init")) == NULL) {
+        fprintf(stderr, "dlsym: couldn't find function init\n");
         return {ERROR_GENERIC, {-1}};
     }
     if ((ninst = (int *)dlsym(globalHandle, "ninst")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
-        fflush(stdout);
         return {ERROR_GENERIC, {-1}};
     }
 
-    struct timeval start, end;
-
-    // struct sigaction sa;
-    // sa.sa_handler = signalHandler;
-    // sigemptyset(&sa.sa_mask);
-    // sa.sa_flags = 0;
-    // sigaction(SIGILL, &sa, nullptr);
-
-    std::list<double> benchtimes;
     dbg(__func__, "starting benchmark");
-    // if (sigsetjmp(jumpBuffer, 1) == 0) {
+    struct timeval start, end;
+    std::list<double> benchtimes;
     for (unsigned i = 0; i < Runs; i++) {
+        (*init)();
         gettimeofday(&start, NULL);
         (*latency)(N);
         gettimeofday(&end, NULL);
         benchtimes.insert(benchtimes.end(),
                           (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
     }
-    // } else {
-    //     dlclose(handle);
-    //     return {ILLEGAL_INSTRUCTION, {-1}};
-    // }
 
     dlclose(globalHandle);
     return {SUCCESS, benchtimes};
@@ -326,7 +318,7 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
     unsigned numInst2 = 24;
-    double n = 1000000; // loop count
+    double n = 10000000; // loop count
     ErrorCode EC;
     std::string assembly;
     int helperOpcode;
@@ -347,9 +339,15 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     std::tie(EC, times2) = runBenchmark(assembly, n, 3);
     if (EC != SUCCESS) return {EC, -1};
 
+    if (helperOpcode != -1)
+        std::cout << Generator->MCII->getName(Opcode).data() << " using helper instruction "
+                  << Generator->MCII->getName(helperOpcode).data() << "\n"
+                  << std::flush;
+
     // take minimum of runs
     double time1 = *std::min_element(times1.begin(), times1.end());
     double time2 = *std::min_element(times2.begin(), times2.end());
+    dbg(__func__, "time1: ", time1, " time2: ", time2);
     // std::printf("time1: %.3f \n", time1);
     // std::printf("time2: %.3f \n", time2);
 
@@ -360,16 +358,20 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     if (loopInstr2 < -1) {
         // throughput decreases significantly when unrolling, this is very
         // unususal
-        std::printf("   anomaly detected during measurement:\n");
+        std::printf("   anomaly detected during measurement of %s:\n",
+                    Generator->MCII->getName(Opcode).data());
         std::printf("   %.3f instructions interfering with measurement 1->2\n", loopInstr2);
     }
     loopInstr2 = std::max(loopInstr2, 0.0);
-    double corrected1_2 = time1 / (1e6 * (numInst1 + loopInstr2) / Frequency * (n / 1e9));
+    double uncorrected = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
+    dbg(__func__, "uncorrected: ", uncorrected, " loopInstr2: ", loopInstr2);
+    double corrected = time1 / (1e6 * (numInst1 + loopInstr2) / Frequency * (n / 1e9));
+
     // if a helper instruction was used subtract its latency
-    if (helperOpcode != -1) corrected1_2 -= latencyDatabase[helperOpcode];
-    if (corrected1_2 > 0) {
+    if (helperOpcode != -1) corrected -= latencyDatabase[helperOpcode];
+    if (corrected > 0) {
         // reasonable result, save this as helper for other instructions if not present yet
-        //TODO is this check neccesary?
+        // TODO is this check neccesary?
         bool alreadyInHelpers = false;
         for (auto helperInst : helperInstructions) {
             auto [helperOpcode, helperReadRegs, helperWriteRegs] = helperInst;
@@ -385,7 +387,7 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
         }
     }
 
-    return {SUCCESS, corrected1_2};
+    return {SUCCESS, corrected};
 }
 
 // calls one of the measure functions in a subprocess to recover from segfaults during the
@@ -829,10 +831,11 @@ int main(int argc, char **argv) {
     case DEV: {
         dbgToFile = true;
         debug = true;
-        // ADC16ri8 CMP16ri
-        // TODO debug this VADDBF16Z128rrk -> VCMPSDZrri
-        std::string instr1 = "VADDBF16Z128rrk";
-        std::string instr2 = "VCMPSDZrri";
+        // ADC16ri8 CMP16ri8
+        // TODO debug this VADDBF16Z128rrk -> VCMPSDZrri - not supported
+        // ADC32i32 PCMPESTRIrri CVTSI2SDrr TODO debug
+        std::string instr1 = "ADC32i32";
+        std::string instr2 = "PCMPESTRIrri";
         if (instrName != "") instr1 = instrName.data();
         if (instrName2 != "") instr2 = instrName2.data();
 

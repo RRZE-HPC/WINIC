@@ -223,21 +223,20 @@ class BenchmarkGenerator {
 
                 if (!fittingHelperReadRegs.empty() && !fittingHelperWriteRegs.empty()) {
                     // found a helper instruction
-                    dbg(__func__, "found helper instruction");
+                    dbg(__func__, "found helper instruction ", MCII->getName(Opcode).data());
                     MCRegister helperReadReg = *fittingHelperReadRegs.begin();
                     MCRegister helperWriteReg = *fittingHelperWriteRegs.begin();
                     std::tie(EC, measureInst) =
-                        genInst(Opcode, UsedRegisters, true, helperWriteReg, helperReadReg);
+                        genInst(Opcode, UsedRegisters, false, helperWriteReg, helperReadReg);
                     if (EC != SUCCESS) return {EC, "", -1};
                     std::tie(EC, interleaveInst) =
-                        genInst(helperOpcode, UsedRegisters, true, helperReadReg, helperWriteReg);
+                        genInst(helperOpcode, UsedRegisters, false, helperReadReg, helperWriteReg);
                     // we should always be able to generate the helper instruction
                     if (EC != SUCCESS) return {ERROR_UNREACHABLE, "", -1};
                     useInterleave = true;
-                    // dbg(__func__," using helper instruction ",
-                    // MCII->getName(helperOpcode).data());
-                    std::cout << MCII->getName(Opcode).data() << " using helper instruction "
-                           << MCII->getName(helperOpcode).data() << "\n" << std::flush;
+                    // std::cout << MCII->getName(Opcode).data() << " using helper instruction "
+                    //           << MCII->getName(helperOpcode).data() << "\n"
+                    //           << std::flush;
                     break;
                 }
             }
@@ -268,6 +267,16 @@ class BenchmarkGenerator {
         }
 
         rso << "#define NINST " << *TargetInstrCount << "\n";
+        rso << benchTemplate.preInit;
+        // code for the init function
+        rso << saveRegs;
+        MIP->printInst(&measureInst, 0, "", *MSTI, rso);
+        rso << "\n";
+        if (useInterleave) {
+            MIP->printInst(&interleaveInst, 0, "", *MSTI, rso);
+            rso << "\n";
+        }
+        rso << restoreRegs;
         rso << benchTemplate.preLoop;
         rso << saveRegs;
         rso << benchTemplate.beginLoop;
@@ -279,11 +288,11 @@ class BenchmarkGenerator {
                 rso << "\n";
             }
         }
-        rso << benchTemplate.midLoop;
         rso << benchTemplate.endLoop;
         rso << restoreRegs;
         rso << benchTemplate.postLoop << "\n";
-        return {SUCCESS, result, interleaveInst.getOpcode()};
+        if (useInterleave) return {SUCCESS, result, interleaveInst.getOpcode()};
+        return {SUCCESS, result, -1};
     }
 
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
@@ -335,6 +344,10 @@ class BenchmarkGenerator {
 
         dbg(__func__, "starting to build");
         rso << "#define NINST " << *TargetInstrCount << "\n";
+        rso << benchTemplate.preInit;
+        // code for the init function
+        rso << saveRegs;
+        rso << restoreRegs;
         rso << benchTemplate.preLoop;
         rso << saveRegs;
         rso << benchTemplate.beginLoop;
@@ -345,7 +358,6 @@ class BenchmarkGenerator {
                 if (!InterleaveInst.empty()) rso << InterleaveInst << "\n";
             }
         }
-        rso << benchTemplate.midLoop;
         rso << benchTemplate.endLoop;
         rso << restoreRegs;
         rso << benchTemplate.postLoop << "\n";
@@ -451,7 +463,6 @@ class BenchmarkGenerator {
                 }
             }
         }
-        rso << benchTemplate.midLoop;
         rso << benchTemplate.endLoop;
         rso << restoreRegs;
         rso << benchTemplate.postLoop << "\n";
@@ -554,49 +565,43 @@ class BenchmarkGenerator {
     }
 
     /**
-     * \brief Generate an instruction
+     * \brief Generate an instruction TODO debug with VADDSSZrr
      *
-     * This function takes an opcode and generates a valid MCInst.
+     * This function takes an opcode and generates a valid MCInst. By default it uses different
+     * registers for each operand. This can be changed by setting RequireReadRegister,
+     * RequireWriteRegister and EnforceRWDependency. In LLVM operands which are read are called
+     * "uses" and operands which are written are called "defs".
      *
      * \param Opcode Opcode of the instruction.
      * \param UsedRegisters A blacklist of registers not to be used.
-     * \param ReuseRegisters If true, the same register will be used for multiple operands.
-     * \param RequireReadRegister This register will always be used for operands read if possible,
-     * overriding UsedRegisters and ReuseRegisters. If not possible, the instruction will not be
-     * generated.
-     * \param RequireWriteRegister This register will always be used for operands written if
-     * possible, overriding UsedRegisters and ReuseRegisters. If not possible, the instruction will
-     * not be generated.
+     * \param EnforceRWDependency If true, the same register will be used for one read operand and
+     * one write operand. If not possible, no instruction will be generated.
+     * \param RequireUseRegister This register will be used for exactly one operand read if
+     * possible, overriding UsedRegisters and ReuseRegisters. If not possible, no instruction will
+     * be generated.
+     * \param RequireDefRegister This register will be used for exactly one operand written if
+     * possible, overriding UsedRegisters and ReuseRegisters. If not possible, no instruction will
+     * be generated.
      * \return ErrorCode and generated instruction.
      */
     std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::set<MCRegister> &UsedRegisters,
-                                         bool ReuseRegisters = false,
-                                         MCRegister RequireReadRegister = -1,
-                                         MCRegister RequireWriteRegister = -1) {
+                                         bool RequireRWDependency = false,
+                                         MCRegister RequireUseRegister = -1,
+                                         MCRegister RequireDefRegister = -1) {
         const MCInstrDesc &desc = MCII->get(Opcode);
         unsigned numOperands = desc.getNumOperands();
+        std::set<MCRegister> localDefs;
+        std::set<MCRegister> localUses;
         std::set<MCRegister> localUsedRegisters;
-        bool satisfiedReadRequirement = false;
-        bool satisfiedWriteRequirement = false;
-        if (RequireReadRegister != -1) {
-            // check if reqirements get satisfied by implicit uses/defs
-            for (auto implUseReg : desc.implicit_uses()) {
-                if (RequireReadRegister == MCRegister::from(implUseReg)) {
-                    satisfiedReadRequirement = true;
-                    break;
-                }
-            }
-
-            for (MCPhysReg implDefReg : desc.implicit_defs()) {
-                if (RequireWriteRegister == MCRegister::from(implDefReg)) {
-                    satisfiedWriteRequirement = true;
-                    break;
-                }
-            }
-
-            // outs() << "require read reg " << MRI->getName(RequireReadRegister) << "\n";
-            // outs() << "require write reg " << MRI->getName(RequireWriteRegister) << "\n";
-        }
+        std::set<MCRegister> localImplDefs(desc.implicit_defs().begin(),
+                                           desc.implicit_defs().end());
+        std::set<MCRegister> localImplUses(desc.implicit_uses().begin(),
+                                           desc.implicit_uses().end());
+        std::set<MCRegister> localImplUsedRegisters;
+        // keep track of requirements, first check if they get satisfied by implicit uses/defs
+        bool satisfiedDefReq = localImplDefs.find(RequireDefRegister) != localImplDefs.end();
+        bool satisfiedUseReq = localImplUses.find(RequireUseRegister) != localImplUses.end();
+        bool satisfiedRWReq = !regIntersect(localImplDefs, localImplUses).empty();
 
         MCInst inst;
         inst.setOpcode(Opcode);
@@ -610,28 +615,37 @@ class BenchmarkGenerator {
                 // this operand must be identical to another operand
                 unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
                 inst.addOperand(inst.getOperand(tiedToOp));
+                if (inst.getOperand(tiedToOp).isReg()) {
+                    MCRegister reg = inst.getOperand(tiedToOp).getReg();
+                    if (j < desc.getNumDefs())
+                        localDefs.insert(reg);
+                    else
+                        localUses.insert(reg);
+                    dbg(__func__, "using tied register: ", TRI->getName(reg));
+                }
             } else {
                 switch (opInfo.OperandType) {
                 case MCOI::OPERAND_REGISTER: {
-                    dbg(__func__, "adding register");
 
                     // check if required reg can be used
                     const MCRegisterClass &RegClass = MRI->getRegClass(opInfo.RegClass);
-                    if (RequireReadRegister != -1 && j >= desc.getNumDefs() &&
-                        regInRegClass(RequireReadRegister, RegClass)) {
-                        inst.addOperand(MCOperand::createReg(RequireReadRegister));
-                        localUsedRegisters.insert(RequireReadRegister);
-                        satisfiedReadRequirement = true;
+                    if (!satisfiedUseReq && RequireUseRegister != -1 && j >= desc.getNumDefs() &&
+                        regInRegClass(RequireUseRegister, RegClass)) {
+                        inst.addOperand(MCOperand::createReg(RequireUseRegister));
+                        localUses.insert(RequireUseRegister);
+                        dbg(__func__,
+                            "using register to satisfy use: ", TRI->getName(RequireUseRegister));
                         break;
                     }
-                    if (RequireWriteRegister != -1 && j < desc.getNumDefs() &&
-                        regInRegClass(RequireWriteRegister, RegClass)) {
-                        inst.addOperand(MCOperand::createReg(RequireWriteRegister));
-                        localUsedRegisters.insert(RequireWriteRegister);
-                        satisfiedWriteRequirement = true;
+                    if (!satisfiedDefReq && RequireDefRegister != -1 && j < desc.getNumDefs() &&
+                        regInRegClass(RequireDefRegister, RegClass)) {
+                        inst.addOperand(MCOperand::createReg(RequireDefRegister));
+                        localDefs.insert(RequireDefRegister);
+                        dbg(__func__,
+                            "using register to satisfy def: ", TRI->getName(RequireDefRegister));
                         break;
                     }
-                    // search for unused register and add it as operand
+                    // search for unused register and add it as this operand
                     bool foundRegister = false;
                     for (MCRegister reg : RegClass) {
                         if ((Arch == Triple::ArchType::x86_64 && reg.id() == 58) ||
@@ -640,28 +654,41 @@ class BenchmarkGenerator {
                             // RIP register (58) is included in GR64 class which is a bug
                             // see X86RegisterInfo.td:586
                             continue;
-                        // check if sub- or superregisters are in use
+                        // dont use this if sub- or superregisters are in usedRegisters
                         if (std::any_of(
                                 UsedRegisters.begin(), UsedRegisters.end(),
                                 [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
                             continue;
-                        if (!ReuseRegisters &&
-                            std::any_of(
+                        if (RequireRWDependency && !satisfiedRWReq && j >= desc.getNumDefs() &&
+                            localDefs.find(reg) != localDefs.end()) {
+                            // we need a rw dependency, it is not satisfied yet, we are defining the
+                            // read operands right now so all writes are already definded and this
+                            // register was already defined as write operand earlier
+                            // -> use this as read operand to satisfy the dependency requirement
+                            inst.addOperand(MCOperand::createReg(reg));
+                            localUses.insert(reg);
+                            dbg(__func__, "using register to satisfy RW: ", TRI->getName(reg));
+                            foundRegister = true;
+                            break;
+                        }
+                        // none of the special cases apply, default behavior applies: dont reuse any
+                        // registers
+                        if (std::any_of(
                                 localUsedRegisters.begin(), localUsedRegisters.end(),
                                 [reg, this](MCRegister R) { return TRI->regsOverlap(reg, R); }))
                             continue;
 
                         inst.addOperand(MCOperand::createReg(reg));
-
-                        localUsedRegisters.insert(reg);
+                        if (j < desc.getNumDefs())
+                            localDefs.insert(reg);
+                        else
+                            localUses.insert(reg);
+                        dbg(__func__, "using register: ", TRI->getName(reg));
                         foundRegister = true;
                         break;
                     }
-                    if (!foundRegister) {
-                        // outs() << "all supported registers of this class are in use"
-                        //        << "\n";
-                        return {ERROR_NO_REGISTERS, {}};
-                    }
+                    if (!foundRegister) return {ERROR_NO_REGISTERS, {}};
+
                     break;
                 }
                 case MCOI::OPERAND_IMMEDIATE:
@@ -679,11 +706,26 @@ class BenchmarkGenerator {
                     return {UNKNOWN_OPERAND, {}};
                 }
             }
+            // update requirements
+            satisfiedUseReq |= localUses.find(RequireUseRegister) != localUses.end();
+            satisfiedDefReq |= localDefs.find(RequireDefRegister) != localDefs.end();
+            satisfiedRWReq |= !regIntersect(localDefs, localUses).empty();
+            localUsedRegisters = regUnion(localDefs, localUses);
         }
-        if (RequireReadRegister != -1 && !satisfiedReadRequirement)
+        if (RequireUseRegister != -1 && !satisfiedUseReq) {
+            dbg(__func__, MCII->getName(Opcode).data(), " could not satisfy use ",
+                TRI->getName(RequireUseRegister));
             return {ERROR_GEN_REQUIREMENT, {}};
-        if (RequireWriteRegister != -1 && !satisfiedWriteRequirement)
+        }
+        if (RequireDefRegister != -1 && !satisfiedDefReq) {
+            dbg(__func__, MCII->getName(Opcode).data(), " could not satisfy def ",
+                TRI->getName(RequireDefRegister));
             return {ERROR_GEN_REQUIREMENT, {}};
+        }
+        if (RequireRWDependency && !satisfiedRWReq) {
+            dbg(__func__, MCII->getName(Opcode).data(), " could not satisfy rw dependency ");
+            return {ERROR_GEN_REQUIREMENT, {}};
+        }
         UsedRegisters.insert(localUsedRegisters.begin(), localUsedRegisters.end());
         return {SUCCESS, inst};
     }
