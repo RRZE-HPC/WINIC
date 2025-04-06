@@ -4,6 +4,8 @@ venv/
 *.s
 *.log
 *.png
+*.svg
+*.pyc
 quick
 llvm-project.code-workspace
 templates_old.cpp
