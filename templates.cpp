@@ -6,6 +6,8 @@
 #include <string>
 
 struct Template {
+    std::string prefix;
+    std::string postInit;
     std::string preInit;
     std::string preLoop;
     std::string beginLoop;
@@ -14,11 +16,12 @@ struct Template {
     std::string postLoop;
     std::set<std::string> usedRegisters;
 
-    Template(std::string preInit,std::string preLoop, std::string beginLoop, std::string endLoop,
-             std::string postLoop, std::set<std::string> usedRegisters)
-        : preInit(std::move(preInit)), preLoop(std::move(preLoop)), beginLoop(std::move(beginLoop)),
-          endLoop(std::move(endLoop)), postLoop(std::move(postLoop)),
-          usedRegisters(std::move(usedRegisters)) {
+    Template(std::string prefix, std::string preInit, std::string postInit, std::string preLoop,
+             std::string beginLoop, std::string endLoop, std::string postLoop,
+             std::set<std::string> usedRegisters)
+        : prefix(std::move(prefix)), preInit(std::move(preInit)), postInit(std::move(postInit)),
+          preLoop(std::move(preLoop)), beginLoop(std::move(beginLoop)), endLoop(std::move(endLoop)),
+          postLoop(std::move(postLoop)), usedRegisters(std::move(usedRegisters)) {
         // for readability of this file strings have a leading newline
         // this gets removed here
         trimLeadingNewline(this->preLoop);
@@ -42,12 +45,8 @@ static Template X86Template = {
 #define i r8d
 
 .intel_syntax noprefix
-.globl ninst
-.data
-ninst:
-.long NINST
 .text
-
+)", R"(
 .globl init
 .type init, @function
 .align 32
@@ -55,6 +54,7 @@ init:
 )", R"(
     ret
 .size init, .-init
+)", R"(
 
 .globl latency
 .type latency, @function
@@ -84,12 +84,9 @@ static Template AArch64Template = {
     R"(
 #define N x0
 
-.globl ninst
-.data
-ninst:
-.long NINST
 .text
 
+)", R"(
 .globl init
 .type init, @function
 .align 32
@@ -97,6 +94,7 @@ init:
 )", R"(
     ret
 .size init, .-init
+)", R"(
 
 .globl latency
 .type latency, @function

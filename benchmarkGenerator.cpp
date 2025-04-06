@@ -3,8 +3,9 @@
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "X86RegisterInfo.h"
 #include "customDebug.cpp"
-#include "customErrors.cpp"
-#include "templates.cpp"
+// #include "customErrors.cpp"
+// #include "templates.cpp"
+#include "assemblyFile.cpp"
 #include "llvm-c/Target.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/CodeGen/MachineFunction.h"
@@ -178,14 +179,14 @@ class BenchmarkGenerator {
     // TargetInstructionCount will still be set to the number of generated instructions only
     // returns an error code, the generated assembly code and the opcode of the interleave
     // instruction if generated, -1 otherwise
-    std::tuple<ErrorCode, std::string, int>
+    std::tuple<ErrorCode, AssemblyFile, int>
     genLatBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
                     std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
                         *HelperInstructions,
                     std::set<MCRegister> UsedRegisters = {}) {
         dbg(__func__, "generating latency benchmark for ", MCII->getName(Opcode).data());
-        std::string result;
-        llvm::raw_string_ostream rso(result);
+        // std::string result;
+        // llvm::raw_string_ostream rso(result);
         auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
         // extract list of registers used by the template
         // TODO optimize
@@ -228,11 +229,11 @@ class BenchmarkGenerator {
                     MCRegister helperWriteReg = *fittingHelperWriteRegs.begin();
                     std::tie(EC, measureInst) =
                         genInst(Opcode, UsedRegisters, false, helperWriteReg, helperReadReg);
-                    if (EC != SUCCESS) return {EC, "", -1};
+                    if (EC != SUCCESS) return {EC, AssemblyFile(), -1};
                     std::tie(EC, interleaveInst) =
                         genInst(helperOpcode, UsedRegisters, false, helperReadReg, helperWriteReg);
                     // we should always be able to generate the helper instruction
-                    if (EC != SUCCESS) return {ERROR_UNREACHABLE, "", -1};
+                    if (EC != SUCCESS) return {ERROR_UNREACHABLE, AssemblyFile(), -1};
                     useInterleave = true;
                     // std::cout << MCII->getName(Opcode).data() << " using helper instruction "
                     //           << MCII->getName(helperOpcode).data() << "\n"
@@ -240,12 +241,12 @@ class BenchmarkGenerator {
                     break;
                 }
             }
-            if (!useInterleave) return {ERROR_NO_HELPER, "", -1};
+            if (!useInterleave) return {ERROR_NO_HELPER, AssemblyFile(), -1};
         } else {
             dbg(__func__, "detected common registers");
             // default behavior
             std::tie(EC, measureInst) = genInst(Opcode, UsedRegisters, true);
-            if (EC != SUCCESS) return {EC, "", -1};
+            if (EC != SUCCESS) return {EC, AssemblyFile(), -1};
         }
 
         // save registers used (genTPInnerLoop updates usedRegisters)
@@ -258,41 +259,38 @@ class BenchmarkGenerator {
                 // which is redundant but not harmful
                 dbg(__func__, "generating save/restore code");
                 auto [EC1, save] = genSaveRegister(reg);
-                if (EC1 != SUCCESS) return {EC1, "", -1};
+                if (EC1 != SUCCESS) return {EC1, AssemblyFile(), -1};
                 saveRegs.append(save);
                 auto [EC2, restore] = genRestoreRegister(reg);
-                if (EC2 != SUCCESS) return {EC2, "", -1};
+                if (EC2 != SUCCESS) return {EC2, AssemblyFile(), -1};
                 restoreRegs.insert(0, restore);
             }
         }
 
-        rso << "#define NINST " << *TargetInstrCount << "\n";
-        rso << benchTemplate.preInit;
-        // code for the init function
-        rso << saveRegs;
-        MIP->printInst(&measureInst, 0, "", *MSTI, rso);
-        rso << "\n";
-        if (useInterleave) {
-            MIP->printInst(&interleaveInst, 0, "", *MSTI, rso);
-            rso << "\n";
-        }
-        rso << restoreRegs;
-        rso << benchTemplate.preLoop;
-        rso << saveRegs;
-        rso << benchTemplate.beginLoop;
+        std::string loopCode;
+        llvm::raw_string_ostream lco(loopCode);
         for (unsigned i = 0; i < *TargetInstrCount; ++i) {
-            MIP->printInst(&measureInst, 0, "", *MSTI, rso);
-            rso << "\n";
+            MIP->printInst(&measureInst, 0, "", *MSTI, lco);
+            lco << "\n";
             if (useInterleave) {
-                MIP->printInst(&interleaveInst, 0, "", *MSTI, rso);
-                rso << "\n";
+                MIP->printInst(&interleaveInst, 0, "", *MSTI, lco);
+                lco << "\n";
             }
         }
-        rso << benchTemplate.endLoop;
-        rso << restoreRegs;
-        rso << benchTemplate.postLoop << "\n";
-        if (useInterleave) return {SUCCESS, result, interleaveInst.getOpcode()};
-        return {SUCCESS, result, -1};
+        std::string initCode;
+        llvm::raw_string_ostream ico(initCode);
+        MIP->printInst(&measureInst, 0, "", *MSTI, ico);
+        ico << "\n";
+        if (useInterleave) {
+            MIP->printInst(&interleaveInst, 0, "", *MSTI, ico);
+            ico << "\n";
+        }
+
+        AssemblyFile assemblyFile(Arch);
+        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs);
+        assemblyFile.addInitFunction("init", initCode);
+        if (useInterleave) return {SUCCESS, assemblyFile, interleaveInst.getOpcode()};
+        return {SUCCESS, assemblyFile, -1};
     }
 
     // generates a throughput benchmark for the instruction with Opcode. Tries to generate
@@ -301,12 +299,11 @@ class BenchmarkGenerator {
     // If a InterleaveInst is provided it gets inserted after each generated instruction
     // UsedRegisters has to contain all registers used by the InterleaveInst
     // TargetInstructionCount will still be set to the number of generated instructions only
-    std::pair<ErrorCode, std::string> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                     unsigned UnrollCount,
-                                                     std::string InterleaveInst = "",
-                                                     std::set<MCRegister> UsedRegisters = {}) {
-        std::string result;
-        llvm::raw_string_ostream rso(result);
+    std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
+                                                      unsigned UnrollCount,
+                                                      std::string InterleaveInst = "",
+                                                      std::set<MCRegister> UsedRegisters = {}) {
+
         auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
         // extract list of registers used by the template
         // TODO optimize
@@ -318,7 +315,7 @@ class BenchmarkGenerator {
         }
 
         auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, UsedRegisters);
-        if (EC != SUCCESS) return {EC, ""};
+        if (EC != SUCCESS) return {EC, AssemblyFile()};
         dbg(__func__, "inner loop generated");
 
         // save registers used (genTPInnerLoop updates usedRegisters)
@@ -331,11 +328,11 @@ class BenchmarkGenerator {
                 // which is redundant but not harmful
                 dbg(__func__, "calling genSave");
                 auto [EC1, save] = genSaveRegister(reg);
-                if (EC1 != SUCCESS) return {EC1, ""};
+                if (EC1 != SUCCESS) return {EC1, AssemblyFile()};
                 saveRegs.append(save);
                 dbg(__func__, "calling genRestore");
                 auto [EC2, restore] = genRestoreRegister(reg);
-                if (EC2 != SUCCESS) return {EC2, ""};
+                if (EC2 != SUCCESS) return {EC2, AssemblyFile()};
                 restoreRegs.insert(0, restore);
             }
         }
@@ -343,38 +340,32 @@ class BenchmarkGenerator {
         *TargetInstrCount = instructions.size() * UnrollCount;
 
         dbg(__func__, "starting to build");
-        rso << "#define NINST " << *TargetInstrCount << "\n";
-        rso << benchTemplate.preInit;
-        // code for the init function
-        rso << saveRegs;
-        rso << restoreRegs;
-        rso << benchTemplate.preLoop;
-        rso << saveRegs;
-        rso << benchTemplate.beginLoop;
+
+        std::string loopCode;
+        llvm::raw_string_ostream lco(loopCode);
         for (unsigned i = 0; i < UnrollCount; i++) {
             for (auto inst : instructions) {
-                MIP->printInst(&inst, 0, "", *MSTI, rso);
-                rso << "\n";
-                if (!InterleaveInst.empty()) rso << InterleaveInst << "\n";
+                MIP->printInst(&inst, 0, "", *MSTI, lco);
+                lco << "\n";
+                if (!InterleaveInst.empty()) lco << InterleaveInst << "\n";
             }
         }
-        rso << benchTemplate.endLoop;
-        rso << restoreRegs;
-        rso << benchTemplate.postLoop << "\n";
-        return {SUCCESS, result};
+
+        AssemblyFile assemblyFile(Arch);
+        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs);
+        assemblyFile.addInitFunction("init", loopCode);
+        return {SUCCESS, assemblyFile};
     }
     // generates a benchmark with TargetInstrCount1 times the instruction with Opcode1 and
     // TargetInstrCount2 times the instruction with Opcode2 and then unrolls them by UnrollCount.
     // Fails if not not enough registers were available to generate the requested number of
     // instructions.
-    std::pair<ErrorCode, std::string> genOverlapBenchmark(unsigned Opcode1, unsigned Opcode2,
-                                                          unsigned TargetInstrCount1,
-                                                          unsigned TargetInstrCount2,
-                                                          unsigned UnrollCount,
-                                                          std::string FixedInstr2 = "") {
+    std::pair<ErrorCode, AssemblyFile> genOverlapBenchmark(unsigned Opcode1, unsigned Opcode2,
+                                                           unsigned TargetInstrCount1,
+                                                           unsigned TargetInstrCount2,
+                                                           unsigned UnrollCount,
+                                                           std::string FixedInstr2 = "") {
         std::set<MCRegister> UsedRegisters = {};
-        std::string result;
-        llvm::raw_string_ostream rso(result);
         auto benchTemplate = getTemplate(MSTI->getTargetTriple().getArch());
         // extract list of registers used by the template
         // TODO optimize
@@ -405,9 +396,9 @@ class BenchmarkGenerator {
             innerInstCount1--;
         }
         auto [EC, instructionPool1] = genTPInnerLoop(Opcode1, innerInstCount1, UsedRegisters);
-        if (EC != SUCCESS) return {EC, ""};
+        if (EC != SUCCESS) return {EC, AssemblyFile()};
         auto [EC2, instructionPool2] = genTPInnerLoop(Opcode2, innerInstCount1, UsedRegisters);
-        if (EC2 != SUCCESS) return {EC2, ""};
+        if (EC2 != SUCCESS) return {EC2, AssemblyFile()};
         // now both sets of instrucions are of near equal length
         //  check if the desired number of instructions was generated
         // if (totalTargetInstrCount != instructions1.size() + instructions2.size())
@@ -422,27 +413,26 @@ class BenchmarkGenerator {
                 // this currently also saves registers already saved in the template
                 // which is redundant but not harmful
                 auto [EC1, save] = genSaveRegister(reg);
-                if (EC1 != SUCCESS) return {EC1, ""};
+                if (EC1 != SUCCESS) return {EC1, AssemblyFile()};
                 saveRegs.append(save);
                 auto [EC2, restore] = genRestoreRegister(reg);
-                if (EC2 != SUCCESS) return {EC2, ""};
+                if (EC2 != SUCCESS) return {EC2, AssemblyFile()};
                 restoreRegs.insert(0, restore);
             }
         }
         // update TargetInstructionCount to actual number of instructions generated
         // *TargetInstrCount1 = instructions.size() * UnrollCount;
 
-        unsigned totalTargetInstrCount = TargetInstrCount1 + TargetInstrCount2;
-        rso << "#define NINST " << totalTargetInstrCount << "\n";
-        rso << benchTemplate.preLoop;
-        rso << saveRegs;
-        rso << benchTemplate.beginLoop;
+        // unsigned totalTargetInstrCount = TargetInstrCount1 + TargetInstrCount2;
+
+        std::string loopCode;
+        llvm::raw_string_ostream lco(loopCode);
         auto iter1 = instructionPool1.begin();
         auto iter2 = instructionPool2.begin();
         for (unsigned i = 0; i < UnrollCount; i++) {
             for (unsigned i = 0; i < TargetInstrCount1; i++) {
-                MIP->printInst(&*iter1, 0, "", *MSTI, rso);
-                rso << "\n";
+                MIP->printInst(&*iter1, 0, "", *MSTI, lco);
+                lco << "\n";
                 iter1++;
                 // go to beginning once all instructions used
                 if (iter1 == instructionPool1.end()) iter1 = instructionPool1.begin();
@@ -451,22 +441,22 @@ class BenchmarkGenerator {
             }
             for (unsigned i = 0; i < TargetInstrCount2; i++) {
                 if (FixedInstr2.empty()) {
-                    MIP->printInst(&*iter2, 0, "", *MSTI, rso);
-                    rso << "\n";
+                    MIP->printInst(&*iter2, 0, "", *MSTI, lco);
+                    lco << "\n";
                     iter2++;
                     // go to beginning once all instructions used
                     if (iter2 == instructionPool2.end()) iter2 = instructionPool2.begin();
                     // MIP->printInst(&inst, 0, "", *MSTI, outs());
                     // outs() << "\n";
                 } else {
-                    rso << FixedInstr2 << "\n";
+                    lco << FixedInstr2 << "\n";
                 }
             }
         }
-        rso << benchTemplate.endLoop;
-        rso << restoreRegs;
-        rso << benchTemplate.postLoop << "\n";
-        return {SUCCESS, result};
+        AssemblyFile assemblyFile(Arch);
+        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs);
+        assemblyFile.addInitFunction("init", loopCode);
+        return {SUCCESS, assemblyFile};
     }
 
     // generates a benchmark loop to measure throughput of an instruction
@@ -828,10 +818,8 @@ class BenchmarkGenerator {
     // get Opcode for instruction
     // TODO there probably is a mechanism for this in llvm -> find and use
     unsigned getOpcode(std::string InstructionName) {
-        dbg(__func__, "getting opcode for ", InstructionName.data());
         for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i) {
             if (MCII->getName(i) == InstructionName) {
-                dbg(__func__, "found opcode ", i);
                 return i;
             }
         }

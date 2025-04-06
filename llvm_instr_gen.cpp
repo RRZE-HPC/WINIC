@@ -83,7 +83,7 @@ static void signalHandler(int Signum) {
     siglongjmp(jumpBuffer, 1); // Jump back to safe point
 }
 
-static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly, int N,
+static std::pair<ErrorCode, std::list<double>> runBenchmark(AssemblyFile Assembly, int N,
                                                             unsigned Runs) {
     dbgContext = "runBenchmark";
     std::string sPath = "/dev/shm/temp.s";
@@ -93,7 +93,7 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
         return {ERROR_FILE, {-1}};
     }
-    asmFile << Assembly;
+    asmFile << Assembly.generateAssembly();
     asmFile.close();
     if (dbgToFile) {
         std::string DebugPath =
@@ -103,7 +103,7 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
             std::cerr << "Failed to create debug file" << std::endl;
             return {ERROR_FILE, {-1}};
         }
-        debugFile << Assembly;
+        debugFile << Assembly.generateAssembly();
         debugFile.close();
     }
 
@@ -159,7 +159,6 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
     // from ibench
     double (*latency)(int);
     void (*init)();
-    int *ninst;
     if ((globalHandle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
         return {ERROR_FILE, {-1}};
@@ -170,10 +169,6 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(std::string Assembly
     }
     if ((init = (void (*)())dlsym(globalHandle, "init")) == NULL) {
         fprintf(stderr, "dlsym: couldn't find function init\n");
-        return {ERROR_GENERIC, {-1}};
-    }
-    if ((ninst = (int *)dlsym(globalHandle, "ninst")) == NULL) {
-        fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
         return {ERROR_GENERIC, {-1}};
     }
 
@@ -203,7 +198,7 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     unsigned numInst2 = 12;
     unsigned numInst4 = 12;
     double n = 1000000; // loop count
-    std::string assembly;
+    AssemblyFile assembly;
     ErrorCode EC;
     std::list<double> times1;
     std::list<double> times2;
@@ -320,7 +315,7 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     unsigned numInst2 = 24;
     double n = 10000000; // loop count
     ErrorCode EC;
-    std::string assembly;
+    AssemblyFile assembly;
     int helperOpcode;
     std::list<double> times1;
     std::list<double> times2;
@@ -578,7 +573,7 @@ static int buildLatDatabase(double Frequency, unsigned MaxOpcode = 0) {
 static void runBenchmarkStudy(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency,
                               int N) {
     ErrorCode EC;
-    std::string assembly;
+    AssemblyFile assembly;
     unsigned numInst1 = 12;
     std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1);
     for (unsigned i = 0; i < 10; i++) {
@@ -602,7 +597,7 @@ static void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLim
     }
     for (auto ratio : ratios) {
         ErrorCode EC;
-        std::string assembly;
+        AssemblyFile assembly;
         unsigned numInst1 = ratio.first;
         unsigned numInst2 = ratio.second;
         std::string ratio_string = std::to_string(ratio.first) + ":" + std::to_string(ratio.second);
