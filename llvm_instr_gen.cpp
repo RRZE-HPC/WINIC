@@ -1,5 +1,5 @@
 // #include "MCTargetDesc/X86MCTargetDesc.h"
-#include "MCTargetDesc/X86BaseInfo.h"
+// #include "MCTargetDesc/X86BaseInfo.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "benchmarkGenerator.cpp"
 #include "llvm/CodeGen/MachineBasicBlock.h"
@@ -19,7 +19,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/X86TargetParser.h"
-#include "llvm/Transforms/IPO/Attributor.h"
 #include <algorithm>
 #include <csetjmp>
 #include <csignal>
@@ -33,13 +32,13 @@
 #include <iostream>
 #include <math.h>
 #include <ostream>
-#include <sstream>
 #include <string>
 #include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -83,15 +82,15 @@ static void signalHandler(int Signum) {
     siglongjmp(jumpBuffer, 1); // Jump back to safe point
 }
 
-static std::pair<ErrorCode, std::list<double>> runBenchmark(AssemblyFile Assembly, int N,
-                                                            unsigned Runs) {
+static std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
+runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     dbgContext = "runBenchmark";
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
     if (!asmFile) {
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {ERROR_FILE, {-1}};
+        return {ERROR_FILE, {}};
     }
     asmFile << Assembly.generateAssembly();
     asmFile.close();
@@ -101,7 +100,7 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(AssemblyFile Assembl
         std::ofstream debugFile(DebugPath);
         if (!debugFile) {
             std::cerr << "Failed to create debug file" << std::endl;
-            return {ERROR_FILE, {-1}};
+            return {ERROR_FILE, {}};
         }
         debugFile << Assembly.generateAssembly();
         debugFile.close();
@@ -151,37 +150,72 @@ static std::pair<ErrorCode, std::list<double>> runBenchmark(AssemblyFile Assembl
         int status;
         waitpid(pid, &status, 0);
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            if (WEXITSTATUS(status) == 127) return {ERROR_EXEC, {-1}};
-            return {ERROR_ASSEMBLY, {-1}};
+            if (WEXITSTATUS(status) == 127) return {ERROR_EXEC, {}};
+            return {ERROR_ASSEMBLY, {}};
         }
     }
 
     // from ibench
-    double (*latency)(int);
-    void (*init)();
+    // double (*latency)(int);
+    // void (*init)();
     if ((globalHandle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
-        return {ERROR_FILE, {-1}};
+        return {ERROR_FILE, {}};
     }
-    if ((latency = (double (*)(int))dlsym(globalHandle, "latency")) == NULL) {
-        fprintf(stderr, "dlsym: couldn't find function latency\n");
-        return {ERROR_GENERIC, {-1}};
+    // get handles to function in the assembly file
+    std::unordered_map<std::string, double (*)()> initFunctionMap;
+    std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
+    for (std::string functionName : Assembly.getInitFunctionNames()) {
+        auto functionPtr = (double (*)())dlsym(globalHandle, functionName.data());
+        if (functionPtr == NULL) {
+            fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
+            return {ERROR_GENERIC, {}};
+        }
+        initFunctionMap[functionName] = functionPtr;
     }
-    if ((init = (void (*)())dlsym(globalHandle, "init")) == NULL) {
-        fprintf(stderr, "dlsym: couldn't find function init\n");
-        return {ERROR_GENERIC, {-1}};
+    for (std::string functionName : Assembly.getBenchFunctionNames()) {
+        auto functionPtr = (double (*)(int))dlsym(globalHandle, functionName.data());
+        if (functionPtr == NULL) {
+            fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
+            return {ERROR_GENERIC, {}};
+        }
+        benchFunctionMap[functionName] = functionPtr;
     }
 
-    dbg(__func__, "starting benchmark");
+    // if ((latency = (double (*)(int))dlsym(globalHandle, "latency")) == NULL) {
+    //     fprintf(stderr, "dlsym: couldn't find function latency\n");
+    //     return {ERROR_GENERIC, {-1}};
+    // }
+    // if ((init = (void (*)())dlsym(globalHandle, "init")) == NULL) {
+    //     fprintf(stderr, "dlsym: couldn't find function init\n");
+    //     return {ERROR_GENERIC, {-1}};
+    // }
+    // for (unsigned i = 0; i < Runs; i++) {
+    //     (*init)();
+    //     gettimeofday(&start, NULL);
+    //     (*latency)(N);
+    //     gettimeofday(&end, NULL);
+    //     benchtimes.insert(benchtimes.end(),
+    //                       (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
+    // }
+
+    dbg(__func__, "starting benchmarks");
     struct timeval start, end;
-    std::list<double> benchtimes;
-    for (unsigned i = 0; i < Runs; i++) {
-        (*init)();
-        gettimeofday(&start, NULL);
-        (*latency)(N);
-        gettimeofday(&end, NULL);
-        benchtimes.insert(benchtimes.end(),
-                          (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
+    std::unordered_map<std::string, std::list<double>> benchtimes;
+    for (auto benchFunctionEntry : benchFunctionMap) {
+        auto benchFunction = benchFunctionEntry.second;
+        auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionEntry.first)];
+        for (unsigned i = 0; i < Runs; i++) {
+            if (initFunction) {
+                (*initFunction)();
+            }
+            gettimeofday(&start, NULL);
+            (*benchFunction)(N);
+            gettimeofday(&end, NULL);
+            auto &list = benchtimes[benchFunctionEntry.first];
+            list.insert(list.end(),
+                        (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
+        }
     }
 
     dlclose(globalHandle);
@@ -200,9 +234,9 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     double n = 1000000; // loop count
     AssemblyFile assembly;
     ErrorCode EC;
-    std::list<double> times1;
-    std::list<double> times2;
-    std::list<double> times4;
+    std::unordered_map<std::string, std::list<double>> benchResults;
+    // std::list<double> times2;
+    // std::list<double> times4;
     std::string InterlInst = "";
     std::set<MCRegister> usedRegs;
     const MCInstrDesc &desc = Generator->MCII->get(Opcode);
@@ -235,23 +269,23 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1, InterlInst, usedRegs);
     if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, times1) = runBenchmark(assembly, n, 3);
+    std::tie(EC, benchResults) = runBenchmark(assembly, n, 3);
     if (EC != SUCCESS) return {EC, -1};
 
-    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst2, 2, InterlInst, usedRegs);
-    if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, times2) = runBenchmark(assembly, n, 3);
-    if (EC != SUCCESS) return {EC, -1};
+    // std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst2, 2, InterlInst,
+    // usedRegs); if (EC != SUCCESS) return {EC, -1}; std::tie(EC, times2) = runBenchmark(assembly,
+    // n, 3); if (EC != SUCCESS) return {EC, -1};
 
-    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst4, 4, InterlInst, usedRegs);
-    if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, times4) = runBenchmark(assembly, n, 3);
-    if (EC != SUCCESS) return {EC, -1};
+    // std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst4, 4, InterlInst,
+    // usedRegs); if (EC != SUCCESS) return {EC, -1}; std::tie(EC, times4) = runBenchmark(assembly,
+    // n, 3); if (EC != SUCCESS) return {EC, -1};
 
-    // take minimum of runs
-    double time1 = *std::min_element(times1.begin(), times1.end());
-    double time2 = *std::min_element(times2.begin(), times2.end());
-    double time4 = *std::min_element(times4.begin(), times4.end());
+    // take minimum of runs (naming convention of funcitons in genTPBenchmark)
+    double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
+    double time2 =
+        *std::min_element(benchResults["tpUnroll2"].begin(), benchResults["tpUnroll2"].end());
+    double time4 =
+        *std::min_element(benchResults["tpUnroll4"].begin(), benchResults["tpUnroll4"].end());
     // std::printf("time1: %.3f \n", time1);
     // std::printf("time2: %.3f \n", time2);
 
@@ -312,50 +346,49 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
-    unsigned numInst2 = 24;
+    // unsigned numInst2 = 24;
     double n = 10000000; // loop count
     ErrorCode EC;
     AssemblyFile assembly;
     int helperOpcode;
-    std::list<double> times1;
-    std::list<double> times2;
+    std::unordered_map<std::string, std::list<double>> benchResults;
+    // std::unordered_map<std::string, std::list<double>> times2;
     // std::set<MCRegister> usedRegs;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(EC, assembly, helperOpcode) =
         Generator->genLatBenchmark(Opcode, &numInst1, &helperInstructions);
     if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, times1) = runBenchmark(assembly, n, 3);
+    std::tie(EC, benchResults) = runBenchmark(assembly, n, 3);
     if (EC != SUCCESS) return {EC, -1};
 
-    std::tie(EC, assembly, helperOpcode) =
-        Generator->genLatBenchmark(Opcode, &numInst2, &helperInstructions);
-    if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, times2) = runBenchmark(assembly, n, 3);
-    if (EC != SUCCESS) return {EC, -1};
+    // std::tie(EC, assembly, helperOpcode) =
+    //     Generator->genLatBenchmark(Opcode, &numInst2, &helperInstructions);
+    // if (EC != SUCCESS) return {EC, -1};
+    // std::tie(EC, times2) = runBenchmark(assembly, n, 3);
+    // if (EC != SUCCESS) return {EC, -1};
 
     if (helperOpcode != -1)
         std::cout << Generator->MCII->getName(Opcode).data() << " using helper instruction "
                   << Generator->MCII->getName(helperOpcode).data() << "\n"
                   << std::flush;
 
-    // take minimum of runs
-    double time1 = *std::min_element(times1.begin(), times1.end());
-    double time2 = *std::min_element(times2.begin(), times2.end());
+    // take minimum of runs "latency" and "latencyUnrolled" naming convention in
+    double time1 =
+        *std::min_element(benchResults["latency"].begin(), benchResults["latency"].end());
+    double time2 = *std::min_element(benchResults["latencyUnrolled"].begin(),
+                                     benchResults["latencyUnrolled"].end());
     dbg(__func__, "time1: ", time1, " time2: ", time2);
-    // std::printf("time1: %.3f \n", time1);
-    // std::printf("time2: %.3f \n", time2);
+    dbg(__func__, numInst1, " instructions in loop", Frequency, " GHz");
 
     // predict if loop instructions interfere with the execution
     // see README for explanation TODO
-    // this is done for two unroll steps to detect if anomalys occurr
     double loopInstr2 = numInst1 * (time2 - 2 * time1) / (time1 - time2); // calculate unroll 1->2
     if (loopInstr2 < -1) {
-        // throughput decreases significantly when unrolling, this is very
-        // unususal
+        // throughput decreases significantly when unrolling, this should not be possible
         std::printf("   anomaly detected during measurement of %s:\n",
                     Generator->MCII->getName(Opcode).data());
-        std::printf("   %.3f instructions interfering with measurement 1->2\n", loopInstr2);
+        return {ERROR_GENERIC, -1};
     }
     loopInstr2 = std::max(loopInstr2, 0.0);
     double uncorrected = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
@@ -570,21 +603,6 @@ static int buildLatDatabase(double Frequency, unsigned MaxOpcode = 0) {
 }
 
 // studies
-static void runBenchmarkStudy(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency,
-                              int N) {
-    ErrorCode EC;
-    AssemblyFile assembly;
-    unsigned numInst1 = 12;
-    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1);
-    for (unsigned i = 0; i < 10; i++) {
-        auto [EC, Times] = runBenchmark(assembly, N, 10);
-        for (auto t : Times) {
-            auto tp = t / (1e6 * numInst1 / Frequency * (N / 1e9));
-            std::printf("%.3f, ", tp);
-        }
-        std::printf("\n");
-    }
-}
 
 static void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLimit,
                             BenchmarkGenerator *Generator, double Frequency) {
@@ -610,14 +628,14 @@ static void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLim
             outs() << ratio_string << " cannot generate ratio\n";
             continue;
         }
-        std::list<double> times1;
+        std::unordered_map<std::string, std::list<double>> times1;
         unsigned n = 1e6;
         std::tie(EC, times1) = runBenchmark(assembly, n, 3);
 
         if (EC != SUCCESS)
             outs() << ratio_string << " cannot run ratio\n";
         else {
-            double time1 = *std::min_element(times1.begin(), times1.end());
+            double time1 = *std::min_element(times1["latency"].begin(), times1["latency"].end());
             double tp1 = time1 / (1e6 * numInst1 * 20 / Frequency * (n / 1e9));
             double tp2 = time1 / (1e6 * numInst2 * 20 / Frequency * (n / 1e9));
             double tp_comb = time1 / (1e6 * (numInst1 + numInst2) * 20 / Frequency * (n / 1e9));

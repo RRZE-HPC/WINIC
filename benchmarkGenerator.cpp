@@ -1,4 +1,4 @@
-#include "MCTargetDesc/X86BaseInfo.h"
+// #include "MCTargetDesc/X86BaseInfo.h"
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "X86RegisterInfo.h"
@@ -19,7 +19,6 @@
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/RuntimeLibcalls.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCCodeEmitter.h"
@@ -287,8 +286,10 @@ class BenchmarkGenerator {
         }
 
         AssemblyFile assemblyFile(Arch);
-        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs);
         assemblyFile.addInitFunction("init", initCode);
+        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs, "init");
+        assemblyFile.addBenchFunction("latencyUnrolled", saveRegs, loopCode + loopCode, restoreRegs,
+                                      "init");
         if (useInterleave) return {SUCCESS, assemblyFile, interleaveInst.getOpcode()};
         return {SUCCESS, assemblyFile, -1};
     }
@@ -338,22 +339,26 @@ class BenchmarkGenerator {
         }
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = instructions.size() * UnrollCount;
-
         dbg(__func__, "starting to build");
 
-        std::string loopCode;
-        llvm::raw_string_ostream lco(loopCode);
-        for (unsigned i = 0; i < UnrollCount; i++) {
-            for (auto inst : instructions) {
-                MIP->printInst(&inst, 0, "", *MSTI, lco);
-                lco << "\n";
-                if (!InterleaveInst.empty()) lco << InterleaveInst << "\n";
-            }
+        std::string singleLoopCode;
+        llvm::raw_string_ostream slo(singleLoopCode);
+        for (auto inst : instructions) {
+            MIP->printInst(&inst, 0, "", *MSTI, slo);
+            slo << "\n";
+            if (!InterleaveInst.empty()) slo << InterleaveInst << "\n";
         }
+        std::string loopCode;
+        for (unsigned i = 0; i < UnrollCount; i++)
+            loopCode.append(singleLoopCode);
 
         AssemblyFile assemblyFile(Arch);
-        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs);
-        assemblyFile.addInitFunction("init", loopCode);
+        assemblyFile.addInitFunction("init", singleLoopCode);
+        assemblyFile.addBenchFunction("tp", saveRegs, loopCode, restoreRegs, "init");
+        assemblyFile.addBenchFunction("tpUnroll2", saveRegs, loopCode + loopCode, restoreRegs,
+                                      "init");
+        assemblyFile.addBenchFunction(
+            "tpUnroll4", saveRegs, loopCode + loopCode + loopCode + loopCode, restoreRegs, "init");
         return {SUCCESS, assemblyFile};
     }
     // generates a benchmark with TargetInstrCount1 times the instruction with Opcode1 and
@@ -454,8 +459,8 @@ class BenchmarkGenerator {
             }
         }
         AssemblyFile assemblyFile(Arch);
-        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs);
         assemblyFile.addInitFunction("init", loopCode);
+        assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs, "init");
         return {SUCCESS, assemblyFile};
     }
 

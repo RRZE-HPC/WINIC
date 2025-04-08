@@ -6,23 +6,42 @@
 #include <cstdlib>
 #include <list>
 #include <string>
+#include <unordered_set>
 
 struct BenchFunction {
     std::string name;
     std::string preLoopCode;
     std::string loopCode;
     std::string postLoopCode;
+    // BenchFunctions store the identifier of an init function that will be run before a benchmark
+    std::string initFunction;
+
+    bool operator<(const BenchFunction& other) const {
+        return name < other.name;
+    }
 };
 
 struct InitFunction {
     std::string name;
     std::string initCode;
+
+    bool operator<(const InitFunction& other) const {
+        return name < other.name;
+    }
 };
 
-static std::string replaceFunctionName(std::string Str, std::string Name) {
-    size_t pos = Str.find("latency");
-    if (pos != std::string::npos) {
-        Str.replace(pos, 7, Name);
+// static std::string replaceFunctionName(std::string Str, std::string Name) {
+//     size_t pos = Str.find("latency");
+//     if (pos != std::string::npos) {
+//         Str.replace(pos, 7, Name);
+//     }
+//     return Str;
+// }
+static std::string replaceFunctionName(std::string Str, const std::string Name) {
+    size_t startPos = 0;
+    while ((startPos = Str.find("functionName", startPos)) != std::string::npos) {
+        Str.replace(startPos, 12, Name);
+        startPos += Name.length(); // Move past the last replaced part
     }
     return Str;
 }
@@ -35,25 +54,38 @@ class AssemblyFile {
 
     void setArch(llvm::Triple::ArchType Arch) { this->Arch = Arch; }
     ErrorCode addInitFunction(std::string Name, std::string InitCode) {
-        initFunctions.push_back({Name, InitCode});
+        initFunctions.insert({Name, InitCode});
         return SUCCESS;
     }
     ErrorCode addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
-                               std::string PostLoopCode) {
-        benchFunctions.push_back({Name, PreLoopCode, LoopCode, PostLoopCode});
+                               std::string PostLoopCode, std::string InitFunction) {
+        assert(getInitFunctionNames().find(InitFunction) != getInitFunctionNames().end() &&
+               "Init function not found");
+        benchFunctions.insert({Name, PreLoopCode, LoopCode, PostLoopCode, InitFunction});
         return SUCCESS;
     }
     /**
      * @brief Returns a list of all function names in the assembly file.
      * @return std::list<std::string> List of function names.
      */
-    std::list<std::string> getFunctionNames() {
-        std::list<std::string> functionNames;
+    std::set<std::string> getBenchFunctionNames() {
+        std::set<std::string> functionNames;
         for (BenchFunction function : benchFunctions)
-            functionNames.push_back(function.name);
-        for (InitFunction function : initFunctions)
-            functionNames.push_back(function.name);
+            functionNames.insert(function.name);
         return functionNames;
+    }
+
+    std::set<std::string> getInitFunctionNames() {
+        std::set<std::string> functionNames;
+        for (InitFunction function : initFunctions)
+            functionNames.insert(function.name);
+        return functionNames;
+    }
+
+    std::string getInitNameFor(std::string BenchName) {
+        for (BenchFunction function : benchFunctions)
+            if (function.name == BenchName) return function.initFunction;
+        return "";
     }
 
     /**
@@ -76,17 +108,17 @@ class AssemblyFile {
   private:
     llvm::Triple::ArchType Arch;
     // Template benchTemplate;
-    std::list<BenchFunction> benchFunctions;
-    std::list<InitFunction> initFunctions;
+    std::set<BenchFunction> benchFunctions;
+    std::set<InitFunction> initFunctions;
     std::string generateBenchFunction(BenchFunction Function) {
         std::string result;
         llvm::raw_string_ostream rso(result);
         Template benchTemplate = getTemplate(Arch);
         rso << replaceFunctionName(benchTemplate.preLoop, Function.name);
         rso << Function.preLoopCode;
-        rso << benchTemplate.beginLoop;
+        rso << replaceFunctionName(benchTemplate.beginLoop, Function.name);
         rso << Function.loopCode;
-        rso << benchTemplate.endLoop;
+        rso << replaceFunctionName(benchTemplate.endLoop, Function.name);
         rso << Function.postLoopCode;
         rso << replaceFunctionName(benchTemplate.postLoop, Function.name);
         return result;

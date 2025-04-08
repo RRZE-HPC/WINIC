@@ -1,5 +1,4 @@
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/TargetParser/ARMTargetParser.h"
 #include "llvm/TargetParser/Triple.h"
 #include <cstdlib>
 #include <set>
@@ -56,28 +55,28 @@ init:
 .size init, .-init
 )", R"(
 
-.globl latency
-.type latency, @function
+.globl functionName
+.type functionName, @function
 .align 32
-latency:
+functionName:
         push      rbp
         mov       rbp, rsp
         xor       i, i
         test      N, N
 
 )", R"(
-        jle       done
-loop:
+        jle       done_functionName
+loop_functionName:
         inc       i
 )", R"(
         cmp       i, N
-        jl        loop
-done:
+        jl        loop_functionName
+done_functionName:
 )", R"(
         mov  rsp, rbp
         pop rbp
         ret
-.size latency, .-latency
+.size functionName, .-functionName
 )", {"edi", "r8d", "rbp", "rsp"}};
 
 static Template AArch64Template = {
@@ -87,19 +86,19 @@ static Template AArch64Template = {
 .text
 
 )", R"(
-.globl init
-.type init, @function
+.globl functionName
+.type functionName, @function
 .align 32
-init:
+functionName:
 )", R"(
     ret
-.size init, .-init
+.size functionName, .-functionName
 )", R"(
 
-.globl latency
-.type latency, @function
+.globl functionName
+.type functionName, @function
 .align 2
-latency:
+functionName:
         # push callee-save registers onto stack
         sub     sp, sp, #64
         st1     {v8.2d, v9.2d, v10.2d, v11.2d}, [sp]
@@ -122,11 +121,11 @@ latency:
 
         mov     x4, N
 )", R"(
-loop:
+loop_functionName:
 )", R"(
         subs      x4, x4, #1
-        bne       loop
-done:
+        bne       loop_functionName
+done_functionName:
 )", R"(
         # pop callee-save registers from stack
         ldp     x19, x20, [sp]
@@ -145,7 +144,7 @@ done:
 
         ret
 
-.size latency, .-latency
+.size functionName, .-functionName
 )", {"x0", "x4"}};
 
 static Template getTemplate(llvm::Triple::ArchType Arch) {
