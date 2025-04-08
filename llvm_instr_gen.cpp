@@ -20,6 +20,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/X86TargetParser.h"
 #include <algorithm>
+#include <bits/getopt_core.h>
 #include <csetjmp>
 #include <csignal>
 #include <cstdio>
@@ -378,8 +379,7 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
         *std::min_element(benchResults["latency"].begin(), benchResults["latency"].end());
     double time2 = *std::min_element(benchResults["latencyUnrolled"].begin(),
                                      benchResults["latencyUnrolled"].end());
-    dbg(__func__, "time1: ", time1, " time2: ", time2);
-    dbg(__func__, numInst1, " instructions in loop", Frequency, " GHz");
+    // dbg(__func__, "time1: ", time1, " time2: ", time2);
 
     // predict if loop instructions interfere with the execution
     // see README for explanation TODO
@@ -649,25 +649,15 @@ int main(int argc, char **argv) {
     struct option long_options[] = {
         {"help", no_argument, nullptr, 'h'},
         {"instruction", required_argument, nullptr, 'i'},
-        {"instruction2", required_argument, nullptr, 'j'},
         {"frequency", required_argument, nullptr, 'f'},
         {"cpu", required_argument, nullptr, 'c'},
         {"march", required_argument, nullptr, 'm'},
         {"ninst", required_argument, nullptr, 'n'},
         {nullptr, 0, nullptr, 0} // End marker
     };
-    struct option overlap_options[] = {
-        {"help", no_argument, nullptr, 'h'},
-        {"instruction1", required_argument, nullptr, 'i'},
-        {"instruction2", required_argument, nullptr, 's'},
-        {"frequency", required_argument, nullptr, 'v'},
-        {"cpu", required_argument, nullptr, 'c'},
-        {"march", required_argument, nullptr, 'm'},
-        {"ninst", required_argument, nullptr, 'n'},
-        {nullptr, 0, nullptr, 0} // End marker
-    };
-    StringRef instrName = "";
-    StringRef instrName2 = "";
+    std::vector<std::string> instrNames;
+    // StringRef instrName = "";
+    // StringRef instrName2 = "";
     double frequency = 3.75;
     int opt;
     std::string cpu = "";
@@ -693,74 +683,32 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (mode == TP || mode == LAT || mode == DEV) {
-        argc -= 1; // Shift arguments
-        argv += 1;
-        while ((opt = getopt_long(argc, argv, "hi:f:m:n:", long_options, nullptr)) != -1) {
-            switch (opt) {
-            case 'h':
-                std::cout
-                    << "Usage:" << argv[0]
-                    << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--ninst nMax]\n";
-                return 0;
-            case 'i':
-                instrName = optarg;
-                break;
-            case 'j':
-                instrName2 = optarg;
-                break;
-            case 'f':
-                frequency = atof(optarg);
-                break;
-            case 'm':
-                march = optarg;
-                break;
-            case 'c':
-                cpu = optarg;
-                break;
-            case 'n':
-                maxOpcode = atoi(optarg);
-                break;
-            default:
-                return 1;
-            }
+    argc -= 1; // Shift arguments
+    argv += 1;
+    while ((opt = getopt_long(argc, argv, "hi:f:m:n:", long_options, nullptr)) != -1) {
+        switch (opt) {
+        case 'h':
+            std::cout << "Usage:" << argv[0]
+                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--ninst nMax]\n";
+            return 0;
+        case 'i':
+            instrNames.emplace_back(optarg);
+            break;
+        case 'f':
+            frequency = atof(optarg);
+            break;
+        case 'm':
+            march = optarg;
+            break;
+        case 'c':
+            cpu = optarg;
+            break;
+        case 'n':
+            maxOpcode = atoi(optarg);
+            break;
+        default:
+            return 1;
         }
-    } else if (mode == INTERLEAVE) {
-        argc -= 1; // Shift arguments
-        argv += 1;
-        while ((opt = getopt_long(argc, argv, "hi:f:m:n:", overlap_options, nullptr)) != -1) {
-            switch (opt) {
-            case 'h':
-                std::cout << "Usage:" << argv[0]
-                          << "[--help] [--instruction1 INST] [--instruction2 INST] [--frequency "
-                             "FREQ(GHz)] [--ninst nMax]\n";
-                return 0;
-            case 'i':
-                instrName = optarg;
-                break;
-            case 's':
-                instrName2 = optarg;
-                break;
-            case 'f':
-                frequency = atof(optarg);
-                break;
-            case 'm':
-                march = optarg;
-                break;
-            case 'c':
-                cpu = optarg;
-                break;
-            case 'n':
-                maxOpcode = atoi(optarg);
-                break;
-            default:
-                return 1;
-            }
-        }
-
-    } else {
-        std::cerr << "Unknown subprogram: " << mode << "\n";
-        return 1;
     }
     dbgToFile = false;
     struct timeval start, end;
@@ -792,18 +740,22 @@ int main(int argc, char **argv) {
     // studyUnrollBehavior(opcode, &generator, frequency);
     switch (mode) {
     case INTERLEAVE: {
-        unsigned opcode1 = generator.getOpcode(instrName.data());
-        unsigned opcode2 = generator.getOpcode(instrName2.data());
+        unsigned opcode1 = generator.getOpcode(instrNames[0]);
+        unsigned opcode2 = generator.getOpcode(instrNames[1]);
         runOverlapStudy(opcode1, opcode2, 16, &generator, frequency);
         break;
     }
     case TP: {
-        if (instrName == "") {
+        if (instrNames.empty()) {
             buildTPDatabase(frequency, maxOpcode);
             break;
         }
+        if (instrNames.size() > 2) {
+            outs() << "only one instruction supported\n";
+            break;
+        }
         dbgToFile = true;
-        unsigned opcode = generator.getOpcode(instrName.data());
+        unsigned opcode = generator.getOpcode(instrNames[0]);
         if (generator.Arch == Triple::ArchType::x86_64) {
             auto [EC, tp] =
                 measureInSubprocess(generator.getOpcode("TEST64rr"), &generator, frequency, "t");
@@ -823,54 +775,29 @@ int main(int argc, char **argv) {
         break;
     }
     case LAT: {
-        if (instrName == "") {
+        if (instrNames.empty()) {
             buildLatDatabase(frequency, maxOpcode);
             break;
         }
         dbgToFile = true;
         debug = true;
-        unsigned opcode = generator.getOpcode(instrName.data());
+        for (auto instrName : instrNames) {
+            outs() << "latency for " << instrName << "\n";
+            unsigned opcode = generator.getOpcode(instrName.data());
 
-        auto [EC, tp] = measureSafely(opcode, &generator, frequency, "l");
-        if (EC != SUCCESS) {
-            outs() << "failed for reason: " << ecToString(EC) << "\n";
-            outs().flush();
-        } else {
-            std::printf("%.3f (clock cycles)\n", tp);
-            fflush(stdout);
+            auto [EC, lat] = measureSafely(opcode, &generator, frequency, "l");
+            if (EC != SUCCESS) {
+                outs() << "failed for reason: " << ecToString(EC) << "\n";
+                outs().flush();
+            } else {
+                std::printf("%.3f (clock cycles)\n", lat);
+                fflush(stdout);
+            }
+            latencyDatabase[generator.getOpcode(instrName)] = lat;
         }
         break;
     }
-    case DEV: {
-        dbgToFile = true;
-        debug = true;
-        // ADC16ri8 CMP16ri8
-        // TODO debug this VADDBF16Z128rrk -> VCMPSDZrri - not supported
-        // ADC32i32 PCMPESTRIrri CVTSI2SDrr TODO debug
-        std::string instr1 = "ADC32i32";
-        std::string instr2 = "PCMPESTRIrri";
-        if (instrName != "") instr1 = instrName.data();
-        if (instrName2 != "") instr2 = instrName2.data();
 
-        auto [EC, lat] = measureSafely(generator.getOpcode(instr1), &generator, frequency, "l");
-        if (EC != SUCCESS) {
-            outs() << "lat failed for reason: " << ecToString(EC) << "\n";
-            outs().flush();
-            exit(1);
-        }
-        dbg(__func__, "latency: ", lat);
-        latencyDatabase[generator.getOpcode(instr1)] = lat;
-        dbg(__func__, "added");
-        auto [EC2, lat2] = measureSafely(generator.getOpcode(instr2), &generator, frequency, "l");
-        if (EC2 != SUCCESS) {
-            outs() << "lat2 failed for reason: " << ecToString(EC2) << "\n";
-            outs().flush();
-        }
-        latencyDatabase[generator.getOpcode(instr2)] = lat2;
-        std::printf("%s: %.3f (clock cycles)\n", instr1.data(), lat);
-        std::printf("%s: %.3f (clock cycles)\n", instr2.data(), lat2);
-        // X86::RAX);
-    }
     }
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
