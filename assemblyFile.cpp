@@ -4,9 +4,7 @@
 #include "llvm/TargetParser/ARMTargetParser.h"
 #include "llvm/TargetParser/Triple.h"
 #include <cstdlib>
-#include <list>
 #include <string>
-#include <unordered_set>
 
 struct BenchFunction {
     std::string name;
@@ -42,6 +40,14 @@ static std::string replaceFunctionName(std::string Str, const std::string Name) 
     while ((startPos = Str.find("functionName", startPos)) != std::string::npos) {
         Str.replace(startPos, 12, Name);
         startPos += Name.length(); // Move past the last replaced part
+    }
+    return Str;
+}
+static std::string replaceAllInstances(std::string Str, std::string ToReplace, const std::string Replacement) {
+    size_t startPos = 0;
+    while ((startPos = Str.find(ToReplace, startPos)) != std::string::npos) {
+        Str.replace(startPos, ToReplace.size(), Replacement);
+        startPos += Replacement.length(); // Move past the last replaced part
     }
     return Str;
 }
@@ -101,7 +107,7 @@ class AssemblyFile {
             rso << generateBenchFunction(function) << "\n";
         for (InitFunction function : initFunctions)
             rso << generateInitFunction(function) << "\n";
-
+        rso << benchTemplate.suffix;
         return result;
     }
 

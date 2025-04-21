@@ -4,34 +4,41 @@
 #include <set>
 #include <string>
 
-struct Template {
-    std::string prefix;
-    std::string postInit;
-    std::string preInit;
-    std::string preLoop;
-    std::string beginLoop;
-    std::string midLoop;
-    std::string endLoop;
-    std::string postLoop;
-    std::set<std::string> usedRegisters;
+using std::string;
 
-    Template(std::string prefix, std::string preInit, std::string postInit, std::string preLoop,
-             std::string beginLoop, std::string endLoop, std::string postLoop,
-             std::set<std::string> usedRegisters)
+/**
+ * a template provides all code necessary in addition to the loop code to build an assembly file.
+ * usedRegister contains all registers used by the template (like for the loop itself). Those should
+ * not be used by the benchmark generators.
+ * regInitTemplates hold templates to initialize registers with a given value,
+ */
+struct Template {
+    string prefix, preInit, postInit, preLoop, beginLoop, midLoop, endLoop, postLoop, suffix;
+    std::vector<std::pair<string, string>> regInitTemplates;
+    std::set<string> usedRegisters;
+
+    Template(string prefix, string preInit, string postInit, string preLoop, string beginLoop,
+             string endLoop, string postLoop, string suffix,
+             std::vector<std::pair<string, string>> regInitCode, std::set<string> usedRegisters)
         : prefix(std::move(prefix)), preInit(std::move(preInit)), postInit(std::move(postInit)),
           preLoop(std::move(preLoop)), beginLoop(std::move(beginLoop)), endLoop(std::move(endLoop)),
-          postLoop(std::move(postLoop)), usedRegisters(std::move(usedRegisters)) {
+          postLoop(std::move(postLoop)), suffix(std::move(suffix)), regInitTemplates(regInitCode),
+          usedRegisters(std::move(usedRegisters)) {
         // for readability of this file strings have a leading newline
         // this gets removed here
+        trimLeadingNewline(this->prefix);
+        trimLeadingNewline(this->preInit);
+        trimLeadingNewline(this->postInit);
         trimLeadingNewline(this->preLoop);
         trimLeadingNewline(this->beginLoop);
         trimLeadingNewline(this->midLoop);
         trimLeadingNewline(this->endLoop);
         trimLeadingNewline(this->postLoop);
+        trimLeadingNewline(this->suffix);
     }
 
   private:
-    void trimLeadingNewline(std::string &str) {
+    void trimLeadingNewline(string &str) {
         if (!str.empty() && str[0] == '\n') {
             str.erase(0, 1);
         }
@@ -45,15 +52,18 @@ static Template X86Template = {
 
 .intel_syntax noprefix
 .text
-)", R"(
+)",
+    R"(
 .globl init
 .type init, @function
 .align 32
 init:
-)", R"(
+)",
+    R"(
     ret
 .size init, .-init
-)", R"(
+)",
+    R"(
 
 .globl functionName
 .type functionName, @function
@@ -61,23 +71,42 @@ init:
 functionName:
         push      rbp
         mov       rbp, rsp
+
         xor       i, i
         test      N, N
 
-)", R"(
+)",
+    R"(
         jle       done_functionName
 loop_functionName:
         inc       i
-)", R"(
+)",
+    R"(
         cmp       i, N
         jl        loop_functionName
 done_functionName:
-)", R"(
+)",
+    R"(
         mov  rsp, rbp
         pop rbp
         ret
 .size functionName, .-functionName
-)", {"edi", "r8d", "rbp", "rsp"}};
+)",
+    R"(
+.section .note.GNU-stack,"",@progbits
+)",
+    std::vector<std::pair<string, string>>{
+        // will be checked in order, default must be last and gets used if no other apply
+        // map to "None" if the register type should not be initialized.
+        // every instance of "reg" will be replaced by the register to initialize, every instance of
+        // "imm" will be replaced by the immediate value to initialize it with
+        {"xmm", "\tmov eax, imm\n\tmovd reg, eax"},
+        {"ymm", "\tmov eax, imm\n\tmovd xmm0, eax\n\tvbroadcastss reg, xmm0"},
+        {"zmm", "\tmov eax, imm\n\tmovd xmm0, eax\n\tvbroadcastss reg, xmm0"},
+        {"mm", "\tmov eax, imm\n\tmovd xmm0, eax\n\tvbroadcastss reg, xmm0"},
+        {"k", "None"},
+        {"default", "mov reg, imm"}},
+    {"edi", "r8d", "rbp", "rsp"}};
 
 static Template AArch64Template = {
     R"(
@@ -85,15 +114,18 @@ static Template AArch64Template = {
 
 .text
 
-)", R"(
+)",
+    R"(
 .globl functionName
 .type functionName, @function
 .align 32
 functionName:
-)", R"(
+)",
+    R"(
     ret
 .size functionName, .-functionName
-)", R"(
+)",
+    R"(
 
 .globl functionName
 .type functionName, @function
@@ -120,13 +152,16 @@ functionName:
         stp     x29, x30, [sp, 80]
 
         mov     x4, N
-)", R"(
+)",
+    R"(
 loop_functionName:
-)", R"(
+)",
+    R"(
         subs      x4, x4, #1
         bne       loop_functionName
 done_functionName:
-)", R"(
+)",
+    R"(
         # pop callee-save registers from stack
         ldp     x19, x20, [sp]
         ldp     x21, x22, [sp, 16]
@@ -145,7 +180,18 @@ done_functionName:
         ret
 
 .size functionName, .-functionName
-)", {"x0", "x4"}};
+)",
+    R"(
+    section .note.GNU-stack noexec
+)",
+    std::vector<std::pair<string, string>>{
+        // TODO
+        {"default", "mov reg, 0x40000000"},
+        {"xmm", "mov eax, 0x40000000\nmovd reg, eax"},
+        {"ymm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"},
+        {"zmm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"},
+        {"mm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"}},
+    {"x0", "x4"}};
 
 static Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
