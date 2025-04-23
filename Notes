@@ -1,20 +1,22 @@
 
-
 TODO
-    latency genInst not optimal, VANDNPSZ128rr uses same reg for both reads allowing for optimization to happen
-    TEST CASE IF HELPER LATENCY BIGGER THAN INSTRUCTION LATENCY
-    something is causing free(): invalid (genoa, TP)
-    /usr/bin/ld: warning: /tmp/temp-c3f742.o: missing .note.GNU-stack section implies executable stack
-    /usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
-        ->tmp memory or file system?
+    installed valgrind but how to load
+    /dev/shm/temp.s:114:2: error: instruction requires: Not 64-bit mode mov cr0, eax investigate
+    no helper EFLAGS (28) -> Class(GR64) -maybe fixed, check
+    BTC16ri8 has r->r 1 and r->flags 2 but i get opposite?
+    there may be implicit dependencys which hide the latency we want to measure. -> add a check for this
+    loop_tpUnroll2 asm label imnprove naming convention
+    something is causing free(): invalid (genoa, TP, around opcode 4692)
+    latency performance is not dominated by loop, check maybe impact of helpers 
     some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without breaking the dependency on the flags. try to avoid
-    init registers (e.g. avoid avx-sse transition penalty)
+    add frequency check
     check latency results with uops
-    test lukewarm Latency
-    test lukewarm (sve)
+    test lukewarm
+        test Latency
+        test sve
     test riscv
         add templates for riscv plan release packaging configure llvm installation to include clang but be as fast as possible
-    dont spawn subprocess for every instruction
+    properly organize and create headers
     instructions with weird TP values
         ADD_FST0r 
         XOR8rr_NOREX
@@ -28,13 +30,26 @@ TODO
         MUL32r
         MUL8r - broken because always on same register
     instructions with weird LAT values
+        VRSQRTSSr -0.5 in bench but correct 4.0 when single measurement?
+        VUNPCKLPDZrr - 1.114 but should be 1.0 -> probably transition penalty? not solved via init function
+        HADDPDrr - 4.45 but should be 4.0 -> same reason as VUNPCKLPDZrr?
+        CVTSI2SDrr
         CDQ
         CMP16ri
+        SUB32rr broken in Lat4.log check if fixed now 
 
 
     done:
     instructions with weird values
         -COM_Fpr32 - was an undetected pseudo instruction
+    -restructure project
+    -write global toString function
+    -put normal and unrolled benchmarks in same assemby file
+    -change latency bench to also use instructions which access superregisters or subregisters as helper -dont do that, could enable optimizations
+    -/usr/bin/ld: warning: /tmp/temp-c3f742.o: missing .note.GNU-stack section implies executable stack
+    -init registers (e.g. avoid avx-sse transition penalty)
+    -latency genInst not optimal, VANDNPSZ128rr uses same reg for both reads allowing for optimization to happen
+    -dont spawn subprocess for every instruction
     -rename ERRORS
     -Helper instructions have to be handled outside of the subprocess otherwise they dont see each other
     -dont use subprocess
@@ -64,7 +79,6 @@ Questions:
     TP only to determine number of execution units?
 
 
-
 helpful
     TRI->getRegAsmName(MCRegister)
     llvm::X86::getFeaturesForCPU(StringRef CPU, SmallVectorImpl<StringRef> &Features)
@@ -75,20 +89,26 @@ use 2.4Ghz on genoa1 and 2.3Ghz on genoa2
 
 cd bachelor/llvm-project/build/own_tools/llvm-bench
 salloc --nodes=1 -w icx36 --time=02:00:00 -C hwperf
+srun --nodes=1 -w genoa1 --time=04:00:00 --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 > genoaLat.log
+srun --nodes=1 -w genoa1 --time=04:00:00 --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 > genoa.log
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 > genoaLAT.log
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 --minOpcode=4699 --maxOpcode=4700 > genoa.log
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 -o 4693
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 -n 1000 > genoaLatDebug.log
 srun --cpu-freq=2400000-2400000:performance cat /proc/cpuinfo | grep MHz
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen LAT -f 2.4 -i ADC16ri8
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen DEV -f 2.4 -i ADC16ri8
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen -f 2.4 -i ADC16ri8 
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen TP -f 2.4 > genoa.log
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen LAT -f 2.4 -n 10000 > genoaLatDebug.log
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 -i ADC16ri8
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 -i ADC16ri8
 srun --cpu-freq=2400000-2400000:performance ./quick 2.4
-./llvm_instr_gen -f 2.2 > warmup.log
+./LLVMBench -f 2.2 > warmup.log
 
-srun --cpu-freq=2400000-2400000:performance ./llvm_instr_gen -f 2.4 -i MMX_PMULLWrr 
+#compiled with -fsanitize=address -fno-omit-frame-pointer, works only sometimes, run ~5 times
+./LLVMBench TP -f 2.4 -o 2567 &> sanitize1.log
+
+srun --cpu-freq=2400000-2400000:performance ./LLVMBench -f 2.4 -i MMX_PMULLWrr 
 
 benchmark
-    perf record -g ./llvm_instr_gen LAT -f 2.4 -n 1000
-    perf record -g --call-graph dwarf ./llvm_instr_gen LAT -f 2.4 -n 1000
+    perf record -g ./LLVMBench LAT -f 2.4 -n 1000
+    perf record -g --call-graph dwarf ./LLVMBench LAT -f 2.4 --minOpcode=1000
     perf script | ./FlameGraph/stackcollapse-perf.pl > out.folded
     ./FlameGraph/flamegraph.pl out.folded > flamegraph_debugClang.svg
 
@@ -112,6 +132,24 @@ Testfront setup
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
     cmake --build . --target install -- -j 64
 
+    # iwyu
+    git clone https://github.com/llvm/llvm-project.git
+    git clone https://github.com/include-what-you-use/include-what-you-use.git
+    cd llvm-project
+    git checkout release/20.x
+    cd ../include-what-you-use
+    git checkout release/clang_20
+    cd ..
+    mkdir build && cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_ENABLE_PROJECTS=clang -DLLVM_EXTERNAL_PROJECTS=iwyu -DLLVM_EXTERNAL_IWYU_SOURCE_DIR=../../include-what-you-use 
+    likwid-pin -c 0-191 cmake --build . -- -j 192
+    alias iwyu="/home/woody/ihpc/ihpc149h/bachelor/llvm-project/build/bin/include-what-you-use"
+
+
+    # create compile_commands.json
+    ~/bachelor/llvm-project/build_x86/bin/intercept-build make
+    
+
 total runtime: 34.612634 (s) lat n= 1000
 
 
@@ -127,6 +165,10 @@ VFMADD132PDYr ymm ymm ymm
 AArch64:
 ABSWr
 FMADDDrrr
+
+Constraints for immediates x86 TODO test:
+    MMX_PALIGNRrri imm < 12 or else lat 2 instead of 0.5 bc result 0
+
 
 Später: Portbelegung
 
@@ -284,7 +326,7 @@ cmake .. -DLIBELF_LIBRARIES=apps/SPACK/opt/linux-ubuntu24.04-x86_64_v4/gcc-13.3.
     adc	r15w, 1
     add	r12w, 1
 
-    #TP 0.377 unrolled
+    #TP 0.247 unrolled
     adox	ecx, ebx
 	adox	edx, ebx
 	adox	r9d, ebx
