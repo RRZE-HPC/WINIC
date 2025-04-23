@@ -1,19 +1,20 @@
-#include <iostream>
+#include "CustomDebug.h"
+// #include <iostream>
 #include <set>
-#include <string>
+#include <vector>
 
-static bool debug = false;
+bool debug = false;
 
 // clang-format off
-static std::set<std::string> functionBlacklist = {
+std::set<std::string> functionBlacklist = {
     "genInst",
-    "signalHandler",
+    // "signalHandler",
     "calculateCycles",
     "isVariant",
-    "runBenchmark",
+    // "runBenchmark",
     "genLatBenchmark4",
     "genLatMeasurements4",
-    "measureSafely",
+    // "measureSafely",
     "findFullyConnected",
     // "buildLatDatabase4",
     // "genTPInnerLoop",
@@ -22,12 +23,6 @@ static std::set<std::string> functionBlacklist = {
 };
 // clang-format on
 
-template <typename... Args> static void dbg(const char *func, Args &&...args) {
-    if (debug && functionBlacklist.find(func) == functionBlacklist.end()) {
-        std::cout << "[" << func << "]: ";
-        (std::cout << ... << args) << "\n" << std::flush;
-    }
-}
 
 // class BenchmarkGenerator; // forward declaration
 

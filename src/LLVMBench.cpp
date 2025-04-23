@@ -1,110 +1,97 @@
+#include "LLVMBench.h"
+
+#include "BenchmarkGenerator.h"           // for LatMeasurement4, LatMeasur...
+#include "CustomDebug.h"                  // for dbg, debug
+#include "Globals.h"                      // for env
+#include "LLVMEnvironment.h"              // for LLVMEnvironment
+#include "MCTargetDesc/X86MCTargetDesc.h" // for EFLAGS, RAX
+#include "llvm/ADT/ArrayRef.h"            // for ArrayRef
+#include "llvm/ADT/StringRef.h"           // for StringRef
+#include "llvm/MC/MCInstrDesc.h"          // for MCInstrDesc
+#include "llvm/MC/MCInstrInfo.h"          // for MCInstrInfo
+#include "llvm/MC/MCRegister.h"           // for MCRegister
+#include "llvm/MC/MCRegisterInfo.h"       // for MCRegisterInfo
+#include "llvm/Support/raw_ostream.h"     // for raw_ostream, outs, raw_fd_...
+#include "llvm/TargetParser/Triple.h"     // for Triple
+#include <algorithm>                      // for min_element, max
+#include <csetjmp>                        // for siglongjmp, sigsetjmp
+#include <csignal>                        // for sigaction, SIGSEGV, SIGFPE
+#include <cstdio>                         // for printf, NULL, fflush, fprintf
+#include <cstdlib>                        // for WEXITSTATUS, EXIT_SUCCESS
+#include <ctype.h>                        // for isdigit
+#include <dlfcn.h>                        // for dlclose, dlsym, dlopen
+#include <fcntl.h>                        // for open, O_WRONLY
+#include <fstream>                        // for basic_ostream, operator<<
+#include <getopt.h>                       // for required_argument, getopt_...
+#include <iostream>                       // for cerr, cout
+#include <map>                            // for map
+#include <sstream>
+#include <string>        // for basic_string, hash, char_t...
+#include <sys/mman.h>    // for mmap, munmap, MAP_ANONYMOUS
+#include <sys/time.h>    // for timeval, gettimeofday
+#include <sys/types.h>   // for pid_t
+#include <sys/wait.h>    // for waitpid
+#include <unistd.h>      // for dup2, _exit, optarg, execl
+#include <unordered_map> // for unordered_map, operator!=
+#include <unordered_set> // for unordered_set
+// #include <variant>       // for get, operator<, variant
+#include <vector> // for vector
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 // #include "MCTargetDesc/X86BaseInfo.h"
-#include "MCTargetDesc/X86MCTargetDesc.h"
-#include "benchmarkGenerator.cpp"
-#include "llvm/CodeGen/MachineBasicBlock.h"
-#include "llvm/CodeGen/MachineFunction.h"
-#include "llvm/CodeGen/RegisterBankInfo.h"
-#include "llvm/CodeGen/SelectionDAGNodes.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/MC/MCAsmBackend.h"
-#include "llvm/MC/MCCodeEmitter.h"
-#include "llvm/MC/MCInst.h"
-#include "llvm/MC/MCInstPrinter.h"
-#include "llvm/MC/MCInstrInfo.h"
-#include "llvm/MC/MCParser/MCTargetAsmParser.h"
-#include "llvm/MC/MCRegister.h"
-#include "llvm/MC/MCRegisterInfo.h"
-#include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/TypeSize.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/TargetParser/X86TargetParser.h"
-#include <algorithm>
-#include <bits/getopt_core.h>
-#include <csetjmp>
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <dlfcn.h>
-#include <elf.h>
-#include <fcntl.h>
-#include <fstream>
-#include <getopt.h>
-#include <iostream>
-#include <math.h>
-#include <ostream>
-#include <string>
-#include <sys/mman.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <unordered_map>
-#include <unordered_set>
-#include <variant>
-#include <vector>
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
 #endif
 
-// #include "llvm/Support/FileSystem.h"
-// #include "llvm/MC/MCObjectWriter.h"
-// #include "llvm/CodeGen/MachineRegisterInfo.h"
-// #include "llvm/lib/Target/X86/X86RegisterInfo.h"
-// #include <llvm/include/llvm/ADT/StringRef.h>
-// #include "llvm/MC/MCAsmInfo.h"
-// #include "llvm/MC/MCTargetOptions.h"
-// #include "llvm/MC/MCSubtargetInfo.h"
-// #include "llvm/Support/raw_ostream.h"
-// #include "llvm/MC/MCDisassembler/MCDisassembler.h"
-
-static std::unordered_map<unsigned, float> throughputDatabase;
-static std::vector<float> latencyDatabase;
-static std::vector<ErrorCode> errorCodeDatabase;
-static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
-    helperInstructions; // opcode, read/write register
-using namespace llvm;
-// using dbg = BenchmarkGenerator::dbg;
-static bool dbgToFile = true;
-
-// Global jump buffer for recovery from illegal instruction
-static sigjmp_buf jumpBuffer;
-static volatile sig_atomic_t lastSignal = 0;
+sigjmp_buf jumpBuffer;
+volatile sig_atomic_t lastSignal = 0;
 void *globalHandle = nullptr;
+static std::unordered_map<std::string, double (*)()> initFunctionMap;
+static std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
+static std::unordered_map<std::string, std::list<double>> benchResults;
 
 // Signal handler for illegal instruction
-static void signalHandler(int Signum) {
-    // shared library handle is not closed when segfaulting in benchmark
-    if (globalHandle) {
-        dlclose(globalHandle); // Cleanup
-        globalHandle = nullptr;
-        dbg(__func__, "dlclose called\n");
-    }
+void signalHandler(int Signum) {
     lastSignal = Signum;
     siglongjmp(jumpBuffer, 1); // Jump back to safe point
 }
 
-static std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
+// extra cleanup memory used in runBenchmark
+void cleanupAfterSignal() {
+    // shared library handle is not closed when segfaulting in benchmark
+    if (globalHandle) {
+        dlclose(globalHandle);
+        globalHandle = nullptr;
+        dbg(__func__, "dlclose called\n");
+    }
+    initFunctionMap.clear();
+    benchFunctionMap.clear();
+    benchResults.clear();
+}
+
+ErrorCode runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
+    dbg(__func__, "clang path: ", CLANG_PATH);
+    std::string clangPath = CLANG_PATH;
+    if (clangPath == "usr/bin/clang") {
+        std::cerr << "CLANG_PATH not set, using default" << std::endl;
+    }
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
     std::ofstream asmFile(sPath);
     if (!asmFile) {
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {ERROR_FILE, {}};
+        return ERROR_FILE;
     }
     asmFile << Assembly.generateAssembly();
     asmFile.close();
     if (dbgToFile) {
-        std::string DebugPath =
-            "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/own_tools/llvm-bench/debug.s";
-        std::ofstream debugFile(DebugPath);
+        // TODO make path relative
+        std::string debugPath =
+            "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/own_tools/llvm-bench/debug.s";
+        std::ofstream debugFile(debugPath);
         if (!debugFile) {
-            std::cerr << "Failed to create debug file" << std::endl;
-            return {ERROR_FILE, {}};
+            std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
+            return ERROR_FILE;
         }
         debugFile << Assembly.generateAssembly();
         debugFile.close();
@@ -128,50 +115,46 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     // slightly better performance
     pid_t pid = fork();
     if (pid == 0) { // Child
+        int fd;
         if (dbgToFile) {
-            int fd = open("assembler_out.log", O_WRONLY);
+            fd = open("assembler_out.log", O_WRONLY);
             if (fd == -1) {
                 perror("open assembler_out.log failed");
                 _exit(127);
             }
-            dup2(fd, STDOUT_FILENO);
-            dup2(fd, STDERR_FILENO);
-            execl(CLANG_PATH, "clang", "-x", "assembler-with-cpp", "-shared", sPath.data(), "-o",
-                  oPath.data(), nullptr);
         } else {
-            int fd = open("/dev/null", O_WRONLY);
+            fd = open("/dev/null", O_WRONLY);
             if (fd == -1) {
                 perror("open /dev/null failed");
                 _exit(127);
             }
-            dup2(fd, STDOUT_FILENO);
-            dup2(fd, STDERR_FILENO);
-            execl(CLANG_PATH, "clang", "-x", "assembler-with-cpp", "-shared", sPath.data(), "-o",
-                  oPath.data(), nullptr);
         }
-        _exit(127);       // execlp failed
+        dup2(fd, STDOUT_FILENO);
+        dup2(fd, STDERR_FILENO);
+        execl(CLANG_PATH, "clang", "-x", "assembler-with-cpp", "-shared", sPath.data(), "-o",
+              oPath.data(), nullptr);
+        _exit(127);       // execl failed
     } else if (pid > 0) { // Parent
         int status;
         waitpid(pid, &status, 0);
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            if (WEXITSTATUS(status) == 127) return {ERROR_EXEC, {}};
-            return {ERROR_ASSEMBLY, {}};
+            if (WEXITSTATUS(status) == 127) return ERROR_EXEC;
+            return ERROR_ASSEMBLY;
         }
     }
 
     // from ibench
     if ((globalHandle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
-        return {ERROR_FILE, {}};
+        return ERROR_FILE;
     }
     // get handles to function in the assembly file
-    std::unordered_map<std::string, double (*)()> initFunctionMap;
-    std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
+
     for (std::string functionName : Assembly.getInitFunctionNames()) {
         auto functionPtr = (double (*)())dlsym(globalHandle, functionName.data());
         if (functionPtr == NULL) {
             fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
-            return {ERROR_GENERIC, {}};
+            return ERROR_GENERIC;
         }
         initFunctionMap[functionName] = functionPtr;
     }
@@ -179,21 +162,20 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
         auto functionPtr = (double (*)(int))dlsym(globalHandle, functionName.data());
         if (functionPtr == NULL) {
             fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
-            return {ERROR_GENERIC, {}};
+            return ERROR_GENERIC;
         }
         benchFunctionMap[functionName] = functionPtr;
     }
-
+    // may have results from prior runs
+    benchResults.clear();
     dbg(__func__, "starting benchmarks");
     struct timeval start, end;
-    std::unordered_map<std::string, std::list<double>> benchtimes;
-    for (auto benchFunctionEntry : benchFunctionMap) {
-        auto benchFunction = benchFunctionEntry.second;
-        auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionEntry.first)];
+    // std::unordered_map<std::string, std::list<double>> benchtimes;
+    for (auto [benchFunctionName, benchFunctionPointer] : benchFunctionMap) {
+        auto benchFunction = benchFunctionPointer;
+        auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionName)];
         for (unsigned i = 0; i < Runs; i++) {
-            auto &list = benchtimes[benchFunctionEntry.first];
-            // list.insert(list.end(),
-            // (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec) + 50000);
+            auto &list = benchResults[benchFunctionName];
             if (initFunction) {
                 (*initFunction)();
                 // dbg(__func__, "calling init function ",
@@ -211,48 +193,47 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     }
 
     dlclose(globalHandle);
-    return {SUCCESS, benchtimes};
+    benchFunctionMap.clear();
+    initFunctionMap.clear();
+    return SUCCESS;
 }
 
-// runs two benchmarks to correct eventual interference with loop instructions
-// this may segfault e.g. on privileged instructions like CLGI
-static std::pair<ErrorCode, double>
-measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequency) {
+std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator,
+                                               double Frequency) {
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
     double n = 1000000; // loop count
     AssemblyFile assembly;
-    ErrorCode EC;
-    std::unordered_map<std::string, std::list<double>> benchResults;
-    std::string InterlInst = "";
+    ErrorCode ec;
+    std::string interlInst = "";
     std::set<MCRegister> usedRegs;
-    const MCInstrDesc &desc = Generator->MCII->get(Opcode);
+    const MCInstrDesc &desc = env.MCII->get(Opcode);
 
     // special case 1: check for flags dependency and insert interleave instruction
-    if (Generator->Arch == Triple::ArchType::x86_64 &&
+    if (env.Arch == Triple::ArchType::x86_64 &&
         desc.hasImplicitUseOfPhysReg(MCRegister::from(X86::EFLAGS)) &&
         desc.hasImplicitUseOfPhysReg(MCRegister::from(X86::EFLAGS))) {
-        InterlInst = "	test	rax, rax";
+        interlInst = "	test	rax, rax";
         usedRegs.insert(MCRegister::from(X86::RAX));
         // outs() << Generator->MCII->getName(Opcode).data() << " 1\n";
     }
     // special case 2: check for instructions like add eax, imm
     // those only have one register they write and read to -> per default we would measure latency
     // because of the dependency
-    else if (Generator->Arch == Triple::ArchType::x86_64 && desc.getNumOperands() == 1 &&
+    else if (env.Arch == Triple::ArchType::x86_64 && desc.getNumOperands() == 1 &&
              desc.implicit_defs().size() > 1) {
         // this breaks the dependency
-        InterlInst = "	mov	rax, 42";
+        interlInst = "	mov	rax, 42";
         usedRegs.insert(MCRegister::from(X86::RAX));
         // outs() << Generator->MCII->getName(Opcode).data() << " 2\n";
     }
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    std::tie(EC, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1, InterlInst, usedRegs);
-    if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, benchResults) = runBenchmark(assembly, n, 3);
-    if (EC != SUCCESS) return {EC, -1};
+    std::tie(ec, assembly) = Generator->genTPBenchmark(Opcode, &numInst1, 1, interlInst, usedRegs);
+    if (ec != SUCCESS) return {ec, -1};
+    ec = runBenchmark(assembly, n, 3);
+    if (ec != SUCCESS) return {ec, -1};
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
     double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
@@ -277,44 +258,44 @@ measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator, double Frequen
     }
     loopInstr2 = std::max(loopInstr2, 0.0);
     loopInstr4 = std::max(loopInstr4, 0.0);
-    double corrected1_2 = time1 / (1e6 * (numInst1 + loopInstr2) / Frequency * (n / 1e9));
-    double corrected2_4 = time2 / (1e6 * (numInst1 * 2 + loopInstr4) / Frequency * (n / 1e9));
-    if (!InterlInst.empty()) {
+    double corrected1to2 = time1 / (1e6 * (numInst1 + loopInstr2) / Frequency * (n / 1e9));
+    double corrected2to4 = time2 / (1e6 * (numInst1 * 2 + loopInstr4) / Frequency * (n / 1e9));
+    if (!interlInst.empty()) {
         // we did interleave test, this changes the TP
         // TODO this is flawed, need to detect if interleaved instruction runs on same ports or not
         // we can implement this once we have Latency values
 
-        if (InterlInst == "	test	rax, rax") {
-            outs() << "correcting " << corrected2_4 << " with TEST64rr"
+        if (interlInst == "	test	rax, rax") {
+            outs() << "correcting " << corrected2to4 << " with TEST64rr"
                    << throughputDatabase[Generator->getOpcode("TEST64rr")] << "\n";
-            corrected1_2 -= throughputDatabase[Generator->getOpcode("TEST64rr")];
-            corrected2_4 -= throughputDatabase[Generator->getOpcode("TEST64rr")];
+            corrected1to2 -= throughputDatabase[Generator->getOpcode("TEST64rr")];
+            corrected2to4 -= throughputDatabase[Generator->getOpcode("TEST64rr")];
         } else {
-            outs() << "correcting " << corrected2_4 << " with MOV64ri32 "
+            outs() << "correcting " << corrected2to4 << " with MOV64ri32 "
                    << throughputDatabase[Generator->getOpcode("MOV64ri32")] << "\n";
-            corrected1_2 -= throughputDatabase[Generator->getOpcode("MOV64ri32")];
-            corrected2_4 -= throughputDatabase[Generator->getOpcode("MOV64ri32")];
+            corrected1to2 -= throughputDatabase[Generator->getOpcode("MOV64ri32")];
+            corrected2to4 -= throughputDatabase[Generator->getOpcode("MOV64ri32")];
         }
     }
-    if (std::abs(corrected1_2 - corrected2_4) > 0.05) {
+    if (std::abs(corrected1to2 - corrected2to4) > 0.05) {
         double uncorrected1 = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
         double uncorrected2 = time2 / (1e6 * numInst1 * 2 / Frequency * (n / 1e9));
         std::printf("   anomaly detected during measurement:\n");
         std::printf("   unr1: %.1f, unr2: %.1f, unr4: %.1f\n", time1, time2, time4);
         std::printf("   %.3f uncorrected1 tp\n", uncorrected1);
         std::printf("   %.3f uncorrected2 tp\n", uncorrected2);
-        std::printf("   %.3f corrected1_2 tp\n", corrected1_2);
-        std::printf("   %.3f corrected2_4 tp\n", corrected2_4);
+        std::printf("   %.3f corrected1_2 tp\n", corrected1to2);
+        std::printf("   %.3f corrected2_4 tp\n", corrected2to4);
     }
     // assume calculating the tp using unroll 2 -> 4 yields the best results
-    return {SUCCESS, corrected2_4};
+    return {SUCCESS, corrected2to4};
 }
 
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
-static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGenerator *Generator,
-                                                   double Frequency) {
-    const MCInstrDesc &desc = Generator->MCII->get(Opcode);
+std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGenerator *Generator,
+                                            double Frequency) {
+    const MCInstrDesc &desc = env.MCII->get(Opcode);
     if (Generator->isValid(desc) != SUCCESS) return {Generator->isValid(desc), {}};
 
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
@@ -322,17 +303,16 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     unsigned numInst1 = 12;
     // unsigned numInst2 = 24;
     double n = 1000000; // loop count
-    ErrorCode EC;
+    ErrorCode ec;
     AssemblyFile assembly;
     int helperOpcode;
-    std::unordered_map<std::string, std::list<double>> benchResults;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    std::tie(EC, assembly, helperOpcode) =
+    std::tie(ec, assembly, helperOpcode) =
         Generator->genLatBenchmark(Opcode, &numInst1, &helperInstructions);
-    if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, benchResults) = runBenchmark(assembly, n, 3);
-    if (EC != SUCCESS) return {EC, -1};
+    if (ec != SUCCESS) return {ec, -1};
+    ec = runBenchmark(assembly, n, 3);
+    if (ec != SUCCESS) return {ec, -1};
 
     // if (helperOpcode != -1)
     //     std::cout << Generator->MCII->getName(Opcode).data() << " using helper instruction "
@@ -352,7 +332,7 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     if (loopInstr2 < -1) {
         // throughput decreases significantly when unrolling, this should not be possible
         std::printf("   anomaly detected during measurement of %s:\n",
-                    Generator->MCII->getName(Opcode).data());
+                    env.MCII->getName(Opcode).data());
         dbg(__func__, loopInstr2, " time1: ", time1, " time2: ", time2);
         for (auto time : benchResults["latencyUnrolled"]) {
             std::printf("   %.3f ", time);
@@ -387,9 +367,9 @@ static std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGen
     return {SUCCESS, corrected};
 }
 
-static std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                                    unsigned NumInst, unsigned LoopCount,
-                                                    double Frequency) {
+std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
+                                             unsigned NumInst, unsigned LoopCount,
+                                             double Frequency) {
     // correct the result using one measurement with NumInst and one with 2*NumInst. This removes
     // overhead of e.g. the loop instructions themselves see README for explanation TODO
     double overheadPerInstruction = NumInst * (UnrolledRuntime - 2 * Runtime) /
@@ -407,26 +387,22 @@ static std::pair<ErrorCode, double> calculateCycles(double Runtime, double Unrol
     return {SUCCESS, corrected};
 }
 
-// runs two benchmarks to correct eventual interference with loop instructions
-// this may segfault e.g. on privileged instructions like CLGI
-static std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurements,
-                                                    BenchmarkGenerator *Generator,
-                                                    double Frequency) {
-
+std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurements,
+                                             BenchmarkGenerator *Generator, double Frequency) {
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
     // unsigned numInst2 = 24;
     double n = 1000000; // loop count
-    ErrorCode EC;
+    ErrorCode ec;
     AssemblyFile assembly;
-    std::unordered_map<std::string, std::list<double>> benchResults;
+    // std::unordered_map<std::string, std::list<double>> benchResults;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    std::tie(EC, assembly) = Generator->genLatBenchmark4(Measurements, &numInst1);
-    if (EC != SUCCESS) return {EC, -1};
-    std::tie(EC, benchResults) = runBenchmark(assembly, n, 3);
-    if (EC != SUCCESS) return {EC, -1};
+    std::tie(ec, assembly) = Generator->genLatBenchmark4(Measurements, &numInst1);
+    if (ec != SUCCESS) return {ec, -1};
+    ec = runBenchmark(assembly, n, 3);
+    if (ec != SUCCESS) return {ec, -1};
 
     // take minimum of runs. "latency" and "latencyUnrolled" is naming convention defined in
     // runBenchmark()
@@ -435,12 +411,12 @@ static std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> M
     double time2 = *std::min_element(benchResults["latencyUnrolled"].begin(),
                                      benchResults["latencyUnrolled"].end());
     double cycles;
-    std::tie(EC, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency);
-    if (EC != SUCCESS) {
+    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency);
+    if (ec != SUCCESS) {
         // throughput decreases significantly when unrolling, this should not be possible
         std::string chainString = "";
         for (auto m : Measurements) {
-            chainString += Generator->MCII->getName(m.opcode).data();
+            chainString += env.MCII->getName(m.opcode).data();
             chainString += " -> ";
         }
         std::printf("   anomaly detected during measurement of %s:\n", chainString.data());
@@ -455,101 +431,55 @@ static std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> M
 
 // calls one of the measure functions in a subprocess to recover from segfaults during the
 // benchmarking process Type = "t" for throughput or "l" for latency
-static std::pair<ErrorCode, double> measureInSubprocess(unsigned Opcode,
-                                                        BenchmarkGenerator *Generator,
-                                                        double Frequency, std::string Type) {
-    // allocate memory to communicate result
-    double *sharedResult = static_cast<double *>(
-        mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
-    ErrorCode *sharedEC = static_cast<ErrorCode *>(
-        mmap(NULL, sizeof(ErrorCode), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
-
-    if (sharedResult == MAP_FAILED || sharedEC == MAP_FAILED) {
-        perror("mmap");
-        return {ERROR_MMAP, -1};
-    }
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        return {ERROR_FORK, -1};
-    }
-
-    if (pid == 0) { // Child process
-        ErrorCode EC;
-        double res;
-        if (Type == "t")
-            std::tie(EC, res) = measureThroughput(Opcode, Generator, Frequency);
-        else
-            std::tie(EC, res) = measureLatency(Opcode, Generator, Frequency);
-
-        *sharedResult = res;
-        *sharedEC = EC;
-        exit(EXIT_SUCCESS);
-    } else { // Parent process
-        int status;
-        waitpid(pid, &status, 0);
-
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1};
-        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1};
-
-        ErrorCode EC = *sharedEC;
-        double res = *sharedResult;
-        munmap(sharedResult, sizeof(int));
-        munmap(sharedEC, sizeof(ErrorCode));
-        return {EC, res};
-    }
-}
-
-// calls one of the measure functions in a subprocess to recover from segfaults during the
-// benchmarking process Type = "t" for throughput or "l" for latency
-static std::pair<ErrorCode, double> measureSafely(unsigned Opcode, BenchmarkGenerator *Generator,
-                                                  double Frequency, std::string Type) {
-
+std::pair<ErrorCode, double> measureSafely(unsigned Opcode, BenchmarkGenerator *Generator,
+                                           double Frequency, std::string Type) {
+    dbg(__func__, "Opcode: ", Opcode, " Name: ", env.MCII->getName(Opcode).data());
     if (sigsetjmp(jumpBuffer, 1) == 0) {
-        ErrorCode EC;
+        ErrorCode ec;
         double res;
         if (Type == "t")
-            std::tie(EC, res) = measureThroughput(Opcode, Generator, Frequency);
+            std::tie(ec, res) = measureThroughput(Opcode, Generator, Frequency);
         else
-            std::tie(EC, res) = measureLatency(Opcode, Generator, Frequency);
-        return {EC, res};
-    } else {
-        if (lastSignal == SIGSEGV) return {ERROR_SIGSEGV, -1};
-        if (lastSignal == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
-        if (lastSignal == SIGFPE) return {ERROR_SIGFPE, -1};
-
-        return {ERROR_UNREACHABLE, -1}; // should be unreachable
+            std::tie(ec, res) = measureLatency(Opcode, Generator, Frequency);
+        return {ec, res};
     }
+    // if here, a signal was caught
+    cleanupAfterSignal();
+    if (lastSignal == SIGSEGV) return {ERROR_SIGSEGV, -1};
+    if (lastSignal == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
+    if (lastSignal == SIGFPE) return {ERROR_SIGFPE, -1};
+
+    return {ERROR_UNREACHABLE, -1}; // should be unreachable
 }
 
-static std::pair<ErrorCode, double> measureSafely(std::list<LatMeasurement4> Measurements,
-                                                  BenchmarkGenerator *Generator, double Frequency,
-                                                  std::string Type) {
+std::pair<ErrorCode, double> measureSafely(std::list<LatMeasurement4> Measurements,
+                                           BenchmarkGenerator *Generator, double Frequency,
+                                           std::string Type) {
     std::string dbgString = "";
+    std::ostringstream oss(dbgString);
     for (auto m : Measurements)
-        dbgString += Generator->latMeasurement4ToString(m) + " >>> ";
-    dbg(__func__, "measuring ", dbgString.data());
+        oss << m << " >>> ";
+    dbg(__func__, "measuring ", dbgString.substr(0, dbgString.size() - 4));
     if (sigsetjmp(jumpBuffer, 1) == 0) {
-        ErrorCode EC;
+        ErrorCode ec;
         double res;
         if (Type == "t")
             // std::tie(EC, res) = measureThroughput(Opcode, Generator, Frequency);
             outs() << "you didnt implement that idiot";
         else
-            std::tie(EC, res) = measureLatency4(Measurements, Generator, Frequency);
-        return {EC, res};
-    } else {
-        if (lastSignal == SIGSEGV) return {ERROR_SIGSEGV, -1};
-        if (lastSignal == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
-        if (lastSignal == SIGFPE) return {ERROR_SIGFPE, -1};
-
-        return {ERROR_UNREACHABLE, -1}; // should be unreachable
+            std::tie(ec, res) = measureLatency4(Measurements, Generator, Frequency);
+        return {ec, res};
     }
+    if (lastSignal == SIGSEGV) return {ERROR_SIGSEGV, -1};
+    if (lastSignal == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
+    if (lastSignal == SIGFPE) return {ERROR_SIGFPE, -1};
+
+    return {ERROR_UNREACHABLE, -1}; // should be unreachable
 }
 
-static void displayProgress(int progress, int total) {
+void displayProgress(int Progress, int Total) {
     int barWidth = 50;
-    float ratio = progress / (float)total;
+    float ratio = Progress / (float)Total;
     int pos = barWidth * ratio;
 
     std::cerr << "\r[";
@@ -561,42 +491,41 @@ static void displayProgress(int progress, int total) {
         else
             std::cerr << " ";
     }
-    std::cerr << "] " << int(ratio * 100.0) << "% " << progress << "/" << total << std::flush;
+    std::cerr << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
 }
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-static int buildTPDatabase(double Frequency, unsigned MaxOpcode = 0) {
+int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
         "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
         "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     BenchmarkGenerator generator = BenchmarkGenerator();
-    generator.setUp();
-    if (MaxOpcode == 0) MaxOpcode = generator.MCII->getNumOpcodes();
+    // generator.setUp();
+    if (MaxOpcode == 0) MaxOpcode = env.MCII->getNumOpcodes();
 
     // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
     // with other instructions
     outs() << generator.getOpcode("TEST64rr") << "\n";
     outs() << generator.getOpcode("MOV64ri32") << "\n";
-    if (generator.Arch == Triple::ArchType::x86_64) {
-        auto [EC, tp] =
-            measureInSubprocess(generator.getOpcode("TEST64rr"), &generator, Frequency, "t");
+    if (env.Arch == Triple::ArchType::x86_64) {
+        auto [EC, tp] = measureSafely(generator.getOpcode("TEST64rr"), &generator, Frequency, "t");
         if (EC == SUCCESS) throughputDatabase[generator.getOpcode("TEST64rr")] = tp;
         auto [EC2, tp2] =
-            measureInSubprocess(generator.getOpcode("MOV64ri32"), &generator, Frequency, "t");
+            measureSafely(generator.getOpcode("MOV64ri32"), &generator, Frequency, "t");
         if (EC2 == SUCCESS) throughputDatabase[generator.getOpcode("MOV64ri32")] = tp2;
     }
 
-    for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
+    for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
         displayProgress(opcode, MaxOpcode);
-        std::string name = generator.MCII->getName(opcode).data();
+        std::string name = env.MCII->getName(opcode).data();
         if (skipInstructions.find(name) != skipInstructions.end()) {
             outs() << name << ": " << "skipped for reason\t " << "skippedManually" << "\n";
             continue;
         }
 
-        auto [EC, tp] = measureInSubprocess(opcode, &generator, Frequency, "t");
+        auto [EC, tp] = measureSafely(opcode, &generator, Frequency, "t");
         name.resize(27, ' ');
         throughputDatabase[opcode] = tp;
 
@@ -613,14 +542,14 @@ static int buildTPDatabase(double Frequency, unsigned MaxOpcode = 0) {
 }
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-static int buildLatDatabase(double Frequency, unsigned MaxOpcode = 0) {
+int buildLatDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
         "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
         "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     BenchmarkGenerator generator = BenchmarkGenerator();
-    generator.setUp();
+    // generator.setUp();
 
     std::unordered_set<unsigned> skipOpcodes;
     for (auto name : skipInstructions) {
@@ -648,7 +577,7 @@ static int buildLatDatabase(double Frequency, unsigned MaxOpcode = 0) {
     }
     // print results
     for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-        std::string name = generator.MCII->getName(opcode).data();
+        std::string name = env.MCII->getName(opcode).data();
         name.resize(27, ' ');
 
         if (errorCodeDatabase[opcode] == SUCCESS) {
@@ -662,40 +591,19 @@ static int buildLatDatabase(double Frequency, unsigned MaxOpcode = 0) {
     }
     return 0;
 }
-static bool equalWithTolerance(double a, double b) { return std::abs(a - b) <= 0.1 * a; }
-static bool smallerEqWithTolerance(double a, double b) { return a < b || equalWithTolerance(a, b); }
-static bool isSus(double a) { return !equalWithTolerance(std::round(a), a); }
 
-static bool hasConnectionTo(std::vector<std::pair<unsigned, unsigned>> Values, unsigned First,
-                            unsigned Second) {
+bool hasConnectionTo(std::vector<std::pair<unsigned, unsigned>> Values, unsigned First,
+                     unsigned Second) {
     for (auto v : Values)
         if (v.first == First && v.second == Second) return true;
 
     return false;
 }
 
-static std::string pairVectorToString(std::vector<std::pair<unsigned, unsigned>> Values) {
-    std::string result = "[";
-    for (auto v : Values) {
-        result += "(" + std::to_string(v.first) + ", " + std::to_string(v.second) + "), ";
-    }
-    result += "]";
-    return result;
-}
-
-static std::string pairVectorToString2(std::vector<std::pair<unsigned, unsigned>> Values) {
-    std::string result = "[";
-    for (auto v : Values) {
-        result += std::to_string(v.first) + "-" + std::to_string(v.second) + ", ";
-    }
-    result += "]";
-    return result;
-}
-
-static std::vector<std::pair<unsigned, unsigned>>
+std::vector<std::pair<unsigned, unsigned>>
 findFullyConnected(std::vector<std::pair<unsigned, unsigned>> Edges, unsigned Number) {
     if (Number == 1 && !Edges.empty()) return {Edges[0]};
-    if (Edges.size() != 0) dbg(__func__, "Edges: ", pairVectorToString2(Edges));
+    if (Edges.size() != 0) dbg(__func__, "Edges: ", Edges);
 
     for (auto chosenEdge : Edges) {
         dbg(__func__, "chosen: ", chosenEdge.first, " ", chosenEdge.second);
@@ -719,25 +627,25 @@ findFullyConnected(std::vector<std::pair<unsigned, unsigned>> Edges, unsigned Nu
     return {};
 }
 
-static bool isVariant(unsigned a, unsigned b, BenchmarkGenerator &generator) {
+bool isVariant(unsigned A, unsigned B) {
     // check if a and b are the same instruction with different operands
-    std::string nameA = generator.MCII->getName(a).data();
-    std::string nameB = generator.MCII->getName(b).data();
+    std::string nameA = env.MCII->getName(A).data();
+    std::string nameB = env.MCII->getName(B).data();
     if (nameA == nameB) return true;
     // llvm names for the same instruction normally match until the first occurrence of a number
     // e.g. ADD8ri_EVEX ADD8ri_ND ADD8ri_NF ADD8ri_NF_ND
-    auto getPrefixWithFirstNumber = [](const std::string &name) -> std::string {
+    auto getPrefixWithFirstNumber = [](const std::string &Name) -> std::string {
         size_t i = 0;
         // Find the start of the first number
-        while (i < name.size() && !isdigit(name[i]))
+        while (i < Name.size() && !isdigit(Name[i]))
             ++i;
 
         // include the whole number
         size_t j = i;
-        while (j < name.size() && isdigit(name[j]))
+        while (j < Name.size() && isdigit(Name[j]))
             ++j;
 
-        return name.substr(0, j);
+        return Name.substr(0, j);
     };
 
     std::string namePrefixA = getPrefixWithFirstNumber(nameA);
@@ -746,16 +654,16 @@ static bool isVariant(unsigned a, unsigned b, BenchmarkGenerator &generator) {
     return namePrefixA == namePrefixB;
 }
 
-static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
-                                   BenchmarkGenerator &generator, double Frequency) {
-    dbg(__func__, "number of measurements: ", measurements.size());
+void findHelperInstructions(std::vector<LatMeasurement4> Measurements,
+                            BenchmarkGenerator &Generator, double Frequency) {
+    dbg(__func__, "number of measurements: ", Measurements.size());
     // classify measurements by operand combination
     std::map<LatMeasurementType, std::vector<LatMeasurement4>> classifiedMeasurements;
-    for (auto m : measurements)
+    for (auto m : Measurements)
         classifiedMeasurements[m.type].emplace_back(m);
 
     for (auto classified : classifiedMeasurements)
-        dbg(__func__, "class: ", generator.latMeasurementTypeToString(classified.first));
+        dbg(__func__, "class: ", classified.first);
 
     // to measure latencys of e.g. REG -> FLAGS we need some instruction (called helper
     // instruction) with known latency FLAGS -> REG so we can interleave the two. We determine one
@@ -771,12 +679,12 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
             // trivial case
             for (auto m : typeA) {
                 auto [EC, lat] =
-                    measureSafely({m}, &generator, Frequency, "l"); // TODO check if this is correct
+                    measureSafely({m}, &Generator, Frequency, "l"); // TODO check if this is correct
                 if (EC != 0 || lat < 2 || isSus(lat)) continue;
                 // use first successful measurement as helper
                 m.value = lat;
                 helperInstructions.insert({mType, m});
-                dbg(__func__, "found helper trivial: ", generator.latMeasurement4ToString(m));
+                dbg(__func__, "found helper trivial: ", m);
                 break;
             }
             continue;
@@ -786,7 +694,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
         //     continue;
         // }
 
-        dbg(__func__, "searching helper for type: ", generator.latMeasurementTypeToString(mType));
+        dbg(__func__, "searching helper for type: ", mType);
         // std::vector<LatMeasurement4> typeA = classifiedMeasurements[typeA.first];
         std::vector<LatMeasurement4> typeB = classifiedMeasurements[mType.reversedType()];
         // We first want to find 3 instructions of the class and 3 of the reversed class to have
@@ -801,12 +709,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
         // store instructions which cannot be measured (e.g. because they are not supported)
         std::set<unsigned> ignoredIndicesA;
         std::set<unsigned> ignoredIndicesB;
-        // for (unsigned i = 0; i < typeA.size(); i++) {
-        //     dbg(__func__, i, " ", generator.MCII->getName(typeA[i].opcode).data());
-        // }
-        // for (unsigned i = 0; i < typeB.size(); i++) {
-        //     dbg(__func__, i, " ", generator.MCII->getName(typeB[i].opcode).data());
-        // }
+
         std::vector<std::pair<unsigned, unsigned>> fullyConnected = {};
         unsigned indexA = 0, indexB = 0;
         unsigned helperLat = 0;
@@ -817,7 +720,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
                 // ignore variants of instructions already present
                 bool ignored = false;
                 for (unsigned i = 0; i < indexA; i++) {
-                    if (isVariant(typeA[indexA].opcode, typeA[i].opcode, generator)) {
+                    if (isVariant(typeA[indexA].opcode, typeA[i].opcode)) {
                         ignoredIndicesA.insert(indexA);
                         indexA++;
                         ignored = true;
@@ -836,7 +739,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
 
                     dbg(__func__, "indices ", indexA, "/", typeA.size(), " ", b, "/", typeB.size());
                     auto [EC, combinedLat] =
-                        measureSafely({typeA[indexA], typeB[b]}, &generator, Frequency, "l");
+                        measureSafely({typeA[indexA], typeB[b]}, &Generator, Frequency, "l");
                     // if unsuccessful, if sus or too small, add to ignored
                     if (EC != 0 || combinedLat < 2 || isSus(combinedLat)) {
                         susCounter++;
@@ -864,7 +767,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
                 // ignore variants of instructions already present
                 bool ignored = false;
                 for (unsigned i = 0; i < indexB; i++) {
-                    if (isVariant(typeB[indexB].opcode, typeB[i].opcode, generator)) {
+                    if (isVariant(typeB[indexB].opcode, typeB[i].opcode)) {
                         ignoredIndicesB.insert(indexA);
                         indexB++;
                         ignored = true;
@@ -882,7 +785,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
                         continue; // dont interleave same instruciton
                     dbg(__func__, "indices ", a, "/", typeA.size(), " ", indexB, "/", typeB.size());
                     auto [EC, combinedLat] =
-                        measureSafely({typeA[a], typeB[indexB]}, &generator, Frequency, "l");
+                        measureSafely({typeA[a], typeB[indexB]}, &Generator, Frequency, "l");
                     // if unsuccessful, if sus or too small, add to ignored
                     if (EC != 0 || combinedLat < 2 || isSus(combinedLat)) {
                         susCounter++;
@@ -923,7 +826,7 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
         if (fullyConnected.empty()) {
             // no helper for this type pair found, helpers are always found in pairs so opposite
             // direction will not be possible either
-            dbg(__func__, "no helper for ", generator.latMeasurementTypeToString(mType));
+            dbg(__func__, "no helper for ", mType);
             noHelperPossible.insert(mType);
             noHelperPossible.insert(mType.reversedType());
             continue;
@@ -936,87 +839,73 @@ static void findHelperInstructions(std::vector<LatMeasurement4> measurements,
         measurementB.value = helperLat;
         helperInstructions.insert({measurementA.type, measurementA});
         helperInstructions.insert({measurementB.type, measurementB});
-        dbg(__func__, "found a helper for ",
-            generator.latMeasurementTypeToString(measurementA.type));
-        dbg(__func__, "found a helper for opposite type ",
-            generator.latMeasurementTypeToString(measurementB.type));
+        dbg(__func__, "found a helper for ", measurementA.type);
+        dbg(__func__, "found a helper for opposite type ", measurementB.type);
     }
     for (auto [mType, m] : classifiedMeasurements) {
         // LatMeasurement4 *inst = helperInstructions.find(mType);
         if (helperInstructions.find(mType) == helperInstructions.end()) {
-            dbg(__func__, "no helper for ", generator.latMeasurementTypeToString(mType),
-                "searching for replacement");
+            dbg(__func__, "no helper for ", mType, "searching for replacement");
             // until now for e.g. xmm1 -> class(GR64) only instructions of exactly this type were
             // considered, however if no suitable instructions were found we can use instructions
             // with class(VR128X) -> class(GR64) as well.
-            std::set<LatOperandType> replacementDefClassIDs;
-            if (std::holds_alternative<MCRegister>(mType.defOp)) {
-                auto reg = std::get<MCRegister>(mType.defOp);
-                replacementDefClassIDs.insert(reg);
-                // TODO test if base class check is enough or if we need this check
-                for (unsigned i = 0; i < generator.MRI->getNumRegClasses(); i++) {
-                    if (!generator.regInRegClass(reg, i)) continue;
-                    replacementDefClassIDs.insert(regClass(i));
-                }
-            } else {
-                // this is already a class, we can use it directly
-                replacementDefClassIDs.insert(std::get<unsigned>(mType.defOp));
+            std::set<LatOperand> replacementDefOperands;
+            // insert the original operand to be used for new combination
+            replacementDefOperands.insert(mType.defOp);
+
+            // in case of a register, insert all reg classes this register belongs to
+            if (mType.defOp.isRegister()) {
+                auto reg = mType.defOp.getRegister();
+                for (unsigned i = 0; i < env.MRI->getNumRegClasses(); i++)
+                    if (Generator.regInRegClass(reg, i))
+                        replacementDefOperands.insert(LatOperand::fromRegClass(i));
             }
-            std::set<LatOperandType> replacementUseClassIDs;
-            if (std::holds_alternative<MCRegister>(mType.useOp)) {
-                auto reg = std::get<MCRegister>(mType.useOp);
-                replacementUseClassIDs.insert(reg);
-                for (unsigned i = 0; i < generator.MRI->getNumRegClasses(); i++) {
-                    if (!generator.regInRegClass(reg, i)) continue;
-                    replacementUseClassIDs.insert(regClass(i));
-                }
-            } else {
-                // this is already a class, we can use it directly
-                replacementUseClassIDs.insert(std::get<unsigned>(mType.useOp));
+            std::set<LatOperand> replacementUseOperands;
+            replacementUseOperands.insert(mType.useOp);
+            if (mType.useOp.isRegister()) {
+                auto reg = mType.useOp.getRegister();
+                for (unsigned i = 0; i < env.MRI->getNumRegClasses(); i++)
+                    if (Generator.regInRegClass(reg, i))
+                        replacementUseOperands.insert(LatOperand::fromRegClass(i));
             }
-            // check if we have helpers for any combination of the replacement classes
+
+            // check if we have helpers for any combination of the replacement operands
             bool found = false;
-            for (auto defOpType : replacementDefClassIDs) {
-                for (auto useOpType : replacementUseClassIDs) {
+            for (auto defOpType : replacementDefOperands) {
+                for (auto useOpType : replacementUseOperands) {
                     LatMeasurementType replacementType = LatMeasurementType(defOpType, useOpType);
                     if (helperInstructions.find(replacementType) != helperInstructions.end()) {
                         // we have a helper for this type, use it for the current type
                         LatMeasurement4 m = helperInstructions.at(replacementType);
                         helperInstructions.insert({mType, m});
-                        dbg(__func__, "using", generator.latMeasurement4ToString(m),
-                            "as replacement helper for ",
-                            generator.latMeasurementTypeToString(mType));
+                        dbg(__func__, "using", m, "as replacement helper for ", mType);
                         found = true;
                         break;
                     }
                 }
                 if (found) break;
             }
-            if (!found) {
-                dbg(__func__, "still no helper");
-            }
+            if (!found) dbg(__func__, "still no helper");
+
         } else {
             LatMeasurement4 m = helperInstructions.at(mType);
-            dbg(__func__, "helper for ", generator.latMeasurementTypeToString(mType), " ",
-                generator.MCII->getName(m.opcode).data(), " ", m.value);
+            dbg(__func__, "helper for ", mType, ":  ", m, " ", m.value);
         }
     }
     for (auto [mType, m] : helperInstructions) {
-        std::string name = generator.MCII->getName(m.opcode).data();
+        std::string name = env.MCII->getName(m.opcode).str();
         name.resize(27, ' ');
-        dbg(__func__, "helper for ",generator.latMeasurementTypeToString(mType), ": ", generator.latMeasurement4ToString(m), " ", m.value);
+        dbg(__func__, "helper for ", mType, ": ", m, " ", m.value);
     }
 }
 
-// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-static int buildLatDatabase4(double Frequency, unsigned MaxOpcode = 0) {
+int buildLatDatabase4(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
         "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
         "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     BenchmarkGenerator generator = BenchmarkGenerator();
-    generator.setUp();
 
     std::unordered_set<unsigned> skipOpcodes;
     for (auto name : skipInstructions) {
@@ -1025,11 +914,11 @@ static int buildLatDatabase4(double Frequency, unsigned MaxOpcode = 0) {
 
     // auto measurements = generator.genLatMeasurements();
     std::vector<LatMeasurement4> measurements =
-        generator.genLatMeasurements4(MaxOpcode, skipOpcodes);
+        generator.genLatMeasurements4(MinOpcode, MaxOpcode, skipOpcodes);
     findHelperInstructions(measurements, generator, Frequency);
     // for (auto [mType, m] : helperInstructions) {
     //     dbg(__func__, "opcode", m.opcode);
-    //     std::string name = generator.MCII->getName(m.opcode).data();
+    //     std::string name = env.MCII->getName(m.opcode).data();
     //     dbg(__func__, "helper: ", generator.latMeasurementTypeToString(mType), " ",
     //     name.data(),
     //         " ", m.value);
@@ -1093,7 +982,7 @@ static int buildLatDatabase4(double Frequency, unsigned MaxOpcode = 0) {
     // }
     // // print results
     // for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-    //     std::string name = generator.MCII->getName(opcode).data();
+    //     std::string name = env.MCII->getName(opcode).data();
     //     name.resize(27, ' ');
 
     //     if (errorCodeDatabase[opcode] == SUCCESS) {
@@ -1109,9 +998,8 @@ static int buildLatDatabase4(double Frequency, unsigned MaxOpcode = 0) {
 }
 
 // studies
-
-static void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLimit,
-                            BenchmarkGenerator *Generator, double Frequency) {
+void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLimit,
+                     BenchmarkGenerator *Generator, double Frequency) {
 
     std::list<std::pair<unsigned, unsigned>> ratios;
     ratios.push_back({1, 1});
@@ -1120,52 +1008,56 @@ static void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLim
         ratios.push_back({1, i});
     }
     for (auto ratio : ratios) {
-        ErrorCode EC;
+        ErrorCode ec;
         AssemblyFile assembly;
         unsigned numInst1 = ratio.first;
         unsigned numInst2 = ratio.second;
-        std::string ratio_string = std::to_string(ratio.first) + ":" + std::to_string(ratio.second);
+        std::string ratioString = std::to_string(ratio.first) + ":" + std::to_string(ratio.second);
 
         // std::tie(EC, assembly) =
         //     Generator->genOverlapBenchmark(Opcode1, Opcode2, numInst1, numInst2, 20);
-        std::tie(EC, assembly) = Generator->genOverlapBenchmark(Opcode1, Opcode2, numInst1,
+        std::tie(ec, assembly) = Generator->genOverlapBenchmark(Opcode1, Opcode2, numInst1,
                                                                 numInst2, 20, "\tmov	rax, 42");
-        if (EC != SUCCESS) {
-            outs() << ratio_string << " cannot generate ratio\n";
+        if (ec != SUCCESS) {
+            outs() << ratioString << " cannot generate ratio\n";
             continue;
         }
-        std::unordered_map<std::string, std::list<double>> times1;
+        // std::unordered_map<std::string, std::list<double>> times1;
         unsigned n = 1e6;
-        std::tie(EC, times1) = runBenchmark(assembly, n, 3);
+        ec = runBenchmark(assembly, n, 3);
 
-        if (EC != SUCCESS)
-            outs() << ratio_string << " cannot run ratio\n";
+        if (ec != SUCCESS)
+            outs() << ratioString << " cannot run ratio\n";
         else {
-            double time1 = *std::min_element(times1["latency"].begin(), times1["latency"].end());
+            double time1 = *std::min_element(benchResults["latency"].begin(), benchResults["latency"].end());
             double tp1 = time1 / (1e6 * numInst1 * 20 / Frequency * (n / 1e9));
             double tp2 = time1 / (1e6 * numInst2 * 20 / Frequency * (n / 1e9));
-            double tp_comb = time1 / (1e6 * (numInst1 + numInst2) * 20 / Frequency * (n / 1e9));
-            outs() << ratio_string << " time " << time1 << " tp_1 " << tp1 << " tp_2 " << tp2
-                   << " tp_comb " << tp_comb << "\n";
+            double tpComb = time1 / (1e6 * (numInst1 + numInst2) * 20 / Frequency * (n / 1e9));
+            outs() << ratioString << " time " << time1 << " tp_1 " << tp1 << " tp_2 " << tp2
+                   << " tp_comb " << tpComb << "\n";
         }
     }
 }
 
 int main(int argc, char **argv) {
-    struct option long_options[] = {
+    struct option longOptions[] = {
         {"help", no_argument, nullptr, 'h'},
         {"instruction", required_argument, nullptr, 'i'},
+        {"opcode", required_argument, nullptr, 'o'},
         {"frequency", required_argument, nullptr, 'f'},
         {"cpu", required_argument, nullptr, 'c'},
         {"march", required_argument, nullptr, 'm'},
-        {"ninst", required_argument, nullptr, 'n'},
+        {"minOpcode", required_argument, nullptr, 0},
+        {"maxOpcode", required_argument, nullptr, 0},
         {nullptr, 0, nullptr, 0} // End marker
     };
     std::vector<std::string> instrNames;
+    std::vector<unsigned> opcodes;
     double frequency = 3.75;
     int opt;
     std::string cpu = "";
     std::string march = "";
+    unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " {TP|LAT|INTERLEAVE|DEV} [options]\n";
@@ -1187,16 +1079,26 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    int optionIndex = 0;
     argc -= 1; // Shift arguments
     argv += 1;
-    while ((opt = getopt_long(argc, argv, "hi:f:m:n:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hi:f:m:o:", longOptions, &optionIndex)) != -1) {
         switch (opt) {
+        case 0:
+            if (strcmp(longOptions[optionIndex].name, "minOpcode") == 0)
+                minOpcode = atoi(optarg);
+            else if (strcmp(longOptions[optionIndex].name, "maxOpcode") == 0)
+                maxOpcode = atoi(optarg);
+            break;
         case 'h':
             std::cout << "Usage:" << argv[0]
                       << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--ninst nMax]\n";
             return 0;
         case 'i':
             instrNames.emplace_back(optarg);
+            break;
+        case 'o':
+            opcodes.emplace_back(atoi(optarg));
             break;
         case 'f':
             frequency = atof(optarg);
@@ -1207,24 +1109,22 @@ int main(int argc, char **argv) {
         case 'c':
             cpu = optarg;
             break;
-        case 'n':
-            maxOpcode = atoi(optarg);
-            break;
         default:
             return 1;
         }
     }
+    debug = true;
     dbgToFile = false;
     struct timeval start, end;
     gettimeofday(&start, NULL);
-
-    BenchmarkGenerator generator = BenchmarkGenerator();
-    ErrorCode EC = generator.setUp(march, cpu);
-    if (EC == ERROR_TARGET_DETECT) {
-        errs() << "could not detect target, please specify using --cpu or --arch\n"; // TODO
-                                                                                     // implement
-        exit(EXIT_FAILURE);
+    // static LLVMEnvironment  env = LLVMEnvironment(march, cpu);
+    ErrorCode ec = env.setUp(march, cpu);
+    if (ec != SUCCESS) {
+        outs() << "failed to set up environment: " << ecToString(ec) << "\n";
+        return 1;
     }
+    BenchmarkGenerator generator = BenchmarkGenerator();
+    // ErrorCode EC = generator.setUp(march, cpu);
 
     // setup signal handler to recover from various signals
     struct sigaction sa;
@@ -1236,7 +1136,7 @@ int main(int argc, char **argv) {
     sigaction(SIGILL, &sa, nullptr);  // Handle illegal instructions
     sigaction(SIGFPE, &sa, nullptr);  // Handle floating-point exceptions
 
-    if (maxOpcode == 0) maxOpcode = generator.MCII->getNumOpcodes();
+    if (maxOpcode == 0) maxOpcode = env.MCII->getNumOpcodes();
     latencyDatabase.resize(maxOpcode, -1.0);
     errorCodeDatabase.resize(maxOpcode, ERROR_NO_HELPER);
     switch (mode) {
@@ -1247,25 +1147,39 @@ int main(int argc, char **argv) {
         break;
     }
     case TP: {
-        if (instrNames.empty()) {
-            buildTPDatabase(frequency, maxOpcode);
+        // either opcode or instruction name is needed, but not both
+        if (instrNames.empty() && opcodes.empty()) {
+            buildTPDatabase(frequency, minOpcode, maxOpcode);
             break;
         }
-        if (instrNames.size() > 2) {
+        if (instrNames.size() + opcodes.size() > 2) {
             outs() << "only one instruction supported\n";
             break;
         }
         dbgToFile = true;
-        unsigned opcode = generator.getOpcode(instrNames[0]);
-        if (generator.Arch == Triple::ArchType::x86_64) {
+        debug = true;
+        unsigned opcode;
+        if (!opcodes.empty())
+            opcode = opcodes[0];
+        else
+            opcode = generator.getOpcode(instrNames[0]);
+        dbg(__func__, " instruction: ", env.MCII->getName(opcode).data());
+
+        if (env.Arch == Triple::ArchType::x86_64) {
             auto [EC, tp] =
-                measureInSubprocess(generator.getOpcode("TEST64rr"), &generator, frequency, "t");
-            if (EC == SUCCESS) throughputDatabase[generator.getOpcode("TEST64rr")] = tp;
+                measureSafely(generator.getOpcode("TEST64rr"), &generator, frequency, "t");
+            if (EC == SUCCESS)
+                throughputDatabase[generator.getOpcode("TEST64rr")] = tp;
+            else
+                outs() << "TEST64rr failed for reason: " << ecToString(EC) << "\n";
             auto [EC2, tp2] =
-                measureInSubprocess(generator.getOpcode("MOV64ri32"), &generator, frequency, "t");
-            if (EC2 == SUCCESS) throughputDatabase[generator.getOpcode("MOV64ri32")] = tp2;
+                measureSafely(generator.getOpcode("MOV64ri32"), &generator, frequency, "t");
+            if (EC2 == SUCCESS)
+                throughputDatabase[generator.getOpcode("MOV64ri32")] = tp2;
+            else
+                outs() << "MOV64ri32 failed for reason: " << ecToString(EC2) << "\n";
         }
-        auto [EC, tp] = measureInSubprocess(opcode, &generator, frequency, "t");
+        auto [EC, tp] = measureSafely(opcode, &generator, frequency, "t");
         if (EC != SUCCESS) {
             outs() << "failed for reason: " << ecToString(EC) << "\n";
             outs().flush();
@@ -1306,6 +1220,10 @@ int main(int argc, char **argv) {
             }
             latencyDatabase[generator.getOpcode(instrName)] = lat;
         }
+        break;
+    }
+    case DEV: {
+        dbg(__func__, "no code in dev mode");
         break;
     }
     }

@@ -1,51 +1,36 @@
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/TargetParser/Triple.h"
-#include <cstdlib>
-#include <set>
-#include <string>
+#include "Templates.h"
 
-using std::string;
+#include "llvm/Support/raw_ostream.h" // for errs, raw_fd_ostream
+#include <set>                        // for set
+#include <stdlib.h>                   // for exit, EXIT_FAILURE
 
-/**
- * a template provides all code necessary in addition to the loop code to build an assembly file.
- * usedRegister contains all registers used by the template (like for the loop itself). Those should
- * not be used by the benchmark generators.
- * regInitTemplates hold templates to initialize registers with a given value,
- */
-struct Template {
-    string prefix, preInit, postInit, preLoop, beginLoop, midLoop, endLoop, postLoop, suffix;
-    std::vector<std::pair<string, string>> regInitTemplates;
-    std::set<string> usedRegisters;
+Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
+                   string EndLoop, string PostLoop, string Suffix,
+                   std::vector<std::pair<string, string>> RegInitCode,
+                   std::set<string> UsedRegisters)
+    : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
+      preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
+      postLoop(std::move(PostLoop)), suffix(std::move(Suffix)), regInitTemplates(RegInitCode),
+      usedRegisters(std::move(UsedRegisters)) {
+    // for readability of this file strings have a leading newline
+    // this gets removed here
+    trimLeadingNewline(this->prefix);
+    trimLeadingNewline(this->preInit);
+    trimLeadingNewline(this->postInit);
+    trimLeadingNewline(this->preLoop);
+    trimLeadingNewline(this->beginLoop);
+    trimLeadingNewline(this->endLoop);
+    trimLeadingNewline(this->postLoop);
+    trimLeadingNewline(this->suffix);
+}
 
-    Template(string prefix, string preInit, string postInit, string preLoop, string beginLoop,
-             string endLoop, string postLoop, string suffix,
-             std::vector<std::pair<string, string>> regInitCode, std::set<string> usedRegisters)
-        : prefix(std::move(prefix)), preInit(std::move(preInit)), postInit(std::move(postInit)),
-          preLoop(std::move(preLoop)), beginLoop(std::move(beginLoop)), endLoop(std::move(endLoop)),
-          postLoop(std::move(postLoop)), suffix(std::move(suffix)), regInitTemplates(regInitCode),
-          usedRegisters(std::move(usedRegisters)) {
-        // for readability of this file strings have a leading newline
-        // this gets removed here
-        trimLeadingNewline(this->prefix);
-        trimLeadingNewline(this->preInit);
-        trimLeadingNewline(this->postInit);
-        trimLeadingNewline(this->preLoop);
-        trimLeadingNewline(this->beginLoop);
-        trimLeadingNewline(this->midLoop);
-        trimLeadingNewline(this->endLoop);
-        trimLeadingNewline(this->postLoop);
-        trimLeadingNewline(this->suffix);
+void Template::trimLeadingNewline(string &Str) {
+    if (!Str.empty() && Str[0] == '\n') {
+        Str.erase(0, 1);
     }
+}
 
-  private:
-    void trimLeadingNewline(string &str) {
-        if (!str.empty() && str[0] == '\n') {
-            str.erase(0, 1);
-        }
-    }
-};
-
-static Template X86Template = {
+Template X86Template = {
     R"(
 #define N edi
 #define i r8d
@@ -108,7 +93,7 @@ done_functionName:
         {"default", "mov reg, imm"}},
     {"edi", "r8d", "rbp", "rsp"}};
 
-static Template AArch64Template = {
+Template AArch64Template = {
     R"(
 #define N x0
 
@@ -193,7 +178,7 @@ done_functionName:
         {"mm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"}},
     {"x0", "x4"}};
 
-static Template getTemplate(llvm::Triple::ArchType Arch) {
+Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
     case llvm::Triple::x86_64: {
         return X86Template;

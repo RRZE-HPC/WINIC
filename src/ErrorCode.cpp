@@ -1,41 +1,7 @@
+#include "ErrorCode.h"
 #include <string>
 
-enum ErrorCode {
-    SUCCESS,
-    MEMORY_OPERAND,
-    PCREL_OPERAND,
-    UNKNOWN_OPERAND,
-    PSEUDO_INSTRUCTION,
-    INSTRUCION_PREFIX,
-    MAY_LOAD,
-    MAY_STORE,
-    IS_CALL,
-    IS_META_INSTRUCTION,
-    IS_RETURN,
-    IS_BRANCH,
-    IS_CODE_GEN_ONLY,
-    SKIP_MANUALLY,
-    DOES_NOT_EMIT_INST,
-    ERROR_TEMPLATE,
-    ERROR_NO_HELPER,
-    ERROR_ASSEMBLY,
-    ERROR_MMAP,
-    ERROR_FORK,
-    ERROR_SIGSEGV,
-    ERROR_TARGET_DETECT,
-    ERROR_CPU_DETECT,
-    ERROR_FILE,
-    ILLEGAL_INSTRUCTION,
-    ERROR_UNREACHABLE,
-    ERROR_NO_REGISTERS,
-    ERROR_GEN_REQUIREMENT,
-    ERROR_UNSUPPORTED_ARCH,
-    ERROR_SIGFPE,
-    ERROR_EXEC,
-    ERROR_GENERIC,
-};
-
-static std::string ecToString(ErrorCode EC) {
+std::string ecToString(ErrorCode EC) {
     switch (EC) {
     case SUCCESS:
         return "SUCCESS";

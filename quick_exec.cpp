@@ -28,15 +28,17 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
     // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
     // + " -o " + o_path;
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
-    // "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
     std::string command =
-        "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> compiler_out";
+    // "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> compiler_out";
+    "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> compiler_out";
+    // "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
     if (system(command.data()) != 0) return {-1};
 
     // from ibench
     void *handle;
     double (*latency)(int);
-    int *ninst;
+    double (*init)();
+    // int *ninst;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
         fflush(stdout);
@@ -47,11 +49,16 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
         fflush(stdout);
         return {-1};
     }
-    if ((ninst = (int *)dlsym(handle, "ninst")) == NULL) {
-        fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
+    if ((init = (double (*)())dlsym(handle, "init")) == NULL) {
+        fprintf(stderr, "dlsym: couldn't find function init\n");
         fflush(stdout);
         return {-1};
     }
+    // if ((ninst = (int *)dlsym(handle, "ninst")) == NULL) {
+    //     fprintf(stderr, "dlsym: couldn't find symbol ninst\n");
+    //     fflush(stdout);
+    //     return {-1};
+    // }
 
     struct timeval start, end;
 
@@ -64,6 +71,10 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
 
     if (sigsetjmp(jumpBuffer, 1) == 0) {
         for (unsigned i = 0; i < Runs; i++) {
+            // if (init) {
+            //     (*init)();
+            //     std::cout << "calling init function\n";
+            // }
             gettimeofday(&start, NULL);
             // actual call to benchmarked function
             (*latency)(N);
@@ -75,7 +86,7 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
         dlclose(handle);
         return {-1};
     }
-    *NumInst = *ninst;
+    // *NumInst = *ninst;
 
     dlclose(handle);
     return benchtimes;
@@ -83,20 +94,21 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
 
 int main(int argc, char **argv) {
     unsigned numInst = 12;
-    if (argc != 2) {
-        std::cerr << "usage: quick <frequency>\n";
+    if (argc != 3) {
+        std::cerr << "usage: quick <frequency> <ninst>\n";
         exit(EXIT_FAILURE);
     }
     double Frequency = atof(argv[1]);
-    unsigned N = 10000000;
+    unsigned numInst1 = atoi(argv[2]);
+    unsigned N = 1000000;
     auto times = runBenchmark(N, 3, &numInst, Frequency);
     for (auto time : times) {
         std::cout << time << " ";
     }
     double time1 = *std::min_element(times.begin(), times.end());
-    std::cout << " min: " << time1 << " numInst: " << numInst << "\n";
+    std::cout << " min: " << time1 << " numInst: " << numInst1 << "\n";
 
-    double tp = time1 / (1e6 * numInst / Frequency * (N / 1e9));
+    double tp = time1 / (1e6 * numInst1 / Frequency * (N / 1e9));
     std::printf("%.3f (clock cycles)\n", tp);
 
     return 0;
