@@ -1,4 +1,4 @@
-llvm_instr_gen
+LLVMBench
 gcc_out
 venv/
 *.s
@@ -19,3 +19,8 @@ core
 compiler_out
 mystery
 analysis/parse_master_3000.py
+templates_oldish.cpp
+perf-archive.sh
+obj
+.cache
+vgcore.*
