@@ -43,7 +43,8 @@ void signalHandler(int Signum);
 
 void cleanupAfterSignal();
 
-ErrorCode runBenchmark(AssemblyFile Assembly, int N, unsigned Runs);
+std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
+runBenchmark(AssemblyFile Assembly, int N, unsigned Runs);
 
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
@@ -66,14 +67,12 @@ std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurem
 
 // calls one of the measure functions in a subprocess to recover from segfaults during the
 // benchmarking process Type = "t" for throughput or "l" for latency
-std::pair<ErrorCode, double> measureSafely(unsigned Opcode, BenchmarkGenerator *Generator,
-                                           double Frequency, std::string Type);
+std::pair<ErrorCode, double> measureInSubprocess(unsigned Opcode, BenchmarkGenerator *Generator,
+                                                 double Frequency, std::string Type);
 
-std::pair<ErrorCode, double> measureSafely(std::list<LatMeasurement4> Measurements,
-                                           BenchmarkGenerator *Generator, double Frequency,
-                                           std::string Type);
-
-void displayProgress(int Progress, int Total);
+std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Measurements,
+                                                 BenchmarkGenerator *Generator, double Frequency,
+                                                 std::string Type);
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
 int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);

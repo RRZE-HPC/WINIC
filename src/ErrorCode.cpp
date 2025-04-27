@@ -45,6 +45,8 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_FORK";
     case ERROR_SIGSEGV:
         return "ERROR_SIGSEGV";
+    case ERROR_SIGNAL:
+        return "ERROR_SIGNAL";
     case ERROR_TARGET_DETECT:
         return "ERROR_TARGET_DETECT";
     case ILLEGAL_INSTRUCTION:

@@ -1,25 +1,25 @@
 #include "CustomDebug.h"
 // #include <iostream>
 #include <set>
-#include <vector>
 
 bool debug = false;
 
 // clang-format off
 std::set<std::string> functionBlacklist = {
-    "genInst",
-    // "signalHandler",
-    "calculateCycles",
     "isVariant",
-    // "runBenchmark",
+    "calculateCycles",
     "genLatBenchmark4",
     "genLatMeasurements4",
-    // "measureSafely",
     "findFullyConnected",
-    // "buildLatDatabase4",
-    // "genTPInnerLoop",
+    "genInst",
+    // "runBenchmark",
+    // "measureThroughput",
+    "buildLatDatabase4",
+    "genTPInnerLoop",
     // "main",
-    // "setUp",
+    "setUp",
+    "buildTPDatabase",
+    // "genTPBenchmark",
 };
 // clang-format on
 

@@ -10,8 +10,6 @@
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"     // for MCRegister
 #include "llvm/MC/MCRegisterInfo.h" // for MCRegisterClass
-#include <cstddef>                  // for size_t
-#include <functional>               // for hash
 #include <iostream>
 #include <list>          // for list
 #include <map>           // for map
@@ -20,7 +18,6 @@
 #include <tuple>         // for tie, operator<, tuple
 #include <unordered_set> // for unordered_set
 #include <utility>       // for pair, get
-// #include <variant> // for variant, operator==, operator<
 #include <vector> // for vector
 namespace llvm {
 class MCInstrDesc;
@@ -146,40 +143,6 @@ class BenchmarkGenerator {
                         *HelperInstructions,
                     std::set<MCRegister> UsedRegisters = {});
 
-    struct LatencyMeasurement {
-        unsigned opcode;
-        unsigned defOp; // operand number,
-        unsigned useOp;
-        short defRegClass; // if -1 the implDefOp has to be set
-        short useRegClass;
-        MCRegister implDefReg;
-        MCRegister implUseReg;
-        bool needHelper;
-
-        // bool operator<(const LatencyMeasurement &other) const { return Opcode < other.Opcode; }
-        bool operator==(const LatencyMeasurement &Other) const {
-            return opcode == Other.opcode && defOp == Other.defOp && useOp == Other.useOp &&
-                   defRegClass == Other.defRegClass && useRegClass == Other.useRegClass &&
-                   implDefReg == Other.implDefReg && implUseReg == Other.implUseReg;
-        }
-    };
-
-    struct LatencyMeasurementHash {
-        std::size_t operator()(const LatencyMeasurement &Lm) const {
-            size_t h = 0;
-            std::hash<unsigned> hu;
-            // std::hash<bool> hb;
-
-            h ^= hu(Lm.opcode) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= hu(Lm.defOp) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= hu(Lm.useOp) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= hu(Lm.implDefReg) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= hu(Lm.implUseReg) + 0x9e3779b9 + (h << 6) + (h >> 2);
-
-            return h;
-        }
-    };
-
     std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate);
 
     // generates all possible latency measurements for all instructions TODO swap args, put
@@ -216,6 +179,7 @@ class BenchmarkGenerator {
                                                            unsigned TargetInstrCount2,
                                                            unsigned UnrollCount,
                                                            std::string FixedInstr2 = "");
+
 
     // generates a benchmark loop to measure throughput of an instruction
     // tries to generate targetInstrCount independent instructions for the inner
@@ -281,35 +245,8 @@ class BenchmarkGenerator {
     // TODO find ISA independent function in llvm
     std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
 
-    bool regInRegClass(MCRegister Reg, MCRegisterClass RegClass);
-    bool regInRegClass(MCRegister Reg, unsigned RegClassID);
-
-    std::string regToString(MCRegister Reg);
-    std::string regClassToString(MCRegisterClass RegClass);
-    std::string regClassToString(unsigned RegClassID);
-
     // filter which instructions get exludedd
     ErrorCode isValid(MCInstrDesc Desc);
-
-    // get Opcode for instruction
-    // TODO there probably is a mechanism for this in llvm -> find and use
-    unsigned getOpcode(std::string InstructionName);
-
-    /**
-    get all registers which can be read by an instruction including implicit uses
-    */
-    std::set<MCRegister> getPossibleReadRegs(unsigned Opcode);
-
-    /**
-    get all registers which can be written by an instruction including implicit defs
-    */
-    std::set<MCRegister> getPossibleWriteRegs(unsigned Opcode);
-
-    std::set<MCRegister> regIntersect(std::set<MCRegister> A, std::set<MCRegister> B);
-
-    std::set<MCRegister> regDifference(std::set<MCRegister> A, std::set<MCRegister> B);
-
-    std::set<MCRegister> regUnion(std::set<MCRegister> A, std::set<MCRegister> B);
 };
 
 #endif // BENCHMARK_GENERATOR
