@@ -22,15 +22,15 @@ static void sigillHandler(int Signum) {
     siglongjmp(jumpBuffer, 1); // Jump back to safe point
 }
 
-static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, double Frequency) {
+static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, double Frequency, std::string FunctionName) {
     std::string sPath = "./debug.s";
     std::string oPath = "/dev/shm/temp.so";
     // std::string command = "llvm-mc --mcpu=ivybridge --filetype=obj " + s_path
     // + " -o " + o_path;
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     std::string command =
-    // "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> compiler_out";
-    "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> compiler_out";
+    // "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> assembler_out";
+    "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> assembler_out";
     // "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
     if (system(command.data()) != 0) return {-1};
 
@@ -44,7 +44,7 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
         fflush(stdout);
         return {-1};
     }
-    if ((latency = (double (*)(int))dlsym(handle, "latency")) == NULL) {
+    if ((latency = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
         fprintf(stderr, "dlsym: couldn't find function latency\n");
         fflush(stdout);
         return {-1};
@@ -94,21 +94,22 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
 
 int main(int argc, char **argv) {
     unsigned numInst = 12;
-    if (argc != 3) {
-        std::cerr << "usage: quick <frequency> <ninst>\n";
+    if (argc != 4) {
+        std::cerr << "usage: quick <frequency> <ninst> <function name>\n";
         exit(EXIT_FAILURE);
     }
-    double Frequency = atof(argv[1]);
+    double frequency = atof(argv[1]);
     unsigned numInst1 = atoi(argv[2]);
+    std::string  functionName = argv[3];
     unsigned N = 1000000;
-    auto times = runBenchmark(N, 3, &numInst, Frequency);
+    auto times = runBenchmark(N, 3, &numInst, frequency, functionName);
     for (auto time : times) {
         std::cout << time << " ";
     }
     double time1 = *std::min_element(times.begin(), times.end());
     std::cout << " min: " << time1 << " numInst: " << numInst1 << "\n";
 
-    double tp = time1 / (1e6 * numInst1 / Frequency * (N / 1e9));
+    double tp = time1 / (1e6 * numInst1 / frequency * (N / 1e9));
     std::printf("%.3f (clock cycles)\n", tp);
 
     return 0;
