@@ -9,7 +9,7 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Target/TargetMachine.h" // for TargetMachine
 #include "llvm/TargetParser/Triple.h"  // for Triple
-#include <memory>                      // for unique_ptr
+#include <memory> // for unique_ptr
 #include <set>
 #include <string> // for basic_string, string
 namespace llvm {
@@ -63,7 +63,7 @@ class LLVMEnvironment {
 
     // get Opcode for instruction
     // TODO there probably is a mechanism for this in llvm -> find and use
-    unsigned getOpcode(std::string InstructionName);
+    int getOpcode(std::string InstructionName);
 
     /**
      * get all registers which can be read by an instruction including implicit uses

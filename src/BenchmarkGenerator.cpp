@@ -1,13 +1,16 @@
 
 #include "BenchmarkGenerator.h"
 
-#include "CustomDebug.h"                     // for dbg
-#include "Globals.h"                         // for env
-#include "LLVMEnvironment.h"                 // for LLVMEnvironment
-#include "Templates.h"                       // for Template, getTemplate
-#include "llvm/ADT/ArrayRef.h"               // for ArrayRef
-#include "llvm/ADT/StringRef.h"              // for StringRef, operator==
-#include "llvm/ADT/iterator_range.h"         // for iterator_range
+#include "AssemblyFile.h"
+#include "CustomDebug.h" // for dbg
+#include "ErrorCode.h"
+#include "Globals.h"                 // for env
+#include "LLVMEnvironment.h"         // for LLVMEnvironment
+#include "Templates.h"               // for Template, getTemplate
+#include "llvm/ADT/ArrayRef.h"       // for ArrayRef
+#include "llvm/ADT/StringRef.h"      // for StringRef, operator==
+#include "llvm/ADT/iterator_range.h" // for iterator_range
+#include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"    // for MCInstPrinter
@@ -25,14 +28,7 @@
 
 // using namespace llvm;
 
-// generates a latency benchmark for the instruction with Opcode. Generates
-// TargetInstrCount instructions.
-// If a InterleaveInst is provided it gets inserted after each generated instruction
-// UsedRegisters has to contain all registers used by the InterleaveInst
-// TargetInstructionCount will still be set to the number of generated instructions only
-// returns an error code, the generated assembly code and the opcode of the interleave
-// instruction if generated, -1 otherwise
-std::tuple<ErrorCode, AssemblyFile, int> BenchmarkGenerator::genLatBenchmark(
+std::tuple<ErrorCode, AssemblyFile, int> genLatBenchmark(
     unsigned Opcode, unsigned *TargetInstrCount,
     std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>> *HelperInstructions,
     std::set<MCRegister> UsedRegisters) {
@@ -154,12 +150,15 @@ std::tuple<ErrorCode, AssemblyFile, int> BenchmarkGenerator::genLatBenchmark(
     return {SUCCESS, assemblyFile, -1};
 }
 
-std::string BenchmarkGenerator::genRegInit(MCRegister Reg, std::string InitValue,
-                                           Template BenchTemplate) {
+std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate) {
     std::string regName = env.TRI->getRegAsmName(Reg).lower().data();
     for (auto a : BenchTemplate.regInitTemplates) {
         if (regName.find(a.first) != std::string::npos || a.first == "default") {
             if (a.second == "None") break; // template says this should not be initialized
+            if (env.Arch == llvm::Triple::aarch64 && a.first != "default") {
+                // change reg name from e.g. q2 -> v2
+                regName = regName.replace(0, 1, "v");
+            }
             std::string init = replaceAllInstances(a.second, "reg", regName) + "\n";
             init = replaceAllInstances(init, "imm", InitValue);
             return init;
@@ -168,10 +167,8 @@ std::string BenchmarkGenerator::genRegInit(MCRegister Reg, std::string InitValue
     return "";
 }
 
-// generates all possible latency measurements for all instructions
-std::vector<LatMeasurement4>
-BenchmarkGenerator::genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
-                                        std::unordered_set<unsigned> SkipOpcodes) {
+std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
+                                                 std::unordered_set<unsigned> SkipOpcodes) {
     if (MaxOpcode == 0) MaxOpcode = env.MCII->getNumOpcodes();
     // generate a function for each read write dependency combination possible
 
@@ -193,11 +190,11 @@ BenchmarkGenerator::genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
             for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
                 auto useOperand = operands[j];
                 if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
-                LatMeasurement4 m = LatMeasurement4(
-                    opcode,
-                    LatMeasurementType(LatOperand::fromRegClass(defOperand.RegClass),
-                                       LatOperand::fromRegClass(useOperand.RegClass)),
-                    i, j, -1);
+                LatMeasurement4 m =
+                    LatMeasurement4(opcode,
+                                    DependencyType(Operand::fromRegClass(defOperand.RegClass),
+                                                   Operand::fromRegClass(useOperand.RegClass)),
+                                    i, j, -1);
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
             }
@@ -205,11 +202,11 @@ BenchmarkGenerator::genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
             auto implUses = desc.implicit_uses();
             for (unsigned j = 0; j < implUses.size(); j++) {
                 MCRegister useReg = implUses[j];
-                LatMeasurement4 m = LatMeasurement4(
-                    opcode,
-                    LatMeasurementType(LatOperand::fromRegClass(defOperand.RegClass),
-                                       LatOperand::fromRegister(useReg)),
-                    i, 999, -1);
+                LatMeasurement4 m =
+                    LatMeasurement4(opcode,
+                                    DependencyType(Operand::fromRegClass(defOperand.RegClass),
+                                                   Operand::fromRegister(useReg)),
+                                    i, 999, -1);
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
             }
@@ -221,11 +218,10 @@ BenchmarkGenerator::genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
             for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
                 auto useOperand = operands[j];
                 if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
-                auto m = LatMeasurement4(
-                    opcode,
-                    LatMeasurementType(LatOperand::fromRegister(defReg),
-                                       LatOperand::fromRegClass(useOperand.RegClass)),
-                    i, j, -1);
+                auto m = LatMeasurement4(opcode,
+                                         DependencyType(Operand::fromRegister(defReg),
+                                                        Operand::fromRegClass(useOperand.RegClass)),
+                                         i, j, -1);
 
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
@@ -234,10 +230,10 @@ BenchmarkGenerator::genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
             auto implUses = desc.implicit_uses();
             for (unsigned j = 0; j < implUses.size(); j++) {
                 MCRegister useReg = implUses[j];
-                auto m = LatMeasurement4(opcode,
-                                         LatMeasurementType(LatOperand::fromRegister(defReg),
-                                                            LatOperand::fromRegister(useReg)),
-                                         i, j, -1);
+                auto m = LatMeasurement4(
+                    opcode,
+                    DependencyType(Operand::fromRegister(defReg), Operand::fromRegister(useReg)), i,
+                    j, -1);
 
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
@@ -247,15 +243,9 @@ BenchmarkGenerator::genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
     return measurements;
 }
 
-/**
- * generates a benchmark based on the list of measurements
- * @param Measurements list of instructions, will be written to the loop in the given order
- * using the same registers on the useOps and defOps
- */
-std::pair<ErrorCode, AssemblyFile>
-BenchmarkGenerator::genLatBenchmark4(std::list<LatMeasurement4> Measurements,
-                                     unsigned *TargetInstrCount,
-                                     std::set<MCRegister> UsedRegisters) {
+std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> Measurements,
+                                                    unsigned *TargetInstrCount,
+                                                    std::set<MCRegister> UsedRegisters) {
     // dbg(__func__, "generating latency benchmark for ", env.MCII->getName(Opcode).data());
     auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
@@ -347,16 +337,12 @@ BenchmarkGenerator::genLatBenchmark4(std::list<LatMeasurement4> Measurements,
     return {SUCCESS, assemblyFile};
 }
 
-// generates a throughput benchmark for the instruction with Opcode. Tries to generate
-// TargetInstrCount different instructions and then unrolls them by UnrollCount. Updates
-// TargetInstrCount to the actual number of instructions in the loop (unrolls included)
-// If a InterleaveInst is provided it gets inserted after each generated instruction
-// UsedRegisters has to contain all registers used by the InterleaveInst
-// TargetInstructionCount will still be set to the number of generated instructions only
-std::pair<ErrorCode, AssemblyFile>
-BenchmarkGenerator::genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                   unsigned UnrollCount, std::string InterleaveInst,
-                                   std::set<MCRegister> UsedRegisters) {
+std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
+                                                   unsigned UnrollCount,
+                                                   std::set<MCRegister> UsedRegisters,
+                                                   std::map<unsigned, MCRegister> HelperConstraints,
+                                                   int HelperOpcode) {
+    // TODO change to list of opcodes
     dbg(__func__, "getting template");
     auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
@@ -370,10 +356,27 @@ BenchmarkGenerator::genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
     }
 
     dbg(__func__, "call gen inner loop");
-    // auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, UsedRegisters);
-    auto [EC, instructions] = genTPInnerLoop(Opcode, *TargetInstrCount, UsedRegisters);
-    dbg(__func__, "inner loop generated checking");
-    if (EC != SUCCESS) return {EC, AssemblyFile()};
+
+    // this is the hepler instruciton if needed.
+    std::list<MCInst> instructions;
+    ErrorCode EC;
+    if (HelperOpcode > -1) {
+        unsigned helperOpcode = HelperOpcode;
+        std::tie(EC, instructions) = genTPInnerLoop4(
+            {Opcode, helperOpcode}, {{}, HelperConstraints}, *TargetInstrCount, UsedRegisters);
+        if (EC != SUCCESS) return {EC, AssemblyFile()};
+        // update TargetInstructionCount to actual number of instructions generated, dont include
+        // helper instructions
+        *TargetInstrCount = UnrollCount * instructions.size() / 2;
+    } else {
+        // ho helper
+        std::tie(EC, instructions) =
+            genTPInnerLoop4({Opcode}, {{}}, *TargetInstrCount, UsedRegisters);
+        if (EC != SUCCESS) return {EC, AssemblyFile()};
+        // update TargetInstructionCount to actual number of instructions generated
+        *TargetInstrCount = UnrollCount * instructions.size();
+    }
+
     dbg(__func__, "inner loop generated");
 
     // save registers used (genTPInnerLoop updates usedRegisters)
@@ -392,8 +395,7 @@ BenchmarkGenerator::genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
             restoreRegs.insert(0, restore);
         }
     }
-    // update TargetInstructionCount to actual number of instructions generated
-    *TargetInstrCount = instructions.size() * UnrollCount;
+
     dbg(__func__, "starting to build benchmark code");
 
     std::string singleLoopCode;
@@ -401,7 +403,6 @@ BenchmarkGenerator::genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
     for (auto inst : instructions) {
         env.MIP->printInst(&inst, 0, "", *env.MSTI, slo);
         slo << "\n";
-        if (!InterleaveInst.empty()) slo << InterleaveInst << "\n";
     }
     std::string loopCode;
     for (unsigned i = 0; i < UnrollCount; i++)
@@ -417,216 +418,75 @@ BenchmarkGenerator::genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
                                   restoreRegs, "init");
     return {SUCCESS, assemblyFile};
 }
-// generates a benchmark with TargetInstrCount1 times the instruction with Opcode1 and
-// TargetInstrCount2 times the instruction with Opcode2 and then unrolls them by UnrollCount.
-// Fails if not not enough registers were available to generate the requested number of
-// instructions.
-std::pair<ErrorCode, AssemblyFile>
-BenchmarkGenerator::genOverlapBenchmark(unsigned Opcode1, unsigned Opcode2,
-                                        unsigned TargetInstrCount1, unsigned TargetInstrCount2,
-                                        unsigned UnrollCount, std::string FixedInstr2) {
-    std::set<MCRegister> usedRegisters = {};
-    auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
-    // extract list of registers used by the template
-    // TODO optimize
-    for (unsigned i = 0; i < env.MRI->getNumRegs(); i++) {
-        MCRegister reg = MCRegister::from(i);
-        if (benchTemplate.usedRegisters.find(env.TRI->getRegAsmName(reg).lower().data()) !=
-            benchTemplate.usedRegisters.end())
-            usedRegisters.insert(reg);
-    }
 
-    // auto [EC, instruction1] = genInst(Opcode1, UsedRegisters);
-    // if (EC != SUCCESS) return {EC, ""};
-    // auto [EC2, instruction2] = genInst(Opcode2, UsedRegisters);
-    // if (EC2 != SUCCESS) return {EC2, ""};
-    unsigned innerInstCount1 = 12;
-    // find a balance between the two instructions to distribute the registers evenly
-    // this is not necessary if the second instruction is fixed
-
-    while (!FixedInstr2.empty()) {
-        auto usedRegs = usedRegisters;
-        auto [EC, instructions1] = genTPInnerLoop(Opcode1, innerInstCount1, usedRegs);
-
-        auto [EC2, instructions2] = genTPInnerLoop(Opcode2, 12, usedRegs);
-        if (instructions2.size() >= instructions1.size()) break;
-        // outs() << "instructions1 " << instructions1.size() << "\n";
-        // outs() << "instructions2 " << instructions2.size() << "\n";
-        // too many registers used for the first instruction -> adjust
-        innerInstCount1--;
-    }
-    auto [EC, instructionPool1] = genTPInnerLoop(Opcode1, innerInstCount1, usedRegisters);
-    if (EC != SUCCESS) return {EC, AssemblyFile()};
-    auto [EC2, instructionPool2] = genTPInnerLoop(Opcode2, innerInstCount1, usedRegisters);
-    if (EC2 != SUCCESS) return {EC2, AssemblyFile()};
-    // now both sets of instrucions are of near equal length
-    //  check if the desired number of instructions was generated
-
-    // save registers used (genTPInnerLoop updates UsedRegisters)
-    std::string saveRegs;
-    std::string restoreRegs;
-    for (MCRegister reg : usedRegisters) {
-        if (env.TRI->isCalleeSavedPhysReg(reg, *env.MF)) {
-            // generate code to save and restore register
-            // this currently also saves registers already saved in the template
-            // which is redundant but not harmful
-            auto [EC1, save] = genSaveRegister(reg);
-            if (EC1 != SUCCESS) return {EC1, AssemblyFile()};
-            saveRegs.append(save);
-            auto [EC2, restore] = genRestoreRegister(reg);
-            if (EC2 != SUCCESS) return {EC2, AssemblyFile()};
-            restoreRegs.insert(0, restore);
-        }
-    }
-    // update TargetInstructionCount to actual number of instructions generated
-    // *TargetInstrCount1 = instructions.size() * UnrollCount;
-
-    // unsigned totalTargetInstrCount = TargetInstrCount1 + TargetInstrCount2;
-
-    std::string loopCode;
-    llvm::raw_string_ostream lco(loopCode);
-    auto iter1 = instructionPool1.begin();
-    auto iter2 = instructionPool2.begin();
-    for (unsigned i = 0; i < UnrollCount; i++) {
-        for (unsigned i = 0; i < TargetInstrCount1; i++) {
-            env.MIP->printInst(&*iter1, 0, "", *env.MSTI, lco);
-            lco << "\n";
-            iter1++;
-            // go to beginning once all instructions used
-            if (iter1 == instructionPool1.end()) iter1 = instructionPool1.begin();
-            // env.MIP->printInst(&inst, 0, "", *env.MSTI, outs());
-            // outs() << "\n";
-        }
-        for (unsigned i = 0; i < TargetInstrCount2; i++) {
-            if (FixedInstr2.empty()) {
-                env.MIP->printInst(&*iter2, 0, "", *env.MSTI, lco);
-                lco << "\n";
-                iter2++;
-                // go to beginning once all instructions used
-                if (iter2 == instructionPool2.end()) iter2 = instructionPool2.begin();
-                // env.MIP->printInst(&inst, 0, "", *env.MSTI, outs());
-                // outs() << "\n";
-            } else {
-                lco << FixedInstr2 << "\n";
-            }
-        }
-    }
-    AssemblyFile assemblyFile(env.Arch);
-    assemblyFile.addInitFunction("init", loopCode);
-    assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs, "init");
-    return {SUCCESS, assemblyFile};
-}
-
-// generates a benchmark loop to measure throughput of an instruction
-// tries to generate targetInstrCount independent instructions for the inner
-// loop might generate less instructions than targetInstrCount if there are
-// not enough registers updates usedRegisters
 std::pair<ErrorCode, std::list<MCInst>>
-BenchmarkGenerator::genTPInnerLoop(unsigned Opcode, unsigned TargetInstrCount,
-                                   std::set<MCRegister> &UsedRegisters) {
-    // clang format off
-    if (Opcode == 4692) dbg(__func__, "Opcode 4693, generating instructions");
-    // clang format on
+genTPInnerLoop4(std::vector<unsigned> Opcodes,
+                std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
+                unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters) {
     std::list<MCInst> instructions;
-    const MCInstrDesc &desc = env.MCII->get(Opcode);
+    for (unsigned i = 0; i < Opcodes.size(); i++) {
+        unsigned opcode = Opcodes[i];
+        const MCInstrDesc &desc = env.MCII->get(opcode);
+        // this is the first generated instruction, all other instructions will use the
+        // same registers as this one if they are only read
+        auto [EC, refInst] = genInst4(opcode, ConstraintsVector[i], UsedRegisters);
+        if (EC != SUCCESS) return {EC, instructions};
+        instructions.push_back(refInst);
 
-    // this is a copy of the first generated instruction, all other instructions will use the
-    // same registers as this one if they are only read
-    std::optional<MCInst> refInst;
-    // the first numDefs operands are destination operands
-    for (unsigned i = 0; i < TargetInstrCount; ++i) {
-        MCInst inst;
-        inst.setOpcode(Opcode);
-        inst.clear();
-        // fill every operand of the instruction with a valid reg/imm
-        for (unsigned j = 0; j < desc.operands().size(); ++j) {
-            const MCOperandInfo &opInfo = desc.operands()[j];
-            // TIED_TO points to operand which this has to be identical to.
-            // see MCInstrDesc.h:41
-            if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-                // this operand must be identical to another operand
-                unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-                inst.addOperand(inst.getOperand(tiedToOp));
-            } else {
-                switch (opInfo.OperandType) {
-                case MCOI::OPERAND_REGISTER: {
-                    // search for unused register and add it as operand
-                    const MCRegisterClass &regClass = env.MRI->getRegClass(opInfo.RegClass);
-                    bool foundRegister = false;
-                    for (MCRegister reg : regClass) {
-                        if ((env.Arch == Triple::ArchType::x86_64 && reg.id() == 58) ||
-                            reg.id() >= env.MaxReg)
-                            // TODO replace with check for arch and X86::RAX
-                            // RIP register (58) is included in GR64 class which is a bug
-                            // see X86RegisterInfo.td:586
-                            continue;
-                        // check if sub- or superregisters are in use
-                        if (std::any_of(
-                                UsedRegisters.begin(), UsedRegisters.end(),
-                                [reg, this](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
-                            continue;
-                        // this operand is readonly, use the same registers as the reference
-                        // instruction
-                        if (j >= desc.getNumDefs() && refInst)
-                            reg = refInst->getOperand(j).getReg();
-
-                        inst.addOperand(MCOperand::createReg(reg));
-                        UsedRegisters.insert(reg);
-                        foundRegister = true;
-                        break;
-                    }
-                    if (!foundRegister) {
-                        // outs() << "all supported registers of this class are in use"
-                        //        << "\n";
-                        return {SUCCESS, instructions};
-                    }
-                    break;
-                }
-                case MCOI::OPERAND_IMMEDIATE:
-                    inst.addOperand(MCOperand::createImm(7));
-                    break;
-                case MCOI::OPERAND_MEMORY:
-                    return {MEMORY_OPERAND, {}};
-                case MCOI::OPERAND_PCREL:
-                    return {PCREL_OPERAND, {}};
-                default:
-                    return {UNKNOWN_OPERAND, {}};
-                }
-            }
+        // constrain all other instructions of this opcode to use the same use registers as the
+        // first one
+        for (unsigned opIndex = desc.getNumDefs(); opIndex < desc.getNumOperands(); opIndex++) {
+            auto op = desc.operands()[opIndex];
+            if (op.OperandType == MCOI::OPERAND_REGISTER)
+                ConstraintsVector[i].insert({opIndex, refInst.getOperand(opIndex).getReg()});
         }
-        // assign first instruction generated as reference instruction
-        if (!refInst) refInst = inst;
+    }
 
-        instructions.push_back(inst);
+    for (unsigned i = 1; i < TargetInstrCount; ++i) {
+        // only insert complete sets of instructions into the final list. (Registers may run out mid
+        // generation)
+        std::list<MCInst> tempInstructions;
+        for (unsigned j = 0; j < Opcodes.size(); j++) {
+            auto [EC, inst] = genInst4(Opcodes[j], ConstraintsVector[j], UsedRegisters);
+            if (EC == ERROR_NO_REGISTERS) return {SUCCESS, instructions}; // shorter loops are ok
+            if (EC != SUCCESS) return {EC, {instructions}};
+            tempInstructions.push_back(inst);
+        }
+        instructions.insert(instructions.end(), tempInstructions.begin(), tempInstructions.end());
     }
     return {SUCCESS, instructions};
 }
 
-/**
- * \brief Generate an instruction TODO debug with VADDSSZrr
- *
- * This function takes an opcode and generates a valid MCInst. By default it uses different
- * registers for each operand. This can be changed by setting RequireReadRegister,
- * RequireWriteRegister and EnforceRWDependency. In LLVM operands which are read are called
- * "uses" and operands which are written are called "defs".
- *
- * \param Opcode Opcode of the instruction.
- * \param UsedRegisters A blacklist of registers not to be used.
- * \param EnforceRWDependency If true, the same register will be used for one read operand and
- * one write operand. If not possible, no instruction will be generated.
- * \param RequireUseRegister This register will be used for exactly one operand read if
- * possible, overriding UsedRegisters and ReuseRegisters. If not possible, no instruction will
- * be generated.
- * \param RequireDefRegister This register will be used for exactly one operand written if
- * possible, overriding UsedRegisters and ReuseRegisters. If not possible, no instruction will
- * be generated.
- * \return ErrorCode and generated instruction.
- */
-std::pair<ErrorCode, MCInst> BenchmarkGenerator::genInst(unsigned Opcode,
-                                                         std::set<MCRegister> &UsedRegisters,
-                                                         bool RequireRWDependency,
-                                                         MCRegister RequireUseRegister,
-                                                         MCRegister RequireDefRegister) {
+std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
+                                              MCRegister RequiredRegister) {
+    const MCInstrDesc &desc = env.MCII->get(Opcode);
+    unsigned opNumber;
+    if (Type == "use") {
+        if (desc.hasImplicitUseOfPhysReg(RequiredRegister)) return {SUCCESS, -1};
+        for (unsigned i = desc.getNumDefs(); i < desc.getNumOperands(); i++)
+            if (desc.operands()[i].OperandType == MCOI::OPERAND_REGISTER)
+                if (env.regInRegClass(RequiredRegister, desc.operands()[i].RegClass))
+                    return {SUCCESS, i};
+    } else if (Type == "def") {
+        if (desc.hasImplicitDefOfPhysReg(RequiredRegister)) {
+            dbg(__func__, "has def");
+            return {SUCCESS, -1};
+        }
+        dbg(__func__, "doestn have def");
+        for (unsigned i = 0; i < desc.getNumDefs(); i++)
+            if (desc.operands()[i].OperandType == MCOI::OPERAND_REGISTER)
+                if (env.regInRegClass(RequiredRegister, desc.operands()[i].RegClass))
+                    return {SUCCESS, i};
+    } else {
+        errs() << "choose between use and def\n";
+        return {ERROR_UNREACHABLE, 0};
+    }
+    return {ERROR_GENERIC, 0};
+}
+
+std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::set<MCRegister> &UsedRegisters,
+                                     bool RequireRWDependency, MCRegister RequireUseRegister,
+                                     MCRegister RequireDefRegister) {
     const MCInstrDesc &desc = env.MCII->get(Opcode);
     unsigned numOperands = desc.getNumOperands();
     std::set<MCRegister> localDefs;
@@ -692,9 +552,8 @@ std::pair<ErrorCode, MCInst> BenchmarkGenerator::genInst(unsigned Opcode,
                         // see X86RegisterInfo.td:586
                         continue;
                     // dont use this if sub- or superregisters are in usedRegisters
-                    if (std::any_of(
-                            UsedRegisters.begin(), UsedRegisters.end(),
-                            [reg, this](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
+                    if (std::any_of(UsedRegisters.begin(), UsedRegisters.end(),
+                                    [reg](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
                         continue;
                     if (RequireRWDependency && !satisfiedRWReq && j >= desc.getNumDefs() &&
                         localDefs.find(reg) != localDefs.end()) {
@@ -710,9 +569,8 @@ std::pair<ErrorCode, MCInst> BenchmarkGenerator::genInst(unsigned Opcode,
                     }
                     // none of the special cases apply, default behavior applies: dont reuse any
                     // registers
-                    if (std::any_of(
-                            localUsedRegisters.begin(), localUsedRegisters.end(),
-                            [reg, this](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
+                    if (std::any_of(localUsedRegisters.begin(), localUsedRegisters.end(),
+                                    [reg](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
                         continue;
 
                     inst.addOperand(MCOperand::createReg(reg));
@@ -767,34 +625,16 @@ std::pair<ErrorCode, MCInst> BenchmarkGenerator::genInst(unsigned Opcode,
     return {SUCCESS, inst};
 }
 
-/**
- * \brief Generate an instruction TODO debug with VADDSSZrr
- *
- * This function takes an opcode and generates a valid MCInst. Adds registers used to UsedRegisters.
- * Remember to add implicit uses/defs of normal registers to usedRegisters before calling this.
- * otherwise they may be used for other operands and introduce unwanted dependencies.
- *
- * \param Opcode Opcode of the instruction
- * \param Constraints A map of fixed registers to use.
- * \param UsedRegisters A blacklist of registers not to be used. Gets updated. If the
- * Constraints demand for a register to be used this will be overridden.
- * \return ErrorCode and generated instruction.
- */
-std::pair<ErrorCode, MCInst>
-BenchmarkGenerator::genInst4(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                             std::set<MCRegister> &UsedRegisters) {
+std::pair<ErrorCode, MCInst> genInst4(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
+                                      std::set<MCRegister> &UsedRegisters) {
     const MCInstrDesc &desc = env.MCII->get(Opcode);
     unsigned numOperands = desc.getNumOperands();
-    std::set<MCRegister> localDefs;
-    std::set<MCRegister> localUses;
     std::set<MCRegister> localUsedRegisters;
 
     // make sure fixed registers are not used anywhere else than they are supposed to by adding
     // them to usedRegisters beforehand
     for (auto c : Constraints)
         localUsedRegisters.insert(c.second);
-
-    
 
     MCInst inst;
     inst.setOpcode(Opcode);
@@ -810,10 +650,7 @@ BenchmarkGenerator::genInst4(unsigned Opcode, std::map<unsigned, MCRegister> Con
             inst.addOperand(inst.getOperand(tiedToOp));
             if (inst.getOperand(tiedToOp).isReg()) {
                 MCRegister reg = inst.getOperand(tiedToOp).getReg();
-                if (j < desc.getNumDefs())
-                    localDefs.insert(reg);
-                else
-                    localUses.insert(reg);
+                localUsedRegisters.insert(reg);
                 // dbg(__func__, "using tied register: ", env.TRI->getName(reg));
             }
         } else {
@@ -822,7 +659,7 @@ BenchmarkGenerator::genInst4(unsigned Opcode, std::map<unsigned, MCRegister> Con
                 // check if Constraints force registers for this operand
                 if (Constraints.find(j) != Constraints.end()) {
                     inst.addOperand(MCOperand::createReg(Constraints[j]));
-                    localDefs.insert(Constraints[j]);
+                    localUsedRegisters.insert(Constraints[j]);
                     // dbg(__func__,
                     //     "using register to satisfy constraint: ",
                     //     env.TRI->getName(Constraints[j]));
@@ -840,22 +677,18 @@ BenchmarkGenerator::genInst4(unsigned Opcode, std::map<unsigned, MCRegister> Con
                         // see X86RegisterInfo.td:586
                         continue;
                     // dont use this if sub- or superregisters are in usedRegisters
-                    if (std::any_of(
-                            UsedRegisters.begin(), UsedRegisters.end(),
-                            [reg, this](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
+                    if (std::any_of(UsedRegisters.begin(), UsedRegisters.end(),
+                                    [reg](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
                         continue;
 
                     // dont reuse any registers
-                    if (std::any_of(
-                            localUsedRegisters.begin(), localUsedRegisters.end(),
-                            [reg, this](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
+                    if (std::any_of(localUsedRegisters.begin(), localUsedRegisters.end(),
+                                    [reg](MCRegister R) { return env.TRI->regsOverlap(reg, R); }))
                         continue;
 
                     inst.addOperand(MCOperand::createReg(reg));
-                    if (j < desc.getNumDefs())
-                        localDefs.insert(reg);
-                    else
-                        localUses.insert(reg);
+                    localUsedRegisters.insert(reg);
+
                     // dbg(__func__, "using register: ", env.TRI->getName(reg));
                     foundRegister = true;
                     break;
@@ -879,15 +712,13 @@ BenchmarkGenerator::genInst4(unsigned Opcode, std::map<unsigned, MCRegister> Con
                 return {UNKNOWN_OPERAND, {}};
             }
         }
-        // update constraints
-        localUsedRegisters = env.regUnion(localDefs, localUses);
     }
 
     UsedRegisters.insert(localUsedRegisters.begin(), localUsedRegisters.end());
     return {SUCCESS, inst};
 }
 
-std::pair<ErrorCode, MCRegister> BenchmarkGenerator::getSupermostRegister(MCRegister Reg) {
+std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
     for (unsigned i = 0; i < 100; i++) {
         if (env.TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
         Reg = *env.TRI->superregs(Reg).begin(); // take first superreg
@@ -895,7 +726,7 @@ std::pair<ErrorCode, MCRegister> BenchmarkGenerator::getSupermostRegister(MCRegi
     return {ERROR_UNREACHABLE, NULL};
 }
 
-std::pair<ErrorCode, MCRegisterClass> BenchmarkGenerator::getBaseClass(MCRegister Reg) {
+std::pair<ErrorCode, MCRegisterClass> getBaseClass(MCRegister Reg) {
     dbg(__func__, "getBaseClass ", env.TRI->getName(Reg));
     for (unsigned i = 0; i < env.MRI->getNumRegClasses(); i++) {
         MCRegisterClass regClass = env.MRI->getRegClass(i);
@@ -910,20 +741,18 @@ std::pair<ErrorCode, MCRegisterClass> BenchmarkGenerator::getBaseClass(MCRegiste
     return {ERROR_UNREACHABLE, env.MRI->getRegClass(0)};
 }
 
-MCRegister BenchmarkGenerator::getFreeRegisterInClass(const MCRegisterClass &RegClass,
-                                                      std::set<MCRegister> UsedRegisters) {
+MCRegister getFreeRegisterInClass(const MCRegisterClass &RegClass,
+                                  std::set<MCRegister> UsedRegisters) {
     for (auto reg : RegClass)
         if (UsedRegisters.find(reg) == UsedRegisters.end()) return reg;
     return -1;
 }
-MCRegister BenchmarkGenerator::getFreeRegisterInClass(short RegClassID,
-                                                      std::set<MCRegister> UsedRegisters) {
+MCRegister getFreeRegisterInClass(short RegClassID, std::set<MCRegister> UsedRegisters) {
     const MCRegisterClass &regClass = env.MRI->getRegClass(RegClassID);
     return getFreeRegisterInClass(regClass, UsedRegisters);
 }
 
-// TODO find ISA independent function in llvm
-std::pair<ErrorCode, std::string> BenchmarkGenerator::genSaveRegister(MCRegister Reg) {
+std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
     ErrorCode ec;
     // we dont want to save sub registers
     std::tie(ec, Reg) = getSupermostRegister(Reg);
@@ -950,8 +779,7 @@ std::pair<ErrorCode, std::string> BenchmarkGenerator::genSaveRegister(MCRegister
     return {SUCCESS, result};
 }
 
-// TODO find ISA independent function in llvm
-std::pair<ErrorCode, std::string> BenchmarkGenerator::genRestoreRegister(MCRegister Reg) {
+std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     ErrorCode ec;
     std::tie(ec, Reg) = getSupermostRegister(Reg);
     if (ec != SUCCESS) return {ec, ""};
@@ -976,8 +804,7 @@ std::pair<ErrorCode, std::string> BenchmarkGenerator::genRestoreRegister(MCRegis
     return {SUCCESS, result};
 }
 
-// filter which instructions get exluded
-ErrorCode BenchmarkGenerator::isValid(MCInstrDesc Desc) {
+ErrorCode isValid(MCInstrDesc Desc) {
     if (Desc.isPseudo()) return PSEUDO_INSTRUCTION;
     if (Desc.mayLoad()) return MAY_LOAD;
     if (Desc.mayStore()) return MAY_STORE;

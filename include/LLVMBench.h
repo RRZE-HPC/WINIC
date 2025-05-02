@@ -1,8 +1,9 @@
 #ifndef LLVM_INSTR_GEN_H
 #define LLVM_INSTR_GEN_H
 
-#include "AssemblyFile.h"       // for AssemblyFile
-#include "ErrorCode.h"          // for ErrorCode
+#include "AssemblyFile.h" // for AssemblyFile
+#include "ErrorCode.h"    // for ErrorCode
+#include "Globals.h"
 #include "llvm/MC/MCRegister.h" // for MCRegister
 #include <cmath>                // for round, abs
 #include <csetjmp>              // for sigjmp_buf
@@ -24,37 +25,45 @@ struct LatMeasurement4;
 #endif
 
 using namespace llvm;
-static std::unordered_map<unsigned, float> throughputDatabase;
+
+struct TPResult {
+    ErrorCode ec;
+    double tp;
+};
+
+static std::unordered_map<unsigned, TPResult> throughputDatabase;
+// opcodes in this list will be used as helpers wherever possible even when they define a
+// superregister of the register we need a helper for
+static std::list<unsigned> priorityTPHelper;
+
 static std::vector<float> latencyDatabase;
 static std::vector<ErrorCode> errorCodeDatabase;
 static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
     helperInstructions; // opcode, read/write register
-// using dbg = BenchmarkGenerator::dbg;
 static bool dbgToFile = true;
 extern LLVMEnvironment env;
-
-// Global jump buffer for recovery from illegal instruction
-extern sigjmp_buf jumpBuffer;
-extern volatile sig_atomic_t lastSignal;
-extern void *globalHandle;
-
-// Signal handler for illegal instruction
-void signalHandler(int Signum);
-
-void cleanupAfterSignal();
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, int N, unsigned Runs);
 
-// runs two benchmarks to correct eventual interference with loop instructions
-// this may segfault e.g. on privileged instructions like CLGI
-std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, BenchmarkGenerator *Generator,
-                                               double Frequency);
+// returns a list of dependencies between Inst1 and Inst2, taking into account implicit and explicit
+// defs/uses
+std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
 
-// runs two benchmarks to correct eventual interference with loop instructions
-// this may segfault e.g. on privileged instructions like CLGI
-std::pair<ErrorCode, double> measureLatency(unsigned Opcode, BenchmarkGenerator *Generator,
-                                            double Frequency);
+// if a helper is needed and one can be found returns {SUCCESS, helperOpcode, helperConstraints}
+// if no helper is needed returns {SUCCESS, -1, {}}
+// if one is needed but none can be found returns {ERROR_NO_HELPER, -1, {}}
+std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>>
+getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg);
+
+// Measure the througput of the instructions with Opcode. Runs multiple benchmarks to correct
+// overhead of loop instructions. This may segfault e.g. on privileged instructions like CLGI
+std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, double Frequency);
+
+// Measure the latency of the instructions with Opcode. Runs multiple benchmarks to correct
+// overhead of loop instructions.
+// This may segfault e.g. on privileged instructions like CLGI
+std::pair<ErrorCode, double> measureLatency(unsigned Opcode, double Frequency);
 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
                                              unsigned NumInst, unsigned LoopCount,
@@ -63,16 +72,15 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
 std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurements,
-                                             BenchmarkGenerator *Generator, double Frequency);
+                                             double Frequency);
 
 // calls one of the measure functions in a subprocess to recover from segfaults during the
 // benchmarking process Type = "t" for throughput or "l" for latency
-std::pair<ErrorCode, double> measureInSubprocess(unsigned Opcode, BenchmarkGenerator *Generator,
-                                                 double Frequency, std::string Type);
+std::pair<ErrorCode, double> measureInSubprocess(unsigned Opcode, double Frequency,
+                                                 std::string Type);
 
 std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Measurements,
-                                                 BenchmarkGenerator *Generator, double Frequency,
-                                                 std::string Type);
+                                                 double Frequency, std::string Type);
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
 int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
@@ -99,11 +107,6 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, LLVMEnvir
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
 int buildLatDatabase4(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
-
-// studies
-
-void runOverlapStudy(unsigned Opcode1, unsigned Opcode2, unsigned InstLimit,
-                     BenchmarkGenerator *Generator, double Frequency);
 
 int main(int argc, char **argv);
 

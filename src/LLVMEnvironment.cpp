@@ -1,4 +1,5 @@
 #include "LLVMEnvironment.h"
+#include "CustomDebug.h"
 
 #include "llvm/ADT/StringRef.h"               // for StringRef
 #include "llvm/ADT/Twine.h"                   // for Twine
@@ -107,6 +108,7 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     else
         MIP = theTarget->createMCInstPrinter(Triple(targetTripleStr), 1, *MAI, *MCII, *MRI);
     assert(MIP && "Unable to create MCInstPrinter!");
+
     return SUCCESS;
 }
 
@@ -132,14 +134,12 @@ std::string LLVMEnvironment::regClassToString(unsigned RegClassID) {
     return MRI->getRegClassName(&regClass);
 }
 
-unsigned LLVMEnvironment::getOpcode(std::string InstructionName) {
-    for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i) {
-        if (MCII->getName(i) == InstructionName) {
-            return i;
-        }
-    }
-    errs() << "Instruction not found: " << InstructionName << "\n";
-    return 1;
+int LLVMEnvironment::getOpcode(std::string InstructionName) {
+    for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i)
+        if (MCII->getName(i) == InstructionName) return i;
+
+    dbg(__func__, "Instruction not found: ", InstructionName);
+    return -1;
 }
 
 std::set<MCRegister> LLVMEnvironment::getPossibleReadRegs(unsigned Opcode) {
