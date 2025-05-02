@@ -103,7 +103,7 @@ Template AArch64Template = {
     R"(
 .globl functionName
 .type functionName, @function
-.align 32
+.align 2
 functionName:
 )",
     R"(
@@ -167,16 +167,18 @@ done_functionName:
 .size functionName, .-functionName
 )",
     R"(
-    section .note.GNU-stack noexec
 )",
     std::vector<std::pair<string, string>>{
-        // TODO
-        {"default", "mov reg, 0x40000000"},
-        {"xmm", "mov eax, 0x40000000\nmovd reg, eax"},
-        {"ymm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"},
-        {"zmm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"},
-        {"mm", "mov eax, 0x40000000\nmovd xmm0, eax\nvbroadcastss reg, xmm0"}},
-    {"x0", "x4"}};
+        // will be checked in order, default must be last and gets used if no other apply
+        // map to "None" if the register type should not be initialized.
+        // every instance of "reg" will be replaced by the register to initialize, every instance of
+        // "imm" will be replaced by the immediate value to initialize it with
+        {"v", "movi reg.4s, #imm"},
+        {"q", "movi reg.4s, #imm"},
+        {"d", "movi reg.4s, #imm"},
+        {"s", "moiv reg.4s, #imm"},
+        {"default", "mov reg, #imm"}},
+    {"w0"}};
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
