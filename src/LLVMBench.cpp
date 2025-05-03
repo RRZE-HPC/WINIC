@@ -1,43 +1,45 @@
 #include "LLVMBench.h"
 
-#include "BenchmarkGenerator.h" // for LatMeasurement4, LatMeasur...
+#include "BenchmarkGenerator.h" // for genInst4, isValid, whic...
 #include "CustomDebug.h"        // for dbg, debug
-#include "ErrorCode.h"
-#include "Globals.h"                      // for env
-#include "LLVMEnvironment.h"              // for LLVMEnvironment
-#include "MCTargetDesc/X86MCTargetDesc.h" // for EFLAGS, RAX
-#include "llvm/ADT/ArrayRef.h"            // for ArrayRef
-#include "llvm/ADT/StringRef.h"           // for StringRef
-#include "llvm/CodeGen/TargetRegisterInfo.h"
-#include "llvm/MC/MCInstrDesc.h"      // for MCInstrDesc
-#include "llvm/MC/MCInstrInfo.h"      // for MCInstrInfo
-#include "llvm/MC/MCRegister.h"       // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h"   // for MCRegisterInfo
-#include "llvm/Support/raw_ostream.h" // for raw_ostream, outs, raw_fd_...
-#include "llvm/TargetParser/Triple.h" // for Triple
-#include <algorithm>                  // for min_element, max
-#include <csetjmp>                    // for siglongjmp, sigsetjmp
-#include <csignal>                    // for sigaction, SIGSEGV, SIGFPE
-#include <cstdio>                     // for printf, NULL, fflush, fprintf
-#include <cstdlib>                    // for WEXITSTATUS, EXIT_SUCCESS
-#include <ctype.h>                    // for isdigit
-#include <dlfcn.h>                    // for dlclose, dlsym, dlopen
-#include <fcntl.h>                    // for open, O_WRONLY
-#include <fstream>                    // for basic_ostream, operator<<
-#include <getopt.h>                   // for required_argument, getopt_...
-#include <iostream>                   // for cerr, cout
-#include <map>                        // for map
-#include <string>                     // for basic_string, hash, char_t...
-#include <sys/mman.h>                 // for mmap, munmap, MAP_ANONYMOUS
-#include <sys/time.h>                 // for timeval, gettimeofday
-#include <sys/types.h>                // for pid_t
-#include <sys/wait.h>                 // for waitpid
-#include <tuple>
-#include <unistd.h>      // for dup2, _exit, optarg, execl
-#include <unordered_map> // for unordered_map, operator!=
-#include <unordered_set> // for unordered_set
-// #include <variant>       // for get, operator<, variant
-#include <vector> // for vector
+#include "ErrorCode.h"          // for ErrorCode, ecToString
+#include "Globals.h"            // for LatMeasurement4, Depend...
+#include "LLVMBench.h"
+#include "LLVMEnvironment.h"                 // for LLVMEnvironment
+#include "llvm/ADT/ArrayRef.h"               // for ArrayRef
+#include "llvm/ADT/StringRef.h"              // for StringRef
+#include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
+#include "llvm/MC/MCInst.h"                  // for MCInst, MCOperand
+#include "llvm/MC/MCInstrDesc.h"             // for MCInstrDesc
+#include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
+#include "llvm/MC/MCRegister.h"              // for MCRegister
+#include "llvm/MC/MCRegisterInfo.h"          // for MCRegisterInfo
+#include "llvm/Support/raw_ostream.h"        // for raw_fd_ostream, raw_ost...
+#include "llvm/TargetParser/Triple.h"        // for Triple
+#include <algorithm>                         // for min_element, max
+#include <csignal>                           // for SIGSEGV, size_t, SIGILL
+#include <cstdio>                            // for printf, NULL, fflush
+#include <cstdlib>                           // for exit, atoi, EXIT_SUCCESS
+#include <ctype.h>                           // for isdigit
+#include <dlfcn.h>                           // for dlsym, dlclose, dlopen
+#include <fcntl.h>                           // for open, O_WRONLY, O_TRUNC
+#include <fstream>                           // for basic_ostream, operator<<
+#include <getopt.h>                          // for required_argument, option
+#include <iostream>                          // for cerr, cout
+#include <iterator>                          // for move_iterator, make_mov...
+#include <map>                               // for map, operator!=, operat...
+#include <string.h>                          // for strcmp
+#include <string>                            // for basic_string, hash, cha...
+#include <sys/mman.h>                        // for mmap, munmap, MAP_ANONY...
+#include <sys/time.h>                        // for timeval, gettimeofday
+#include <sys/types.h>                       // for pid_t
+#include <sys/wait.h>                        // for waitpid
+#include <tuple>                             // for tuple, get, tie
+#include <unistd.h>                          // for optarg, _exit, fork, dup2
+#include <unordered_map>                     // for unordered_map, operator!=
+#include <unordered_set>                     // for unordered_set
+#include <vector>                            // for vector
+
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 // #include "MCTargetDesc/X86BaseInfo.h"
 
@@ -320,7 +322,7 @@ std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, double Frequency
     std::unordered_map<std::string, std::list<double>> benchResults;
 
     auto [ec1, helperOpcode, helperConstraints] = getTPHelperInstruction(Opcode, true);
-    if(ec1 != SUCCESS) return {ec1, -1};
+    if (ec1 != SUCCESS) return {ec1, -1};
 
     dbg(__func__, "calling generate");
     if (helperOpcode != -1) {
@@ -1212,7 +1214,6 @@ int main(int argc, char **argv) {
         break;
     }
     case TP: {
-        // either opcode or instruction name is needed, but not both
         if (instrNames.empty() && opcodes.empty()) {
             buildTPDatabase(frequency, minOpcode, maxOpcode);
             break;
@@ -1239,8 +1240,6 @@ int main(int argc, char **argv) {
                 exit(1);
             }
         }
-        dbg(__func__, "TEST64rr ", throughputDatabase[env.getOpcode("TEST64rr")].tp);
-        dbg(__func__, "MOV64ri32 ", throughputDatabase[env.getOpcode("MOV64ri32")].tp);
         for (unsigned opcode : opcodes) {
             auto [EC, tp] = measureInSubprocess(opcode, frequency, "t");
             throughputDatabase[opcode] = {EC, tp};

@@ -6,12 +6,14 @@
 #include "llvm/CodeGen/MachineModuleInfo.h" // for MachineModuleInfo
 #include "llvm/IR/LLVMContext.h"            // for LLVMContext
 #include "llvm/IR/Module.h"                 // for Module
-#include "llvm/MC/MCRegisterInfo.h"
-#include "llvm/Target/TargetMachine.h" // for TargetMachine
-#include "llvm/TargetParser/Triple.h"  // for Triple
-#include <memory> // for unique_ptr
-#include <set>
-#include <string> // for basic_string, string
+#include "llvm/MC/MCRegister.h"             // for MCRegister
+#include "llvm/MC/MCRegisterInfo.h"         // for MCRegisterClass, MCRegis...
+#include "llvm/Target/TargetMachine.h"      // for TargetMachine
+#include "llvm/TargetParser/Triple.h"       // for Triple
+#include <memory>                           // for unique_ptr
+#include <set>                              // for set
+#include <string>                           // for basic_string, string
+#include <utility>                          // for pair
 namespace llvm {
 class MCAsmInfo;
 }
@@ -22,12 +24,11 @@ namespace llvm {
 class MCInstrInfo;
 }
 namespace llvm {
-class MCRegisterInfo;
-}
-namespace llvm {
 class MCSubtargetInfo;
 }
-// namespace llvm { class TargetRegisterInfo; }
+namespace llvm {
+class TargetRegisterInfo;
+}
 
 using namespace llvm;
 
@@ -74,6 +75,8 @@ class LLVMEnvironment {
      * get all registers which can be written by an instruction including implicit defs
      */
     std::set<MCRegister> getPossibleWriteRegs(unsigned Opcode);
+
+    std::pair<ErrorCode, MCRegisterClass> getBaseClass(MCRegister Reg);
 
     std::set<MCRegister> regIntersect(std::set<MCRegister> A, std::set<MCRegister> B);
 

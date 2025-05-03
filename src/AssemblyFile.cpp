@@ -1,10 +1,10 @@
 #include "AssemblyFile.h"
 
-#include "Templates.h"                 // for Template
-#include "llvm/Support/raw_ostream.h"  // for raw_string_ostream, raw_ostream
-#include <assert.h>                    // for assert
-#include <cstdlib>                     // for size_t
-#include <string>                      // for basic_string, string, operator<
+#include "Templates.h"                // for Template
+#include "llvm/Support/raw_ostream.h" // for raw_string_ostream, raw_ostream
+#include <assert.h>                   // for assert
+#include <cstdlib>                    // for size_t
+#include <string>                     // for basic_string, string, operator<
 
 // static std::string replaceFunctionName(std::string Str, std::string Name) {
 //     size_t pos = Str.find("latency");
@@ -22,7 +22,7 @@ std::string replaceFunctionName(std::string Str, const std::string Name) {
     return Str;
 }
 std::string replaceAllInstances(std::string Str, std::string ToReplace,
-                                       const std::string Replacement) {
+                                const std::string Replacement) {
     size_t startPos = 0;
     while ((startPos = Str.find(ToReplace, startPos)) != std::string::npos) {
         Str.replace(startPos, ToReplace.size(), Replacement);

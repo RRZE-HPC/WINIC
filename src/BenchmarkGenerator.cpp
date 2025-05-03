@@ -1,32 +1,121 @@
 
 #include "BenchmarkGenerator.h"
 
-#include "AssemblyFile.h"
-#include "CustomDebug.h" // for dbg
-#include "ErrorCode.h"
-#include "Globals.h"                 // for env
-#include "LLVMEnvironment.h"         // for LLVMEnvironment
-#include "Templates.h"               // for Template, getTemplate
-#include "llvm/ADT/ArrayRef.h"       // for ArrayRef
-#include "llvm/ADT/StringRef.h"      // for StringRef, operator==
-#include "llvm/ADT/iterator_range.h" // for iterator_range
-#include "llvm/CodeGen/SelectionDAGNodes.h"
+#include "AssemblyFile.h"                    // for AssemblyFile, replaceAl...
+#include "CustomDebug.h"                     // for dbg
+#include "ErrorCode.h"                       // for ErrorCode, ecToString
+#include "Globals.h"                         // for env, LatMeasurement4
+#include "LLVMEnvironment.h"                 // for LLVMEnvironment
+#include "Templates.h"                       // for Template, getTemplate
+#include "llvm/ADT/ArrayRef.h"               // for ArrayRef
+#include "llvm/ADT/StringRef.h"              // for StringRef
+#include "llvm/ADT/iterator_range.h"         // for iterator_range
 #include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
-#include "llvm/MC/MCInst.h"
-#include "llvm/MC/MCInstPrinter.h"    // for MCInstPrinter
-#include "llvm/MC/MCInstrDesc.h"      // for MCInstrDesc, MCOperandInfo
-#include "llvm/MC/MCInstrInfo.h"      // for MCInstrInfo
-#include "llvm/MC/MCRegister.h"       // for MCRegister
-#include "llvm/MC/MCSubtargetInfo.h"  // for MCSubtargetInfo
-#include "llvm/Support/raw_ostream.h" // for raw_string_ostream, raw...
-#include "llvm/TargetParser/Triple.h" // for Triple
-#include <algorithm>                  // for any_of, set_difference
-#include <cstddef>                    // for size_t, NULL
-#include <initializer_list>           // for initializer_list
-#include <memory>                     // for unique_ptr
-#include <optional>                   // for optional
+#include "llvm/MC/MCInst.h"                  // for MCInst, MCOperand
+#include "llvm/MC/MCInstPrinter.h"           // for MCInstPrinter
+#include "llvm/MC/MCInstrDesc.h"             // for MCInstrDesc, MCOperandInfo
+#include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
+#include "llvm/MC/MCRegister.h"              // for MCRegister
+#include "llvm/MC/MCSubtargetInfo.h"         // for MCSubtargetInfo
+#include "llvm/Support/raw_ostream.h"        // for raw_string_ostream, raw...
+#include "llvm/TargetParser/Triple.h"        // for Triple
+#include <algorithm>                         // for any_of
+#include <cstddef>                           // for NULL
+#include <initializer_list>                  // for initializer_list
+#include <memory>                            // for unique_ptr
 
-// using namespace llvm;
+std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate) {
+    std::string regName = env.TRI->getRegAsmName(Reg).lower().data();
+    for (auto a : BenchTemplate.regInitTemplates) {
+        if (regName.find(a.first) != std::string::npos || a.first == "default") {
+            if (a.second == "None") break; // template says this should not be initialized
+            if (env.Arch == llvm::Triple::aarch64 && a.first != "default") {
+                // change reg name from e.g. q2 -> v2
+                regName = regName.replace(0, 1, "v");
+            }
+            std::string init = replaceAllInstances(a.second, "reg", regName) + "\n";
+            init = replaceAllInstances(init, "imm", InitValue);
+            return init;
+        }
+    }
+    return "";
+}
+
+std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
+                                                 std::unordered_set<unsigned> SkipOpcodes) {
+    if (MaxOpcode == 0) MaxOpcode = env.MCII->getNumOpcodes();
+    // generate a function for each read write dependency combination possible
+
+    std::vector<LatMeasurement4> measurements;
+    for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
+        if (SkipOpcodes.find(opcode) != SkipOpcodes.end()) continue;
+        // if (Opcode != getOpcode("AND8rr_ND")) continue;
+        const MCInstrDesc &desc = env.MCII->get(opcode);
+        ErrorCode ec = isValid(desc);
+        if (ec != SUCCESS) {
+            dbg(__func__, env.MCII->getName(opcode).data(), " skipped for reason ", ecToString(ec));
+            continue;
+        }
+        auto operands = desc.operands();
+
+        for (unsigned i = 0; i < desc.getNumDefs(); i++) {
+            auto defOperand = operands[i];
+            // normal use -> normal def
+            for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
+                auto useOperand = operands[j];
+                if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
+                LatMeasurement4 m =
+                    LatMeasurement4(opcode,
+                                    DependencyType(Operand::fromRegClass(defOperand.RegClass),
+                                                   Operand::fromRegClass(useOperand.RegClass)),
+                                    i, j, -1);
+                measurements.emplace_back(m);
+                dbg(__func__, "adding ", m);
+            }
+            // implUse -> normal def
+            auto implUses = desc.implicit_uses();
+            for (unsigned j = 0; j < implUses.size(); j++) {
+                MCRegister useReg = implUses[j];
+                LatMeasurement4 m =
+                    LatMeasurement4(opcode,
+                                    DependencyType(Operand::fromRegClass(defOperand.RegClass),
+                                                   Operand::fromRegister(useReg)),
+                                    i, 999, -1);
+                measurements.emplace_back(m);
+                dbg(__func__, "adding ", m);
+            }
+        }
+        auto implDefs = desc.implicit_defs();
+        for (unsigned i = 0; i < implDefs.size(); i++) {
+            MCRegister defReg = implDefs[i];
+            // normal Use -> implDef
+            for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
+                auto useOperand = operands[j];
+                if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
+                auto m = LatMeasurement4(opcode,
+                                         DependencyType(Operand::fromRegister(defReg),
+                                                        Operand::fromRegClass(useOperand.RegClass)),
+                                         i, j, -1);
+
+                measurements.emplace_back(m);
+                dbg(__func__, "adding ", m);
+            }
+            // implUse -> implDef
+            auto implUses = desc.implicit_uses();
+            for (unsigned j = 0; j < implUses.size(); j++) {
+                MCRegister useReg = implUses[j];
+                auto m = LatMeasurement4(
+                    opcode,
+                    DependencyType(Operand::fromRegister(defReg), Operand::fromRegister(useReg)), i,
+                    j, -1);
+
+                measurements.emplace_back(m);
+                dbg(__func__, "adding ", m);
+            }
+        }
+    }
+    return measurements;
+}
 
 std::tuple<ErrorCode, AssemblyFile, int> genLatBenchmark(
     unsigned Opcode, unsigned *TargetInstrCount,
@@ -150,99 +239,6 @@ std::tuple<ErrorCode, AssemblyFile, int> genLatBenchmark(
     return {SUCCESS, assemblyFile, -1};
 }
 
-std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate) {
-    std::string regName = env.TRI->getRegAsmName(Reg).lower().data();
-    for (auto a : BenchTemplate.regInitTemplates) {
-        if (regName.find(a.first) != std::string::npos || a.first == "default") {
-            if (a.second == "None") break; // template says this should not be initialized
-            if (env.Arch == llvm::Triple::aarch64 && a.first != "default") {
-                // change reg name from e.g. q2 -> v2
-                regName = regName.replace(0, 1, "v");
-            }
-            std::string init = replaceAllInstances(a.second, "reg", regName) + "\n";
-            init = replaceAllInstances(init, "imm", InitValue);
-            return init;
-        }
-    }
-    return "";
-}
-
-std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned MaxOpcode,
-                                                 std::unordered_set<unsigned> SkipOpcodes) {
-    if (MaxOpcode == 0) MaxOpcode = env.MCII->getNumOpcodes();
-    // generate a function for each read write dependency combination possible
-
-    std::vector<LatMeasurement4> measurements;
-    for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
-        if (SkipOpcodes.find(opcode) != SkipOpcodes.end()) continue;
-        // if (Opcode != getOpcode("AND8rr_ND")) continue;
-        const MCInstrDesc &desc = env.MCII->get(opcode);
-        ErrorCode ec = isValid(desc);
-        if (ec != SUCCESS) {
-            dbg(__func__, env.MCII->getName(opcode).data(), " skipped for reason ", ecToString(ec));
-            continue;
-        }
-        auto operands = desc.operands();
-
-        for (unsigned i = 0; i < desc.getNumDefs(); i++) {
-            auto defOperand = operands[i];
-            // normal use -> normal def
-            for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
-                auto useOperand = operands[j];
-                if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
-                LatMeasurement4 m =
-                    LatMeasurement4(opcode,
-                                    DependencyType(Operand::fromRegClass(defOperand.RegClass),
-                                                   Operand::fromRegClass(useOperand.RegClass)),
-                                    i, j, -1);
-                measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
-            }
-            // implUse -> normal def
-            auto implUses = desc.implicit_uses();
-            for (unsigned j = 0; j < implUses.size(); j++) {
-                MCRegister useReg = implUses[j];
-                LatMeasurement4 m =
-                    LatMeasurement4(opcode,
-                                    DependencyType(Operand::fromRegClass(defOperand.RegClass),
-                                                   Operand::fromRegister(useReg)),
-                                    i, 999, -1);
-                measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
-            }
-        }
-        auto implDefs = desc.implicit_defs();
-        for (unsigned i = 0; i < implDefs.size(); i++) {
-            MCRegister defReg = implDefs[i];
-            // normal Use -> implDef
-            for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
-                auto useOperand = operands[j];
-                if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
-                auto m = LatMeasurement4(opcode,
-                                         DependencyType(Operand::fromRegister(defReg),
-                                                        Operand::fromRegClass(useOperand.RegClass)),
-                                         i, j, -1);
-
-                measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
-            }
-            // implUse -> implDef
-            auto implUses = desc.implicit_uses();
-            for (unsigned j = 0; j < implUses.size(); j++) {
-                MCRegister useReg = implUses[j];
-                auto m = LatMeasurement4(
-                    opcode,
-                    DependencyType(Operand::fromRegister(defReg), Operand::fromRegister(useReg)), i,
-                    j, -1);
-
-                measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
-            }
-        }
-    }
-    return measurements;
-}
-
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> Measurements,
                                                     unsigned *TargetInstrCount,
                                                     std::set<MCRegister> UsedRegisters) {
@@ -338,10 +334,10 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> M
 }
 
 std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                   unsigned UnrollCount,
-                                                   std::set<MCRegister> UsedRegisters,
-                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                   int HelperOpcode) {
+                                                  unsigned UnrollCount,
+                                                  std::set<MCRegister> UsedRegisters,
+                                                  std::map<unsigned, MCRegister> HelperConstraints,
+                                                  int HelperOpcode) {
     // TODO change to list of opcodes
     dbg(__func__, "getting template");
     auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
@@ -726,27 +722,13 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
     return {ERROR_UNREACHABLE, NULL};
 }
 
-std::pair<ErrorCode, MCRegisterClass> getBaseClass(MCRegister Reg) {
-    dbg(__func__, "getBaseClass ", env.TRI->getName(Reg));
-    for (unsigned i = 0; i < env.MRI->getNumRegClasses(); i++) {
-        MCRegisterClass regClass = env.MRI->getRegClass(i);
-
-        if (env.MRI->getRegClass(i).contains(Reg)) {
-            dbg(__func__, "found regClass ", env.MRI->getRegClassName(&regClass),
-                "checking baseClass");
-            if (regClass.isBaseClass()) return {SUCCESS, regClass};
-        }
-    }
-    dbg(__func__, "no baseClass found for ", env.TRI->getName(Reg));
-    return {ERROR_UNREACHABLE, env.MRI->getRegClass(0)};
-}
-
 MCRegister getFreeRegisterInClass(const MCRegisterClass &RegClass,
                                   std::set<MCRegister> UsedRegisters) {
     for (auto reg : RegClass)
         if (UsedRegisters.find(reg) == UsedRegisters.end()) return reg;
     return -1;
 }
+
 MCRegister getFreeRegisterInClass(short RegClassID, std::set<MCRegister> UsedRegisters) {
     const MCRegisterClass &regClass = env.MRI->getRegClass(RegClassID);
     return getFreeRegisterInClass(regClass, UsedRegisters);

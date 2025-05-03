@@ -1,7 +1,9 @@
 #include "LLVMEnvironment.h"
 #include "CustomDebug.h"
 
-#include "llvm/ADT/StringRef.h"               // for StringRef
+#include "CustomDebug.h"                      // for dbg
+#include "llvm/ADT/ArrayRef.h"                // for ArrayRef
+#include "llvm/ADT/StringRef.h"               // for StringRef, operator==
 #include "llvm/ADT/Twine.h"                   // for Twine
 #include "llvm/CodeGen/TargetRegisterInfo.h"  // for TargetRegisterInfo
 #include "llvm/CodeGen/TargetSubtargetInfo.h" // for TargetSubtargetInfo
@@ -10,22 +12,26 @@
 #include "llvm/IR/GlobalValue.h"              // for GlobalValue
 #include "llvm/IR/Module.h"                   // for Module
 #include "llvm/IR/Type.h"                     // for Type
-#include "llvm/MC/MCInstrInfo.h"
-#include "llvm/MC/MCSubtargetInfo.h"   // for MCSubtargetInfo
-#include "llvm/MC/MCTargetOptions.h"   // for MCTargetOptions
-#include "llvm/MC/TargetRegistry.h"    // for Target, TargetRegistry
-#include "llvm/Support/CodeGen.h"      // for CodeGenOptLevel
-#include "llvm/Support/TargetSelect.h" // for LLVMInitializeAArch64A...
-#include "llvm/Support/raw_ostream.h"  // for raw_fd_ostream, raw_os...
-#include "llvm/Target/TargetMachine.h" // for TargetMachine
-#include "llvm/Target/TargetOptions.h" // for TargetOptions
-#include "llvm/TargetParser/Host.h"    // for getDefaultTargetTriple
-#include <assert.h>                    // for assert
-#include <optional>                    // for nullopt, nullopt_t
+#include "llvm/MC/MCInstrDesc.h"              // for MCInstrDesc, MCOperand...
+#include "llvm/MC/MCInstrInfo.h"              // for MCInstrInfo
+#include "llvm/MC/MCSubtargetInfo.h"          // for MCSubtargetInfo
+#include "llvm/MC/MCTargetOptions.h"          // for MCTargetOptions
+#include "llvm/MC/TargetRegistry.h"           // for Target, TargetRegistry
+#include "llvm/Support/CodeGen.h"             // for CodeGenOptLevel
+#include "llvm/Support/TargetSelect.h"        // for LLVMInitializeAArch64A...
+#include "llvm/Support/raw_ostream.h"         // for raw_fd_ostream, raw_os...
+#include "llvm/Target/TargetMachine.h"        // for TargetMachine
+#include "llvm/Target/TargetOptions.h"        // for TargetOptions
+#include "llvm/TargetParser/Host.h"           // for getDefaultTargetTriple
+#include <algorithm>                          // for set_difference, set_in...
+#include <assert.h>                           // for assert
+#include <iterator>                           // for insert_iterator, inserter
+#include <optional>                           // for nullopt, nullopt_t
 
 using namespace llvm;
 
 LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("beehives", Ctx)) {}
+
 ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
 
     // LLVMInitializeX86AsmParser();
@@ -172,6 +178,20 @@ std::set<MCRegister> LLVMEnvironment::getPossibleWriteRegs(unsigned Opcode) {
         writes.insert(MCRegister::from(reg));
     }
     return writes;
+}
+
+std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getBaseClass(MCRegister Reg) {
+    dbg(__func__, "getBaseClass ", TRI->getName(Reg));
+    for (unsigned i = 0; i < MRI->getNumRegClasses(); i++) {
+        MCRegisterClass regClass = MRI->getRegClass(i);
+
+        if (MRI->getRegClass(i).contains(Reg)) {
+            dbg(__func__, "found regClass ", MRI->getRegClassName(&regClass), "checking baseClass");
+            if (regClass.isBaseClass()) return {SUCCESS, regClass};
+        }
+    }
+    dbg(__func__, "no baseClass found for ", TRI->getName(Reg));
+    return {ERROR_UNREACHABLE, MRI->getRegClass(0)};
 }
 
 std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {

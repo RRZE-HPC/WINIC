@@ -1,20 +1,23 @@
 #ifndef LLVM_INSTR_GEN_H
 #define LLVM_INSTR_GEN_H
 
-#include "AssemblyFile.h" // for AssemblyFile
-#include "ErrorCode.h"    // for ErrorCode
-#include "Globals.h"
-#include "llvm/MC/MCRegister.h" // for MCRegister
-#include <cmath>                // for round, abs
-#include <csetjmp>              // for sigjmp_buf
-#include <csignal>              // for sig_atomic_t
-#include <list>                 // for list
-#include <set>                  // for set
-#include <string>               // for string
-#include <tuple>                // for tuple
-#include <unordered_map>        // for unordered_map
-#include <utility>              // for pair
-#include <vector>               // for vector
+#include "AssemblyFile.h"        // for AssemblyFile
+#include "ErrorCode.h"           // for ErrorCode
+#include "Globals.h"             // for LatMeasurement4 (ptr only), Dependen...
+#include "llvm/MC/MCRegister.h"  // for MCRegister
+#include <cmath>                 // for round, abs
+#include <list>                  // for list
+#include <map>                   // for map
+#include <set>                   // for set
+#include <string>                // for string, basic_string
+#include <tuple>                 // for tuple
+#include <unordered_map>         // for unordered_map
+#include <utility>               // for pair
+#include <variant>               // for tuple
+#include <vector>                // for vector
+
+class LLVMEnvironment;  // lines 20-20
+namespace llvm { class MCInst; }
 
 class BenchmarkGenerator;
 class LLVMEnvironment;

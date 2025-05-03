@@ -1,26 +1,24 @@
 #ifndef BENCHMARK_GENERATOR_H
 #define BENCHMARK_GENERATOR_H
 
-// #include <iterator>                  // for pair
-#include "AssemblyFile.h"   // for AssemblyFile
-#include "ErrorCode.h"      // for ErrorCode
-#include "Globals.h"        // for env, LLVMEnvironment
-#include "Templates.h"      // for AssemblyFile
-#include "llvm/MC/MCInst.h" // for MCInst
-#include "llvm/MC/MCInstrInfo.h"
-#include "llvm/MC/MCRegister.h"     // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h" // for MCRegisterClass
-#include <list>                     // for list
-#include <map>                      // for map
-#include <set>                      // for set
-#include <string>                   // for string, basic_string
-#include <tuple>                    // for tie, operator<, tuple
-#include <unordered_set>            // for unordered_set
-#include <utility>                  // for pair, get
-#include <vector>                   // for vector
-namespace llvm {
-class MCInstrDesc;
-} // namespace llvm
+#include "AssemblyFile.h"            // for AssemblyFile
+#include "ErrorCode.h"               // for ErrorCode
+#include "Globals.h"                 // for LatMeasurement4
+#include "llvm/MC/MCInst.h"          // for MCInst
+#include "llvm/MC/MCRegister.h"      // for MCRegister
+#include "llvm/MC/MCRegisterInfo.h"  // for MCRegisterClass
+#include <list>                      // for list
+#include <map>                       // for map
+#include <set>                       // for set
+#include <string>                    // for string
+#include <tuple>                     // for tuple
+#include <unordered_set>             // for unordered_set
+#include <utility>                   // for pair
+#include <variant>                   // for tuple
+#include <vector>                    // for vector
+
+namespace llvm { class MCInstrDesc; } 
+struct Template;
 
 using namespace llvm;
 
