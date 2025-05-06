@@ -209,19 +209,23 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
                                              double Frequency) {
     // correct the result using one measurement with NumInst and one with 2*NumInst. This removes
     // overhead of e.g. the loop instructions themselves see README for explanation TODO
-    double overheadPerInstruction = NumInst * (UnrolledRuntime - 2 * Runtime) /
-                                    (Runtime - UnrolledRuntime); // calculate unroll 1->2
-    if (overheadPerInstruction < -1) {
-        // throughput decreases significantly when unrolling, this is unlikely to be a good
-        // measurement
+    double instRuntime = UnrolledRuntime - Runtime;
+    // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
+    double cyclesPerInstruction = (instRuntime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
+
+    if (instRuntime * 2 > UnrolledRuntime * 1.1) {
+        // this is unlikely to be a good measurement
+        out(*ios,
+            "Execution time increases overproportional when unrolling, which should not happen. "
+            "Runtime: ",
+            Runtime, " UnrolledRuntime: ", UnrolledRuntime);
         return {ERROR_GENERIC, -1};
     }
-    double uncorrected = Runtime / (1e6 * NumInst / Frequency * (LoopCount / 1e9));
-    double corrected =
-        Runtime / (1e6 * (NumInst + overheadPerInstruction) / Frequency * (LoopCount / 1e9));
-    dbg(__func__, "uncorrected: ", uncorrected, " overheadPerInstruction: ", overheadPerInstruction,
-        " corrected: ", corrected);
-    return {SUCCESS, corrected};
+    // for some instructions unrolling slightly decreases throughput e.g. ADC16ri8 with helper
+    // TEST64rr (TODO investigate why). In those cases the unrolled time is not used for correction
+    if (instRuntime * 2 > UnrolledRuntime)
+        cyclesPerInstruction = (Runtime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
+    return {SUCCESS, cyclesPerInstruction};
 }
 
 std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>>
@@ -255,10 +259,12 @@ getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg) {
     // priorityTPHelper can be used to prevent this from happening
     for (unsigned possibleHelper : priorityTPHelper) {
         TPResult tpRes = throughputDatabase[possibleHelper];
-        if (tpRes.ec != SUCCESS) continue; // no value
-        if (tpRes.tp < 0.25) continue;     // we dont trust values this low
+        dbg(__func__, "checking possible ", tpRes.ec, " ", tpRes.lowerTP);
+        if (tpRes.ec != SUCCESS) continue;  // no value
+        if (tpRes.lowerTP < 0.25) continue; // we dont trust values this low
         for (MCRegister possibleWriteReg : env.getPossibleWriteRegs(possibleHelper)) {
             if (env.TRI->isSuperRegisterEq(useReg, possibleWriteReg)) {
+                dbg(__func__, "found reg ", possibleHelper);
                 useReg = possibleWriteReg;
                 auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
                 // we checked the instruction is able to define the register
@@ -289,7 +295,7 @@ getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg) {
     // the no priorityHelper can be used, try all other instructions now
     for (auto [possibleHelper, res] : throughputDatabase) {
         if (res.ec != SUCCESS) continue;
-        if (res.tp < 0.25) continue;
+        if (res.lowerTP < 0.25) continue;
         std::set<MCRegister> possibleWrites = env.getPossibleWriteRegs(possibleHelper);
         if (possibleWrites.find(useReg) != possibleWrites.end()) {
             auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
@@ -308,13 +314,14 @@ getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg) {
     return {SUCCESS, helperOpcode, helperConstraints};
 }
 
-std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, double Frequency) {
+std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency) {
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     // TODO do this much earlier
     const MCInstrDesc &desc = env.MCII->get(Opcode);
-    if (isValid(desc) != SUCCESS) return {isValid(desc), {}};
-    unsigned numInst1 = 12;
+    if (isValid(desc) != SUCCESS) return {isValid(desc), -1, -1};
+    out(*ios, "-----", env.MCII->getName(Opcode).data(), "-----");
+    unsigned numInst = 12;
     double n = 1000000; // loop count
     AssemblyFile assembly;
     ErrorCode ec;
@@ -322,76 +329,42 @@ std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, double Frequency
     std::unordered_map<std::string, std::list<double>> benchResults;
 
     auto [ec1, helperOpcode, helperConstraints] = getTPHelperInstruction(Opcode, true);
-    if (ec1 != SUCCESS) return {ec1, -1};
+    if (ec1 != SUCCESS) return {ec1, -1, -1};
 
-    dbg(__func__, "calling generate");
-    if (helperOpcode != -1) {
-        outs() << "correcting " << env.MCII->getName(Opcode).data() << " with "
-               << env.MCII->getName(helperOpcode).data() << " "
-               << throughputDatabase[helperOpcode].tp << "\n";
-    }
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     // if no helper is needed helperOpcode is -1 and genTPBenchmark will ignore it
     std::tie(ec, assembly) =
-        genTPBenchmark(Opcode, &numInst1, 1, usedRegs, helperConstraints, helperOpcode);
-    if (ec != SUCCESS) return {ec, -1};
+        genTPBenchmark(Opcode, &numInst, 1, usedRegs, helperConstraints, helperOpcode);
+    if (ec != SUCCESS) return {ec, -1, -1};
     dbg(__func__, "calling run");
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
-    if (ec != SUCCESS) return {ec, -1};
-
-    dbg(__func__, "num inst ", numInst1);
+    if (ec != SUCCESS) return {ec, -1, -1};
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
     double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
     double time2 =
         *std::min_element(benchResults["tpUnroll2"].begin(), benchResults["tpUnroll2"].end());
-    double time4 =
-        *std::min_element(benchResults["tpUnroll4"].begin(), benchResults["tpUnroll4"].end());
 
-    // predict if loop instructions interfere with the execution
-    // see README for explanation TODO
-    // this is done for two unroll steps to detect if anomalys occurr
-
-    // TODO migrate to calc cycles
-
-    double loopInstr2 = numInst1 * (time2 - 2 * time1) / (time1 - time2); // calculate unroll 1->2
-    double loopInstr4 = numInst1 * (time4 - 2 * time2) / (time2 - time4); // calculate unroll 2->4
-    if (loopInstr2 < -1 || loopInstr4 < -1) {
-        // throughput decreases significantly when unrolling, this is very
-        // unususal
-        std::printf("   anomaly detected during measurement:\n");
-        std::printf("   %.3f instructions interfering with measurement 1->2\n", loopInstr2);
-        std::printf("   %.3f instructions interfering with measurement 2->4\n", loopInstr4);
-    }
-    loopInstr2 = std::max(loopInstr2, 0.0);
-    loopInstr4 = std::max(loopInstr4, 0.0);
-    double corrected1to2 = time1 / (1e6 * (numInst1 + loopInstr2) / Frequency * (n / 1e9));
-    double corrected2to4 = time2 / (1e6 * (numInst1 * 2 + loopInstr4) / Frequency * (n / 1e9));
+    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency);
     if (helperOpcode > -1) {
-        // we did interleave test, this changes the TP
-        // TODO this is flawed, need to detect if interleaved instruction runs on same ports or not
-        // we can implement this once we have Latency values?
-        dbg(__func__, "correcting ", corrected2to4, " with ",
-            env.MCII->getName(helperOpcode).data(), " ", throughputDatabase[helperOpcode].tp);
-        outs() << "correcting " << corrected2to4 << " with "
-               << env.MCII->getName(helperOpcode).data() << " "
-               << throughputDatabase[helperOpcode].tp << "\n";
+        // we did use a helper, this can change the TP
+        // TODO change once port distribution is implemented
+        dbg(__func__, "correcting ", correctedTP, " with ", env.MCII->getName(helperOpcode).data(),
+            " ", throughputDatabase[helperOpcode].lowerTP);
+        out(*ios, "Helper: ", env.MCII->getName(helperOpcode).data(), " ",
+            throughputDatabase[helperOpcode].lowerTP);
+        double tpSamePorts = correctedTP - throughputDatabase[helperOpcode].lowerTP;
+        if (tpSamePorts < 1 / 4) {
+            out(*ios, "Assuming instruction and helper use different ports, otherwise TP would be ",
+                tpSamePorts);
+            return {SUCCESS, correctedTP, correctedTP};
+        }
+        out(*ios, "No hints if instruction and helper use same ports, TP can be in range ",
+            tpSamePorts, " - ", correctedTP);
+        return {SUCCESS, tpSamePorts, correctedTP};
+    }
 
-        corrected1to2 -= throughputDatabase[helperOpcode].tp;
-        corrected2to4 -= throughputDatabase[helperOpcode].tp;
-    }
-    if (std::abs(corrected1to2 - corrected2to4) > 0.05) {
-        double uncorrected1 = time1 / (1e6 * numInst1 / Frequency * (n / 1e9));
-        double uncorrected2 = time2 / (1e6 * numInst1 * 2 / Frequency * (n / 1e9));
-        std::printf("   anomaly detected during measurement:\n");
-        std::printf("   unr1: %.1f, unr2: %.1f, unr4: %.1f\n", time1, time2, time4);
-        std::printf("   %.3f uncorrected1 tp\n", uncorrected1);
-        std::printf("   %.3f uncorrected2 tp\n", uncorrected2);
-        std::printf("   %.3f corrected1_2 tp\n", corrected1to2);
-        std::printf("   %.3f corrected2_4 tp\n", corrected2to4);
-    }
-    // assume calculating the tp using unroll 2 -> 4 yields the best results
-    return {SUCCESS, corrected2to4};
+    return {SUCCESS, correctedTP, correctedTP};
 }
 
 std::pair<ErrorCode, double> measureLatency(unsigned Opcode, double Frequency) {
@@ -504,49 +477,56 @@ std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurem
     return {SUCCESS, cycles};
 }
 
-std::pair<ErrorCode, double> measureInSubprocess(unsigned Opcode, double Frequency,
-                                                 std::string Type) {
+std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
+                                                          std::string Type) {
     // allocate memory to communicate result
-    double *sharedResult = static_cast<double *>(
+    double *sharedLowerBound = static_cast<double *>(
+        mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+    double *sharedUpperBound = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
     ErrorCode *sharedEC = static_cast<ErrorCode *>(
         mmap(NULL, sizeof(ErrorCode), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
 
-    if (sharedResult == MAP_FAILED || sharedEC == MAP_FAILED) {
+    if (sharedUpperBound == MAP_FAILED || sharedLowerBound == MAP_FAILED ||
+        sharedEC == MAP_FAILED) {
         perror("mmap");
-        return {ERROR_MMAP, -1};
+        return {ERROR_MMAP, -1, -1};
     }
 
     pid_t pid = fork();
     if (pid == -1) {
-        return {ERROR_FORK, -1};
+        return {ERROR_FORK, -1, -1};
     }
 
     if (pid == 0) { // Child process
         ErrorCode ec;
-        double res;
+        double lower;
+        double upper;
         if (Type == "t")
-            std::tie(ec, res) = measureThroughput(Opcode, Frequency);
+            std::tie(ec, lower, upper) = measureThroughput(Opcode, Frequency);
         else
-            std::tie(ec, res) = measureLatency(Opcode, Frequency);
+            std::tie(ec, lower) = measureLatency(Opcode, Frequency);
 
-        *sharedResult = res;
+        *sharedLowerBound = lower;
+        *sharedUpperBound = upper;
         *sharedEC = ec;
         exit(EXIT_SUCCESS);
     } else { // Parent process
         int status;
         waitpid(pid, &status, 0);
 
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1};
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
-        if (WIFSIGNALED(status)) return {ERROR_SIGNAL, -1};
-        if (WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1};
+        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1, -1};
+        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1, -1};
+        if (WIFSIGNALED(status)) return {ERROR_SIGNAL, -1, -1};
+        if (WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1, -1};
 
         ErrorCode ec = *sharedEC;
-        double res = *sharedResult;
-        munmap(sharedResult, sizeof(int));
+        double lower = *sharedLowerBound;
+        double upper = *sharedUpperBound;
+        munmap(sharedLowerBound, sizeof(double));
+        munmap(sharedUpperBound, sizeof(double));
         munmap(sharedEC, sizeof(ErrorCode));
-        return {ec, res};
+        return {ec, lower, upper};
     }
 }
 std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Measurements,
@@ -621,12 +601,14 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
     // with other instructions
     if (env.Arch == Triple::ArchType::x86_64) {
-        auto [EC, tp] = measureInSubprocess(env.getOpcode("TEST64rr"), Frequency, "t");
-        throughputDatabase[env.getOpcode("TEST64rr")] = {EC, tp};
+        auto [EC, lowerTP, upperTP] =
+            measureInSubprocess(env.getOpcode("TEST64rr"), Frequency, "t");
+        throughputDatabase[env.getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
         priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
 
-        auto [EC2, tp2] = measureInSubprocess(env.getOpcode("MOV64ri32"), Frequency, "t");
-        throughputDatabase[env.getOpcode("MOV64ri32")] = {EC, tp2};
+        auto [EC2, lowerTP1, upperTP1] =
+            measureInSubprocess(env.getOpcode("MOV64ri32"), Frequency, "t");
+        throughputDatabase[env.getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
         priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
     }
 
@@ -640,13 +622,12 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
             displayProgress(opcode, MaxOpcode);
             std::string name = env.MCII->getName(opcode).data();
             if (skipInstructions.find(name) != skipInstructions.end()) {
-                outs() << name << ": " << "skipped for reason\t " << "skippedManually" << "\n";
-                outs().flush();
+                out(*ios, name, ": skipped for reason\tskippedManually");
                 continue;
             }
 
-            auto [EC, tp] = measureInSubprocess(opcode, Frequency, "t");
-            throughputDatabase[opcode] = {EC, tp};
+            auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency, "t");
+            throughputDatabase[opcode] = {EC, lowerTP, upperTP};
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
         errs() << "\n";
@@ -657,13 +638,13 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
         std::string name = env.MCII->getName(opcode).data();
         name.resize(27, ' ');
 
-        if (throughputDatabase[opcode].ec == SUCCESS) {
-            std::printf("%s: %.3f (clock cycles) Lat\n", name.data(),
-                        throughputDatabase[opcode].tp);
+        TPResult res = throughputDatabase[opcode];
+        if (res.ec == SUCCESS) {
+            std::printf("%s: %.3f-%.3f lower bound: %.3f (clock cycles)\n", name.data(),
+                        res.lowerTP, res.upperTP, res.lowerTP);
             fflush(stdout);
         } else {
-            outs() << name << ": " << "skipped for reason\t "
-                   << ecToString(throughputDatabase[opcode].ec) << "\n";
+            outs() << name << ": " << "skipped for reason\t " << ecToString(res.ec) << "\n";
             outs().flush();
         }
     }
@@ -1196,6 +1177,9 @@ int main(int argc, char **argv) {
     }
     debug = false;
     dbgToFile = false;
+    std::string filename = generate_timestamped_filename("run", ".log");
+    setOutputToFile(filename);
+
     struct timeval start, end;
     gettimeofday(&start, NULL);
     // static LLVMEnvironment  env = LLVMEnvironment(march, cpu);
@@ -1204,8 +1188,8 @@ int main(int argc, char **argv) {
         outs() << "failed to set up environment: " << ecToString(ec) << "\n";
         return 1;
     }
-
     if (maxOpcode == 0) maxOpcode = env.MCII->getNumOpcodes();
+
     latencyDatabase.resize(maxOpcode, -1.0);
     errorCodeDatabase.resize(maxOpcode, ERROR_NO_HELPER);
     switch (mode) {
@@ -1214,7 +1198,10 @@ int main(int argc, char **argv) {
         break;
     }
     case TP: {
+        out(*ios, "Mode: Throughput");
         if (instrNames.empty() && opcodes.empty()) {
+            out(*ios, "No instructions specified, measuring all instructions from opcode ",
+                minOpcode, " to ", maxOpcode);
             buildTPDatabase(frequency, minOpcode, maxOpcode);
             break;
         }
@@ -1223,17 +1210,19 @@ int main(int argc, char **argv) {
         // TODO release exclude from debug
         if (env.Arch == Triple::ArchType::x86_64) {
             // two common helpers for x86
-            auto [EC, tp] = measureInSubprocess(env.getOpcode("TEST64rr"), frequency, "t");
+            auto [EC, lower, upper] =
+                measureInSubprocess(env.getOpcode("TEST64rr"), frequency, "t");
             if (EC == SUCCESS) {
-                throughputDatabase[env.getOpcode("TEST64rr")] = {SUCCESS, tp};
+                throughputDatabase[env.getOpcode("TEST64rr")] = {SUCCESS, lower, upper};
                 priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
             } else {
                 dbg(__func__, "TEST64rr failed for reason: ", ecToString(EC));
                 exit(1);
             }
-            auto [EC2, tp2] = measureInSubprocess(env.getOpcode("MOV64ri32"), frequency, "t");
+            auto [EC2, lower2, upper2] =
+                measureInSubprocess(env.getOpcode("MOV64ri32"), frequency, "t");
             if (EC2 == SUCCESS) {
-                throughputDatabase[env.getOpcode("MOV64ri32")] = {SUCCESS, tp2};
+                throughputDatabase[env.getOpcode("MOV64ri32")] = {SUCCESS, lower2, upper2};
                 priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
             } else {
                 dbg(__func__, "MOV64ri32 failed for reason: ", ecToString(EC));
@@ -1241,28 +1230,28 @@ int main(int argc, char **argv) {
             }
         }
         for (unsigned opcode : opcodes) {
-            auto [EC, tp] = measureInSubprocess(opcode, frequency, "t");
-            throughputDatabase[opcode] = {EC, tp};
+            auto [EC, lower, upper] = measureInSubprocess(opcode, frequency, "t");
+            throughputDatabase[opcode] = {EC, lower, upper};
             if (EC != SUCCESS) {
                 outs() << env.MCII->getName(opcode) << " failed for reason: " << ecToString(EC)
                        << "\n";
                 outs().flush();
             } else {
-                std::printf("%s: %.3f (clock cycles)\n", env.MCII->getName(opcode).data(), tp);
+                std::printf("%s: %.3f (clock cycles)\n", env.MCII->getName(opcode).data(), lower);
                 fflush(stdout);
             }
         }
         for (auto instrName : instrNames) {
             int opcode = env.getOpcode(instrName.data());
             if (opcode == -1) outs() << "failed for reason: No instruction with this name " << "\n";
-            auto [EC, tp] = measureInSubprocess(opcode, frequency, "t");
-            throughputDatabase[opcode] = {EC, tp};
+            auto [EC, lower, upper] = measureInSubprocess(opcode, frequency, "t");
+            throughputDatabase[opcode] = {EC, lower, upper};
             if (EC != SUCCESS) {
                 outs() << env.MCII->getName(opcode) << " failed for reason: " << ecToString(EC)
                        << "\n";
                 outs().flush();
             } else {
-                std::printf("%s: %.3f (clock cycles)\n", env.MCII->getName(opcode).data(), tp);
+                std::printf("%s: %.3f (clock cycles)\n", env.MCII->getName(opcode).data(), lower);
                 fflush(stdout);
             }
         }

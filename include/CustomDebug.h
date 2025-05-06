@@ -30,12 +30,15 @@ template <typename T> inline std::ostream &operator<<(std::ostream &OS, const st
     return OS;
 }
 
-// debug function which can take any number of arguments
 template <typename... Args> static void dbg(const char *Func, Args &&...Arguments) {
     if (debug && functionBlacklist.find(Func) == functionBlacklist.end()) {
         std::cout << "[" << Func << "]: ";
         (std::cout << ... << Arguments) << "\n" << std::flush;
     }
+}
+
+template <typename... Args> static void out(std::ostream& Osteam, Args &&...Arguments) {
+    (Osteam << ... << Arguments) << "\n" << std::flush;
 }
 
 #endif // CUSTOM_DEBUG_H

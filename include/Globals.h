@@ -1,17 +1,22 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#include "LLVMEnvironment.h"         // for LLVMEnvironment
-#include "llvm/ADT/StringRef.h"      // for StringRef
-#include "llvm/MC/MCInstrInfo.h"     // for MCInstrInfo
-#include "llvm/MC/MCRegister.h"      // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h"  // for MCRegisterInfo
-#include <assert.h>                  // for assert
-#include <iostream>                  // for basic_ostream, char_traits, oper...
-#include <string>                    // for basic_string, operator<<
-#include <tuple>                     // for tie, operator<, tuple
+#include "ErrorCode.h"
+#include "LLVMEnvironment.h"        // for LLVMEnvironment
+#include "llvm/ADT/StringRef.h"     // for StringRef
+#include "llvm/MC/MCInstrInfo.h"    // for MCInstrInfo
+#include "llvm/MC/MCRegister.h"     // for MCRegister
+#include "llvm/MC/MCRegisterInfo.h" // for MCRegisterInfo
+#include <assert.h>                 // for assert
+#include <fstream>
+#include <iostream> // for basic_ostream, char_traits, oper...
+#include <string>   // for basic_string, operator<<
+#include <tuple>    // for tie, operator<, tuple
 
 extern LLVMEnvironment env;
+
+extern std::unique_ptr<std::ofstream> fileStream;
+extern std::ostream *ios;
 
 enum class LatOperandKind { RegisterClass, Register };
 
