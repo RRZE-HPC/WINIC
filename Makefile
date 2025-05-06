@@ -14,7 +14,7 @@ CXXFLAGS = -std=c++17
 
 LLVM_PROJECT = /home/hpc/ihpc/ihpc149h/bachelor/llvm-project
 BUILD = build_x86
-#this is aarch
+# this is aarch
 # BUILD = build_all
 CLANG_PATH = "\"$(LLVM_PROJECT)/$(BUILD)/bin/clang\""
 
@@ -36,12 +36,15 @@ LDFLAGS += -no-pie
 
 
 CXXFLAGS += -I$(INCLUDE)
-iwyu = /home/woody/ihpc/ihpc149h/bachelor/llvm-project/build/bin/include-what-you-use
+CXXFLAGS += -MMD -MP
 
-SRC_FILES = LLVMBench LLVMEnvironment BenchmarkGenerator AssemblyFile Templates ErrorCode CustomDebug Globals
+SRC_FILES = LLVMBench BenchmarkGenerator LLVMEnvironment AssemblyFile Templates ErrorCode CustomDebug Globals
 OBJ_DIR = obj
 OBJS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(SRC_FILES)))
+DEPS = $(OBJS:.o=.d)
 SRC_CPP = $(addprefix $(SRC)/, $(addsuffix .cpp, $(SRC_FILES)))
+SRC_H = $(addprefix $(SRC)/, $(addsuffix .h, $(SRC_FILES)))
+IWYU = /home/woody/ihpc/ihpc149h/bachelor/llvm-project/build/bin/include-what-you-use
 
 all: LLVMBench
 
@@ -54,15 +57,17 @@ $(OBJ_DIR)/%.o: $(SRC)/%.cpp
 LLVMBench: $(OBJS)
 	@$(CC) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
+-include $(DEPS)
+
 test: ./experiment.cpp
 	@$(CC) $(CXXFLAGS) -g -O0 $^ -o $@ $(LDFLAGS)
 
 quick: ./quick_exec.cpp
 	@$(CC) $(CXXFLAGS) -g -O0 $^ -o $@ $(LDFLAGS)
 
-# run include-what-you-use for the source files
+# run include-what-you-use for the given source file
 iwyu:
-	@$(iwyu) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) $(SRC_CPP) $(LDFLAGS)
+	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/Globals.cpp $(LDFLAGS)
 
 clean:
 	rm -rf LLVMBench experiment quick $(OBJ_DIR)
