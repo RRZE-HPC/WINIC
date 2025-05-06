@@ -1073,32 +1073,25 @@ int buildLatDatabase4(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) 
     //         displayProgress(opcode, MaxOpcode);
     //         if (errorCodeDatabase[opcode] != ERROR_NO_HELPER) continue;
 
-    //         if (skipOpcodes.find(opcode) != skipOpcodes.end()) {
-    //             errorCodeDatabase[opcode] = SKIP_MANUALLY;
-    //             continue;
-    //         }
+std::string generate_timestamped_filename(const std::string &prefix, const std::string &extension) {
+    // Get current time
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
 
-    //         auto [EC, lat] = measureInSubprocess(opcode,  Frequency, "l");
-    //         errorCodeDatabase[opcode] = EC;
-    //         latencyDatabase[opcode] = lat;
-    //         if (EC == SUCCESS) gotNewMeasurement = true;
-    //     }
-    // }
-    // // print results
-    // for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-    //     std::string name = env.MCII->getName(opcode).data();
-    //     name.resize(27, ' ');
+    // Format time
+    std::ostringstream ss;
+    ss << prefix << std::put_time(std::localtime(&now_c), "_%Y-%m-%d_%H-%M-%S") << extension;
+    return ss.str();
+}
 
-    //     if (errorCodeDatabase[opcode] == SUCCESS) {
-    //         std::printf("%s: %.3f (clock cycles) Lat\n", name.data(),
-    //         latencyDatabase[opcode]); fflush(stdout);
-    //     } else {
-    //         outs() << name << ": " << "skipped for reason\t "
-    //                << ecToString(errorCodeDatabase[opcode]) << "\n";
-    //         outs().flush();
-    //     }
-    // }
-    return 0;
+void setOutputToFile(const std::string &filename) {
+    fileStream = std::make_unique<std::ofstream>(filename);
+    if (fileStream->is_open()) {
+        ios = fileStream.get(); // Redirect global output
+    } else {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+        ios = &std::cout; // Fallback
+    }
 }
 
 int main(int argc, char **argv) {
