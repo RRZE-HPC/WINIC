@@ -18,6 +18,7 @@
 #include "llvm/TargetParser/Triple.h"        // for Triple
 #include <algorithm>                         // for min_element, max
 #include <csignal>                           // for SIGSEGV, size_t, SIGILL
+#include <cstddef>
 #include <cstdio>                            // for printf, NULL, fflush
 #include <cstdlib>                           // for exit, atoi, EXIT_SUCCESS
 #include <ctype.h>                           // for isdigit
@@ -25,20 +26,21 @@
 #include <fcntl.h>                           // for open, O_WRONLY, O_TRUNC
 #include <fstream>                           // for basic_ostream, operator<<
 #include <getopt.h>                          // for required_argument, option
-#include <iostream>                          // for cerr, cout
-#include <iterator>                          // for move_iterator, make_mov...
-#include <map>                               // for map, operator!=, operat...
-#include <string.h>                          // for strcmp
-#include <string>                            // for basic_string, hash, cha...
-#include <sys/mman.h>                        // for mmap, munmap, MAP_ANONY...
-#include <sys/time.h>                        // for timeval, gettimeofday
-#include <sys/types.h>                       // for pid_t
-#include <sys/wait.h>                        // for waitpid
-#include <tuple>                             // for tuple, get, tie
-#include <unistd.h>                          // for optarg, _exit, fork, dup2
-#include <unordered_map>                     // for unordered_map, operator!=
-#include <unordered_set>                     // for unordered_set
-#include <vector>                            // for vector
+#include <iomanip>
+#include <iostream>      // for cerr, cout
+#include <iterator>      // for move_iterator, make_mov...
+#include <map>           // for map, operator!=, operat...
+#include <string>        // for basic_string, hash, cha...
+#include <string.h>      // for strcmp
+#include <sys/mman.h>    // for mmap, munmap, MAP_ANONY...
+#include <sys/time.h>    // for timeval, gettimeofday
+#include <sys/types.h>   // for pid_t
+#include <sys/wait.h>    // for waitpid
+#include <tuple>         // for tuple, get, tie
+#include <unistd.h>      // for optarg, _exit, fork, dup2
+#include <unordered_map> // for unordered_map, operator!=
+#include <unordered_set> // for unordered_set
+#include <vector>        // for vector
 
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 // #include "MCTargetDesc/X86BaseInfo.h"
