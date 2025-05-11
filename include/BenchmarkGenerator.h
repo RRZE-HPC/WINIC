@@ -134,6 +134,6 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
 
 // filter which instructions get exludedd
-ErrorCode isValid(MCInstrDesc Desc);
+ErrorCode isValid(const MCInstrDesc &Desc);
 
 #endif // BENCHMARK_GENERATOR
