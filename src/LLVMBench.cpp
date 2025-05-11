@@ -642,8 +642,11 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
 
         TPResult res = throughputDatabase[opcode];
         if (res.ec == SUCCESS) {
-            std::printf("%s: %.3f-%.3f lower bound: %.3f (clock cycles)\n", name.data(),
-                        res.lowerTP, res.upperTP, res.lowerTP);
+            // select lower bound for print except it is close or equal to 0
+            double selected = res.lowerTP;
+            if (selected < 0.2) selected = res.upperTP;
+            std::printf("%s: %.3f-%.3f selected: %.3f (clock cycles)\n", name.data(), res.lowerTP,
+                        res.upperTP, res.lowerTP);
             fflush(stdout);
         } else {
             outs() << name << ": " << "skipped for reason\t " << ecToString(res.ec) << "\n";
