@@ -29,6 +29,8 @@ std::string ecToString(ErrorCode EC) {
         return "IS_BRANCH";
     case IS_CODE_GEN_ONLY:
         return "IS_CODE_GEN_ONLY";
+    case IS_X87FP:
+        return "IS_X87FP";
     case SKIP_MANUALLY:
         return "SKIP_MANUALLY";
     case DOES_NOT_EMIT_INST:

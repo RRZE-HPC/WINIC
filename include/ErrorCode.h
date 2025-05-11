@@ -17,6 +17,7 @@ enum ErrorCode {
     IS_RETURN,
     IS_BRANCH,
     IS_CODE_GEN_ONLY,
+    IS_X87FP,
     SKIP_MANUALLY,
     DOES_NOT_EMIT_INST,
     ERROR_TEMPLATE,

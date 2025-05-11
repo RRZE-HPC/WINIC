@@ -794,6 +794,7 @@ ErrorCode isValid(MCInstrDesc Desc) {
     if (Desc.isMetaInstruction()) return IS_META_INSTRUCTION;
     if (Desc.isReturn()) return IS_RETURN;
     if (Desc.isBranch()) return IS_BRANCH; // TODO uops has TP, how?
+    if (env.Arch == Triple::ArchType::x86_64 && Desc.hasImplicitDefOfPhysReg(X86::FPSW)) return IS_X87FP;
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
     // Two more checks which only work after generating an instruction TODO find other way
     std::set<MCRegister> emptySet;
