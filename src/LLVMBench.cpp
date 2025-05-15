@@ -652,7 +652,7 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
 }
 
 void buildLatDatabase(double Frequency) {
-    out(*ios, "number of measurements: ", latencyDatabase4.size());
+    out(*ios, "number of measurements: ", latencyDatabase.size());
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
     std::set<DependencyType> completedTypes;
@@ -661,8 +661,8 @@ void buildLatDatabase(double Frequency) {
     errs() << "phase1: trivial measurements\n";
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement>> classifiedMeasurements;
-    for (auto measurement : latencyDatabase4) {
-        displayProgress(progress++, latencyDatabase4.size());
+    for (auto measurement : latencyDatabase) {
+        displayProgress(progress++, latencyDatabase.size());
         if (measurement.type.isSymmetric()) {
             auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency);
             measurement.ec = EC;
@@ -946,13 +946,15 @@ int main(int argc, char **argv) {
     out(*ios, "Arch: ", env.MSTI->getCPU().str());
     if (maxOpcode == 0) maxOpcode = env.MCII->getNumOpcodes();
 
-    latencyDatabase.resize(maxOpcode, -1.0);
-    errorCodeDatabase.resize(maxOpcode, ERROR_NO_HELPER);
-
     for (auto instrName : instrNames) {
         unsigned opcode = env.getOpcode(instrName.data());
+        if (opcode == std::numeric_limits<unsigned>::max()) {
+            std::cerr << "No instruction with name \"" << instrName << "\"\n";
+            exit(1);
+        }
         opcodes.emplace_back(opcode);
     }
+
     switch (mode) {
     case INTERLEAVE: {
         dbg(__func__, "no code in INTERLEAVE mode");
@@ -999,22 +1001,6 @@ int main(int argc, char **argv) {
                 fflush(stdout);
             }
         }
-        for (auto instrName : instrNames) {
-            unsigned opcode = env.getOpcode(instrName.data());
-            if (opcode == std::numeric_limits<unsigned>::max()) {
-                std::cerr << "No instruction with name \"" << instrName << "\"\n";
-            }
-            auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
-            throughputDatabase[opcode] = {EC, lower, upper};
-            if (EC != SUCCESS) {
-                outs() << env.MCII->getName(opcode) << " failed for reason: " << ecToString(EC)
-                       << "\n";
-                outs().flush();
-            } else {
-                std::printf("%s: %.3f (clock cycles)\n", env.MCII->getName(opcode).data(), lower);
-                fflush(stdout);
-            }
-        }
         break;
     }
     case LAT: {
@@ -1037,7 +1023,7 @@ int main(int argc, char **argv) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
             debug = true; // TODO remove
-            latencyDatabase4 = genLatMeasurements(minOpcode, maxOpcode, skipOpcodes);
+            latencyDatabase = genLatMeasurements(minOpcode, maxOpcode, skipOpcodes);
             buildLatDatabase(frequency);
             break;
         }
@@ -1046,23 +1032,10 @@ int main(int argc, char **argv) {
 
         for (auto opcode : opcodes) {
             auto measurements = genLatMeasurements(opcode, opcode + 1, {});
-            latencyDatabase4.insert(latencyDatabase4.begin(), measurements.begin(),
+            latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
                                     measurements.end());
         }
         buildLatDatabase(frequency);
-
-        // old lat
-        // for (auto opcode : opcodes) {
-        //     auto [EC, lower, upper] = measureInSubprocess(opcode, frequency, "l");
-        //     if (EC != SUCCESS) {
-        //         outs() << "failed for reason: " << ecToString(EC) << "\n";
-        //         outs().flush();
-        //     } else {
-        //         std::printf("%.3f (clock cycles)\n", lower);
-        //         fflush(stdout);
-        //     }
-        //     latencyDatabase[opcode] = lower;
-        // }
         break;
     }
     case DEV: {

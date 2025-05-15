@@ -39,11 +39,8 @@ static std::list<unsigned> priorityTPHelper;
 static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
     helperInstructions; // opcode, read/write register
 
-static std::vector<float> latencyDatabase;
-static std::vector<ErrorCode> errorCodeDatabase;
-
 static std::map<DependencyType, LatMeasurement> helperInstructionsLat;
-static std::vector<LatMeasurement> latencyDatabase4;
+static std::vector<LatMeasurement> latencyDatabase;
 
 static bool dbgToFile = true;
 extern LLVMEnvironment env;
