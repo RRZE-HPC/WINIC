@@ -14,7 +14,6 @@
 #include <tuple>                     // for tuple
 #include <unordered_set>             // for unordered_set
 #include <utility>                   // for pair
-#include <variant>                   // for tuple
 #include <vector>                    // for vector
 
 namespace llvm { class MCInstrDesc; } 
@@ -46,7 +45,7 @@ std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned Ma
  * @param Measurements list of instructions, will be written to the loop in the given order
  * using the same registers on the useOps and defOps
  */
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> Measurements,
+std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(const std::list<LatMeasurement4>& Measurements,
                                                     unsigned *TargetInstrCount,
                                                     std::set<MCRegister> UsedRegisters = {});
 

@@ -1,12 +1,10 @@
 #include "LLVMBench.h"
 
-#include "BenchmarkGenerator.h" // for genInst4, isValid, whic...
-#include "CustomDebug.h"        // for dbg, debug
-#include "ErrorCode.h"          // for ErrorCode, ecToString
-#include "Globals.h"            // for LatMeasurement4, Depend...
-#include "LLVMBench.h"
+#include "BenchmarkGenerator.h"              // for genInst4, isValid, whic...
+#include "CustomDebug.h"                     // for dbg, debug
+#include "ErrorCode.h"                       // for ErrorCode, ecToString
+#include "Globals.h"                         // for LatMeasurement4, Depend...
 #include "LLVMEnvironment.h"                 // for LLVMEnvironment
-#include "llvm/ADT/ArrayRef.h"               // for ArrayRef
 #include "llvm/ADT/StringRef.h"              // for StringRef
 #include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
 #include "llvm/MC/MCInst.h"                  // for MCInst, MCOperand
@@ -14,34 +12,38 @@
 #include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
 #include "llvm/MC/MCRegister.h"              // for MCRegister
 #include "llvm/MC/MCRegisterInfo.h"          // for MCRegisterInfo
+#include "llvm/MC/MCSubtargetInfo.h"         // for MCSubtargetInfo
 #include "llvm/Support/raw_ostream.h"        // for raw_fd_ostream, raw_ost...
 #include "llvm/TargetParser/Triple.h"        // for Triple
 #include <algorithm>                         // for min_element, max
+#include <chrono>                            // for system_clock
 #include <csignal>                           // for SIGSEGV, size_t, SIGILL
-#include <cstddef>
 #include <cstdio>                            // for printf, NULL, fflush
 #include <cstdlib>                           // for exit, atoi, EXIT_SUCCESS
+#include <ctime>                             // for localtime, time_t
 #include <ctype.h>                           // for isdigit
 #include <dlfcn.h>                           // for dlsym, dlclose, dlopen
 #include <fcntl.h>                           // for open, O_WRONLY, O_TRUNC
 #include <fstream>                           // for basic_ostream, operator<<
 #include <getopt.h>                          // for required_argument, option
-#include <iomanip>
-#include <iostream>      // for cerr, cout
-#include <iterator>      // for move_iterator, make_mov...
-#include <map>           // for map, operator!=, operat...
-#include <string>        // for basic_string, hash, cha...
-#include <string.h>      // for strcmp
-#include <sys/mman.h>    // for mmap, munmap, MAP_ANONY...
-#include <sys/time.h>    // for timeval, gettimeofday
-#include <sys/types.h>   // for pid_t
-#include <sys/wait.h>    // for waitpid
-#include <tuple>         // for tuple, get, tie
-#include <unistd.h>      // for optarg, _exit, fork, dup2
-#include <unordered_map> // for unordered_map, operator!=
-#include <unordered_set> // for unordered_set
-#include <vector>        // for vector
+#include <iomanip>                           // for operator<<, put_time
+#include <iostream>                          // for cerr, cout
+#include <iterator>                          // for move_iterator, make_mov...
+#include <map>                               // for map, operator!=, operat...
+#include <memory>                            // for unique_ptr, make_unique
+#include <sstream>                           // for basic_ostringstream
+#include <string>                            // for basic_string, hash, cha...
+#include <sys/mman.h>                        // for mmap, munmap, MAP_ANONY...
+#include <sys/time.h>                        // for timeval, gettimeofday
+#include <sys/types.h>                       // for pid_t
+#include <sys/wait.h>                        // for waitpid
+#include <tuple>                             // for tuple, get, tie
+#include <unistd.h>                          // for optarg, _exit, fork, dup2
+#include <unordered_map>                     // for unordered_map, operator!=
+#include <unordered_set>                     // for unordered_set
+#include <vector>                            // for vector
 
+// #include "X86RegisterInfo.h"
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 // #include "MCTargetDesc/X86BaseInfo.h"
 
@@ -53,7 +55,7 @@ void *globalHandle = nullptr;
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
-    dbg(__func__, "clang path: ", CLANG_PATH);
+    dbg(__func__, "loopCount: ", N);
     std::string clangPath = CLANG_PATH;
     if (clangPath == "usr/bin/clang") {
         std::cerr << "CLANG_PATH not set, using default" << std::endl;
@@ -72,7 +74,6 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
         std::string debugPath =
             "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/own_tools/llvm-bench/debug.s";
         std::ofstream debugFile(debugPath);
-        dbg(__func__, "debug written to path: ", debugPath.data());
         if (!debugFile) {
             std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
             return {ERROR_FILE, {}};
@@ -101,7 +102,7 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     if (pid == 0) { // Child
         int fd;
         if (dbgToFile) {
-            fd = open("assembler_out.log", O_WRONLY | O_TRUNC);
+            fd = open("assembler_out.log", O_WRONLY | O_TRUNC | O_CREAT, 0644);
             if (fd == -1) {
                 perror("open assembler_out.log failed");
                 _exit(127);
@@ -172,6 +173,7 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
                         (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
         }
     }
+    dbg(__func__, "benchmarks complete");
 
     dlclose(globalHandle);
     return {SUCCESS, benchtimes};
@@ -207,14 +209,13 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
 }
 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount,
-                                             double Frequency) {
+                                             unsigned NumInst, unsigned LoopCount, double Frequency,
+                                             bool Throughput) {
     // correct the result using one measurement with NumInst and one with 2*NumInst. This removes
     // overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
     // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
     double cyclesPerInstruction = (instRuntime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
-
     if (instRuntime * 2 > UnrolledRuntime * 1.1) {
         // this is unlikely to be a good measurement
         out(*ios,
@@ -223,10 +224,19 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
             Runtime, " UnrolledRuntime: ", UnrolledRuntime);
         return {ERROR_GENERIC, -1};
     }
-    // for some instructions unrolling slightly decreases throughput e.g. ADC16ri8 with helper
-    // TEST64rr (TODO investigate why). In those cases the unrolled time is not used for correction
-    if (instRuntime * 2 > UnrolledRuntime)
+    // Something strange is happening when measuring latencies. For some chains, e.g. Zen4
+    // adc	al, 7
+    // adc	cl, 7
+    // ...
+    // (chain on flags) the latency is smaller than expected (1.93 instead of 2) but increases with
+    // unrolling. The loop overhead correction then corrects upwards which is not what was intended
+    // but actually gives good results for now.
+    // On the other hand for some instructions unrolling slightly decreases throughput e.g. ADC16ri8
+    // with helper TEST64rr In those cases the unrolled time should not be used for correction.
+    // This is why the following check is only enabled for throughput
+    if (Throughput && instRuntime * 2 > UnrolledRuntime) {
         cyclesPerInstruction = (Runtime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
+    }
     return {SUCCESS, cyclesPerInstruction};
 }
 
@@ -259,6 +269,7 @@ getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg) {
     // even if they write not to the register itself but a superregister
     // on Zen4 there is a partial write penalty when writing to just a part of a GPR
     // priorityTPHelper can be used to prevent this from happening
+    dbg(__func__, "checking size ", priorityTPHelper.size());
     for (unsigned possibleHelper : priorityTPHelper) {
         TPResult tpRes = throughputDatabase[possibleHelper];
         dbg(__func__, "checking possible ", tpRes.ec, " ", tpRes.lowerTP);
@@ -347,7 +358,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     double time2 =
         *std::min_element(benchResults["tpUnroll2"].begin(), benchResults["tpUnroll2"].end());
 
-    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency);
+    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency, true);
     if (helperOpcode > -1) {
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
@@ -437,20 +448,21 @@ std::pair<ErrorCode, double> measureLatency(unsigned Opcode, double Frequency) {
     return {SUCCESS, corrected};
 }
 
-std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurements,
-                                             double Frequency) {
+std::pair<ErrorCode, double> measureLatency4(const std::list<LatMeasurement4> &Measurements,
+                                             unsigned LoopCount, double Frequency) {
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
-    // unsigned numInst2 = 24;
-    double n = 1000000; // loop count
+    double n = LoopCount;
     ErrorCode ec;
+    ErrorCode warning = NO_ERROR_CODE;
     AssemblyFile assembly;
     std::unordered_map<std::string, std::list<double>> benchResults;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(ec, assembly) = genLatBenchmark4(Measurements, &numInst1);
-    if (ec != SUCCESS) return {ec, -1};
+    if (ec != SUCCESS && ec != WARNING_MULTIPLE_DEPENDENCIES) return {ec, -1};
+    if (ec == WARNING_MULTIPLE_DEPENDENCIES) warning = WARNING_MULTIPLE_DEPENDENCIES;
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
     if (ec != SUCCESS) return {ec, -1};
 
@@ -461,9 +473,8 @@ std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurem
     double time2 = *std::min_element(benchResults["latencyUnrolled"].begin(),
                                      benchResults["latencyUnrolled"].end());
     double cycles;
-    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency);
+    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency, false);
     if (ec != SUCCESS) {
-        // throughput decreases significantly when unrolling, this should not be possible
         std::string chainString = "";
         for (auto m : Measurements) {
             chainString += env.MCII->getName(m.opcode).data();
@@ -475,7 +486,7 @@ std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurem
         }
         return {ERROR_GENERIC, -1};
     }
-
+    if (warning != NO_ERROR_CODE) return {warning, cycles};
     return {SUCCESS, cycles};
 }
 
@@ -516,6 +527,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
     } else { // Parent process
         int status;
         waitpid(pid, &status, 0);
+        dbg(__func__, "child exited on status ", status);
 
         if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1, -1};
         if (WIFSIGNALED(status) && WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1, -1};
@@ -531,8 +543,10 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         return {ec, lower, upper};
     }
 }
-std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Measurements,
-                                                 double Frequency, std::string Type) {
+
+std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement4> &Measurements,
+                                                 unsigned LoopCount, double Frequency,
+                                                 std::string Type) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -555,7 +569,7 @@ std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Meas
         if (Type == "t")
             dbg(__func__, "there is not tp measurement for LatMeasurement4");
         else
-            std::tie(ec, res) = measureLatency4(Measurements, Frequency);
+            std::tie(ec, res) = measureLatency4(Measurements, LoopCount, Frequency);
 
         *sharedResult = res;
         *sharedEC = ec;
@@ -563,9 +577,12 @@ std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Meas
     } else { // Parent process
         int status;
         waitpid(pid, &status, 0);
+        dbg(__func__, "child exited on status ", status);
 
         if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1};
-        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1};
+        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
+        if (WIFSIGNALED(status)) return {ERROR_SIGNAL, -1};
+        if (WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1};
 
         ErrorCode ec = *sharedEC;
         double res = *sharedResult;
@@ -656,7 +673,7 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     return 0;
 }
 
-int buildLatDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
+int buildLatDatabasePerInstruction(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
@@ -681,9 +698,9 @@ int buildLatDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
                 continue;
             }
 
-            auto [EC, lat] = measureInSubprocess(opcode, Frequency, "l");
+            auto [EC, lower, upper] = measureInSubprocess(opcode, Frequency, "l");
             errorCodeDatabase[opcode] = EC;
-            latencyDatabase[opcode] = lat;
+            latencyDatabase[opcode] = lower;
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
     }
@@ -740,7 +757,7 @@ findFullyConnected(std::vector<std::pair<unsigned, unsigned>> Edges, unsigned Nu
 }
 
 bool isVariant(unsigned A, unsigned B) {
-    // check if a and b are the same instruction with different operands
+
     std::string nameA = env.MCII->getName(A).data();
     std::string nameB = env.MCII->getName(B).data();
     if (nameA == nameB) return true;
@@ -766,47 +783,44 @@ bool isVariant(unsigned A, unsigned B) {
     return namePrefixA == namePrefixB;
 }
 
-void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Frequency) {
-    dbg(__func__, "number of measurements: ", Measurements.size());
+void findHelperInstructions(double Frequency) {
+    dbg(__func__, "number of measurements: ", latencyDatabase4.size());
     // classify measurements by operand combination
     std::map<DependencyType, std::vector<LatMeasurement4>> classifiedMeasurements;
-    for (auto m : Measurements)
+    for (auto m : latencyDatabase4)
         classifiedMeasurements[m.type].emplace_back(m);
-
-    for (auto classified : classifiedMeasurements)
-        dbg(__func__, "class: ", classified.first);
 
     // to measure latencys of e.g. REG -> FLAGS we need some instruction (called helper
     // instruction) with known latency FLAGS -> REG so we can interleave the two. We determine
-    // one such reference for each non trivial (non REG-> REG) latency operand to use in the
-    // main benchmarking phase. holds a helper instruction for every LatencyOperand combination.
-    std::map<DependencyType, LatMeasurement4> helperInstructions;
+    // one such reference for each non trivial (non REG -> REG) latency operand to use in the
+    // main benchmarking phase.
+    // holds a helper instruction for every LatencyOperand combination.
     std::set<DependencyType> noHelperPossible;
-    for (auto [mType, typeA] : classifiedMeasurements) {
-        if (helperInstructions.find(mType) != helperInstructions.end()) continue;
-        if (noHelperPossible.find(mType) != noHelperPossible.end()) continue;
-        if (mType.defOp == mType.useOp) {
-            // trivial case
-            for (auto m : typeA) {
-                auto [EC, lat] = measureInSubprocess({m}, Frequency,
+    size_t progress = 0;
+    for (auto [dType, mTypeA] : classifiedMeasurements) {
+        displayProgress(progress, classifiedMeasurements.size());
+        ++progress;
+        if (helperInstructionsLat.find(dType) != helperInstructionsLat.end()) continue;
+        if (noHelperPossible.find(dType) != noHelperPossible.end()) continue;
+        if (dType.defOp == dType.useOp) {
+            // trivial case, source and target operand are of same type
+            for (auto m : mTypeA) {
+                auto [EC, lat] = measureInSubprocess({m}, 1e6, Frequency,
                                                      "l"); // TODO check if this is correct
-                if (EC != 0 || lat < 2 || isSus(lat)) continue;
+                if (EC != 0 || lat < 2 || isUnusualLat(lat)) continue;
                 // use first successful measurement as helper
-                m.value = lat;
-                helperInstructions.insert({mType, m});
+                m.ec = EC;
+                m.lowerBound = lat;
+                m.upperBound = lat;
+                helperInstructionsLat.insert({dType, m});
                 dbg(__func__, "found helper trivial: ", m);
                 break;
             }
             continue;
         }
-        // if (!(std::holds_alternative<MCRegister>(mType.useOp) &&
-        //       std::get<MCRegister>(mType.useOp) == X86::EFLAGS)) {
-        //     continue;
-        // }
-
-        dbg(__func__, "searching helper for type: ", mType);
+        dbg(__func__, "searching helper for type: ", dType);
         // std::vector<LatMeasurement4> typeA = classifiedMeasurements[typeA.first];
-        std::vector<LatMeasurement4> typeB = classifiedMeasurements[mType.reversedType()];
+        std::vector<LatMeasurement4> mTypeB = classifiedMeasurements[dType.reversed()];
         // We first want to find 3 instructions of the class and 3 of the reversed class to have
         // a total of 9 interleave combinations with *equal* and *minimal* combined latency >=2.
         // This is to make sure the instruction we select as helper really has the latency we
@@ -822,15 +836,17 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
 
         std::vector<std::pair<unsigned, unsigned>> fullyConnected = {};
         unsigned indexA = 0, indexB = 0;
-        unsigned helperLat = 0;
+        unsigned helperLatUpperBound = 0;
         // increment indexA and indexB once per iteration and measure all new combinations
         // possible. Then check if an instruction satisfies the conditions for a helper.
-        while ((indexA < typeA.size() || indexB < typeB.size()) && fullyConnected.empty()) {
-            if (indexA < typeA.size()) {
+        while ((indexA < mTypeA.size() || indexB < mTypeB.size()) && fullyConnected.empty()) {
+            // increment the range of instuctions considered of list A by one and measure new
+            // combinations
+            if (indexA < mTypeA.size()) {
                 // ignore variants of instructions already present
                 bool ignored = false;
                 for (unsigned i = 0; i < indexA; i++) {
-                    if (isVariant(typeA[indexA].opcode, typeA[i].opcode)) {
+                    if (isVariant(mTypeA[indexA].opcode, mTypeA[i].opcode)) {
                         ignoredIndicesA.insert(indexA);
                         indexA++;
                         ignored = true;
@@ -840,28 +856,29 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
                 if (ignored) continue;
 
                 // add values for current indexA
-                unsigned susCounter = 0;
+                unsigned unusualVaueCounter = 0;
                 tempValues.clear();
                 for (unsigned b = 0; b < indexB; b++) {
                     if (ignoredIndicesB.find(b) != ignoredIndicesB.end()) continue;
-                    if (typeA[indexA].opcode == typeB[b].opcode)
+                    if (mTypeA[indexA].opcode == mTypeB[b].opcode)
                         continue; // dont interleave same instruction
 
-                    dbg(__func__, "indices ", indexA, "/", typeA.size(), " ", b, "/", typeB.size());
+                    dbg(__func__, "indices ", indexA, "/", mTypeA.size(), " ", b, "/",
+                        mTypeB.size());
                     auto [EC, combinedLat] =
-                        measureInSubprocess({typeA[indexA], typeB[b]}, Frequency, "l");
+                        measureInSubprocess({mTypeA[indexA], mTypeB[b]}, 1e6, Frequency, "l");
                     // if unsuccessful, if sus or too small, add to ignored
-                    if (EC != 0 || combinedLat < 2 || isSus(combinedLat)) {
-                        susCounter++;
+                    if (EC != 0 || combinedLat < 2 || isUnusualLat(combinedLat)) {
+                        unusualVaueCounter++;
                         continue;
                     }
                     // insert measured value/2 (lat per operand)
-                    tempValues[std::round(combinedLat / 2)].emplace_back(indexA, b);
+                    tempValues[std::round(combinedLat)].emplace_back(indexA, b);
                 }
-                if (susCounter > tempValues.size()) {
+                if (unusualVaueCounter > tempValues.size()) {
                     // this instruction behaved very unreliable, dont add it to potential
                     // helpers
-                    dbg(__func__, indexB, " marked as sus");
+                    dbg(__func__, indexB, " marked as unusual");
                     ignoredIndicesA.insert(indexA);
                 } else {
                     // move results into values
@@ -873,11 +890,13 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
                 }
                 indexA++;
             }
-            if (indexB < typeB.size()) {
+            // increment the range of instuctions considered of list B by one and measure new
+            // combinations
+            if (indexB < mTypeB.size()) {
                 // ignore variants of instructions already present
                 bool ignored = false;
                 for (unsigned i = 0; i < indexB; i++) {
-                    if (isVariant(typeB[indexB].opcode, typeB[i].opcode)) {
+                    if (isVariant(mTypeB[indexB].opcode, mTypeB[i].opcode)) {
                         ignoredIndicesB.insert(indexA);
                         indexB++;
                         ignored = true;
@@ -891,13 +910,14 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
                 tempValues.clear();
                 for (unsigned a = 0; a < indexA; a++) {
                     if (ignoredIndicesA.find(a) != ignoredIndicesA.end()) continue;
-                    if (typeA[a].opcode == typeB[indexB].opcode)
+                    if (mTypeA[a].opcode == mTypeB[indexB].opcode)
                         continue; // dont interleave same instruciton
-                    dbg(__func__, "indices ", a, "/", typeA.size(), " ", indexB, "/", typeB.size());
+                    dbg(__func__, "indices ", a, "/", mTypeA.size(), " ", indexB, "/",
+                        mTypeB.size());
                     auto [EC, combinedLat] =
-                        measureInSubprocess({typeA[a], typeB[indexB]}, Frequency, "l");
+                        measureInSubprocess({mTypeA[a], mTypeB[indexB]}, 1e6, Frequency, "l");
                     // if unsuccessful, if sus or too small, add to ignored
-                    if (EC != 0 || combinedLat < 2 || isSus(combinedLat)) {
+                    if (EC != 0 || combinedLat < 2 || isUnusualLat(combinedLat)) {
                         susCounter++;
                         continue;
                     }
@@ -920,45 +940,47 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
                 indexB++;
             }
             // check if new data is enough to determine two good helpers
-            for (unsigned lat = 1; lat < 10; lat++) {
-                // dbg(__func__, "checking if fully connected with numValues: ",
-                // values[lat].size(),
-                //     " for latency ", lat);
-                if (values[lat].size() < 9) continue; // not possible with less than 9 edges
-                fullyConnected = findFullyConnected(values[lat], 3);
+            // currently only use helpers with latency <=6
+            // e.g. we cannot infer from a combined latency of 3 which instruction has 2 and which
+            // has 1, so we will get ranges as results
+            for (unsigned combinedLat = 1; combinedLat < 6; combinedLat++) {
+                if (values[combinedLat].size() < 9) continue; // not possible with less than 9 edges
+                fullyConnected = findFullyConnected(values[combinedLat], 3);
                 if (!fullyConnected.empty()) {
-                    helperLat = lat;
-                    dbg(__func__, "found fully connected with latency ", lat);
+                    helperLatUpperBound = combinedLat - 1;
+                    dbg(__func__, "found fully connected with latency ", combinedLat);
                     break;
                 }
             }
         }
         if (fullyConnected.empty()) {
-            // no helper for this type pair found, helpers are always found in pairs so opposite
+            // no helper for this type pair found, helpers always come in pairs so opposite
             // direction will not be possible either
-            dbg(__func__, "no helper for ", mType);
-            noHelperPossible.insert(mType);
-            noHelperPossible.insert(mType.reversedType());
+            dbg(__func__, "no helper for ", dType);
+            noHelperPossible.insert(dType);
+            noHelperPossible.insert(dType.reversed());
             continue;
         }
-        dbg(__func__, "after");
         // helper found, insert into helperInstructions
-        auto measurementA = typeA[fullyConnected[0].first];
-        auto measurementB = typeB[fullyConnected[0].second];
-        measurementA.value = helperLat;
-        measurementB.value = helperLat;
-        helperInstructions.insert({measurementA.type, measurementA});
-        helperInstructions.insert({measurementB.type, measurementB});
-        dbg(__func__, "found a helper for ", measurementA.type);
-        dbg(__func__, "found a helper for opposite type ", measurementB.type);
+        auto measurementA = mTypeA[fullyConnected[0].first];
+        auto measurementB = mTypeB[fullyConnected[0].second];
+        measurementA.lowerBound = 1;
+        measurementA.upperBound = helperLatUpperBound - 1;
+        measurementB.lowerBound = 1;
+        measurementB.upperBound = helperLatUpperBound - 1;
+
+        helperInstructionsLat.insert({measurementA.type, measurementA});
+        helperInstructionsLat.insert({measurementB.type, measurementB});
+        dbg(__func__, "found a helper for ", measurementA.type, ": ", measurementA);
+        dbg(__func__, "found a helper for opposite type ", measurementB.type, ": ", measurementB);
     }
+    // until now for e.g. xmm1 -> class(GR64) only instructions of exactly this type
+    // were considered, however if no suitable instructions were found we can use
+    // instructions with class(VR128X) -> class(GR64) as well.
     for (auto [mType, m] : classifiedMeasurements) {
-        // LatMeasurement4 *inst = helperInstructions.find(mType);
-        if (helperInstructions.find(mType) == helperInstructions.end()) {
+        if (helperInstructionsLat.find(mType) == helperInstructionsLat.end()) {
             dbg(__func__, "no helper for ", mType, "searching for replacement");
-            // until now for e.g. xmm1 -> class(GR64) only instructions of exactly this type
-            // were considered, however if no suitable instructions were found we can use
-            // instructions with class(VR128X) -> class(GR64) as well.
+            // holds all operands which can be used instead of the register
             std::set<Operand> replacementDefOperands;
             // insert the original operand to be used for new combination
             replacementDefOperands.insert(mType.defOp);
@@ -984,11 +1006,12 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
             for (auto defOpType : replacementDefOperands) {
                 for (auto useOpType : replacementUseOperands) {
                     DependencyType replacementType = DependencyType(defOpType, useOpType);
-                    if (helperInstructions.find(replacementType) != helperInstructions.end()) {
+                    if (helperInstructionsLat.find(replacementType) !=
+                        helperInstructionsLat.end()) {
                         // we have a helper for this type, use it for the current type
-                        LatMeasurement4 m = helperInstructions.at(replacementType);
-                        helperInstructions.insert({mType, m});
-                        dbg(__func__, "using", m, "as replacement helper for ", mType);
+                        LatMeasurement4 h = helperInstructionsLat.at(replacementType);
+                        helperInstructionsLat.insert({mType, h});
+                        dbg(__func__, "using", h, "as replacement helper for ", mType);
                         found = true;
                         break;
                     }
@@ -998,85 +1021,288 @@ void findHelperInstructions(std::vector<LatMeasurement4> Measurements, double Fr
             if (!found) dbg(__func__, "still no helper");
 
         } else {
-            LatMeasurement4 m = helperInstructions.at(mType);
-            dbg(__func__, "helper for ", mType, ":  ", m, " ", m.value);
+            LatMeasurement4 h = helperInstructionsLat.at(mType);
+            dbg(__func__, "helper for ", mType, ":  ", h, " ", h.lowerBound);
         }
     }
-    for (auto [mType, m] : helperInstructions) {
-        std::string name = env.MCII->getName(m.opcode).str();
-        name.resize(27, ' ');
-        dbg(__func__, "helper for ", mType, ": ", m, " ", m.value);
+    for (auto [mType, m] : helperInstructionsLat) {
+        out(*ios, "helper for ", mType, ": ", m);
     }
 }
 
-int buildLatDatabase4(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
-    // skip instructions which take long and are irrelevant
-    std::set<std::string> skipInstructions = {
-        "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
-        "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
-        "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
+// run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
+ErrorCode canMeasure(LatMeasurement4 Measurement, double Frequency) {
+    auto [EC, lat] = measureInSubprocess({Measurement}, 2, Frequency, "l");
+    if (!isError(EC)) return SUCCESS;
+    return EC;
+}
 
-    std::unordered_set<unsigned> skipOpcodes;
-    for (auto name : skipInstructions) {
-        skipOpcodes.insert(env.getOpcode(name));
+void buildLatDatabase(double Frequency) {
+    out(*ios, "number of measurements: ", latencyDatabase4.size());
+    // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
+    std::set<unsigned> opcodeBlacklist;
+    std::set<DependencyType> completedTypes;
+
+    // classify measurements by operand combination, measure if trivial
+    errs() << "phase1: trivial measurements\n";
+    size_t progress = 0;
+    std::map<DependencyType, std::vector<LatMeasurement4>> classifiedMeasurements;
+    for (auto measurement : latencyDatabase4) {
+        displayProgress(progress++, latencyDatabase4.size());
+        if (measurement.type.isSymmetric()) {
+            auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency, "l");
+            measurement.ec = EC;
+            measurement.lowerBound = lat;
+            measurement.upperBound = lat;
+            if (EC == WARNING_MULTIPLE_DEPENDENCIES)
+                out(*ios, "---", measurement, "---\n",
+                    "WARNING generated instructions have multiple dependencies between each "
+                    "other. If they have different latencys the lower one will be shadowed");
+            classifiedMeasurements[measurement.type].emplace_back(measurement);
+            completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
+            if (EC == ILLEGAL_INSTRUCTION) opcodeBlacklist.emplace(measurement.opcode);
+        } else if (canMeasure(measurement, Frequency) == SUCCESS)
+            // needs helper to be measured, classify but dont measure yet
+            classifiedMeasurements[measurement.type].emplace_back(measurement);
     }
 
-    // auto measurements = generator.genLatMeasurements();
-    std::vector<LatMeasurement4> measurements =
-        genLatMeasurements4(MinOpcode, MaxOpcode, skipOpcodes);
-    findHelperInstructions(measurements, Frequency);
-    // for (auto [mType, m] : helperInstructions) {
-    //     dbg(__func__, "opcode", m.opcode);
-    //     std::string name = env.MCII->getName(m.opcode).data();
-    //     dbg(__func__, "helper: ", generator.latMeasurementTypeToString(mType), " ",
-    //     name.data(),
-    //         " ", m.value);
-    // }
+    // now iterate over all pairs A, B of dependencyTypes where A.reversed() == B and do the
+    // measurements of those types
+    // e.g. if A is GR16 -> EFLAGS, B is EFLAGS -> GR16 and we can measure combinations of
+    // instructions in A and B
+    errs() << "\nphase2: measurements with helpers\n";
+    progress = 0;
+    for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
+        displayProgress(progress++, classifiedMeasurements.size());
+        if (completedTypes.find(dTypeA) != completedTypes.end()) continue;
+
+        DependencyType dTypeB = dTypeA.reversed();
+        completedTypes.insert(dTypeA);
+        completedTypes.insert(dTypeB);
+        out(*ios, "-----", dTypeA, " and ", dTypeB, "-----");
+        out(*ios, measurementsA.size(), " measurements of first Type");
+        // check if there are measurements for dTypeB
+        if (classifiedMeasurements.find(dTypeB) == classifiedMeasurements.end()) {
+            out(*ios, "no measurements of type ", dTypeB, " so ", dTypeA,
+                " can also not be measured");
+            for (auto &mA : measurementsA)
+                mA.ec = ERROR_NO_HELPER;
+            continue;
+        }
+        auto &measurementsB = classifiedMeasurements[dTypeB];
+        out(*ios, measurementsB.size(), " measurements of reversed Type");
+        // from now on, if the errorCode doesnt get set by measuring the instructions it is because
+        // there is no helper. Set all error codes to ERROR_NO_HELPER here to avoid duplicate code
+        for (auto &mA : measurementsA)
+            mA.ec = ERROR_NO_HELPER;
+        for (auto &mB : measurementsB)
+            mB.ec = ERROR_NO_HELPER;
+
+        // find the pair of instructions that has the smallest combined latency. then use those
+        // two
+        // instructions to measure all other. This way the resulting ranges are as small as posible
+        double minCombinedLat = 1000;
+        // select first A which can be measured
+        LatMeasurement4 &smallestA = measurementsA[0];
+        for (auto &mA : measurementsA) {
+            if (opcodeBlacklist.find(mA.opcode) != opcodeBlacklist.end()) continue;
+            smallestA = mA;
+            break;
+        }
+        // check if there is any valid A
+        if (opcodeBlacklist.find(smallestA.opcode) != opcodeBlacklist.end()) {
+            out(*ios, "no measurement of type ", dTypeA, " can be executed successfully");
+            continue;
+        }
+
+        // find smallest B
+        LatMeasurement4 &smallestB = measurementsB[0];
+        for (LatMeasurement4 &mB : measurementsB) {
+            if (opcodeBlacklist.find(mB.opcode) != opcodeBlacklist.end()) continue;
+            if (mB.opcode == smallestA.opcode) continue;
+            auto [EC, lat] = measureInSubprocess({smallestA, mB}, 1e6, Frequency, "l");
+            dbg(__func__, "measured ", lat, " from ", mB, " and ", smallestA);
+            if (EC != SUCCESS) {
+                if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
+                    out(*ios, "Detected multiple dependencys between the interleaved instructions. "
+                              "This will not be considered for finding helpers");
+                } else {
+                    out(*ios, "measuring ", smallestA, " and ", mB,
+                        " was unsuccessful, EC: ", ecToString(EC),
+                        " this is unusual because both were executed individually before");
+                }
+                continue;
+            }
+            if (isUnusualLat(lat)) {
+                out(*ios, "unusual ", lat, " from ", mB, " and ", smallestA);
+                continue;
+            }
+            if (lat < minCombinedLat) {
+                smallestB = mB;
+                minCombinedLat = lat;
+            }
+            // optimization: there is nothing better than two instructions with latency 1 cy
+            if (minCombinedLat == 2) break;
+        }
+        // check if there is any valid B
+        if (opcodeBlacklist.find(smallestB.opcode) != opcodeBlacklist.end()) {
+            out(*ios, "no measurement of type ", dTypeB, " can be executed successfully");
+            continue;
+        }
+
+        // we have the smallest measurement of type B, measure all of type A and keep track of
+        // the one with the smallest latency
+        for (LatMeasurement4 &mA : measurementsA) {
+            if (opcodeBlacklist.find(mA.opcode) != opcodeBlacklist.end()) continue;
+            if (mA.opcode == smallestB.opcode) continue;
+            auto [EC, lat] = measureInSubprocess({mA, smallestB}, 1e6, Frequency, "l");
+            dbg(__func__, "measured ", lat, " from ", mA, " and ", smallestB);
+            if (EC != SUCCESS) {
+                if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
+                    out(*ios, "Detected multiple dependencys between the interleaved instructions. "
+                              "This will not be considered for finding helpers");
+                } else {
+                    out(*ios, "measuring ", mA, " and ", smallestB,
+                        " was unsuccessful, EC: ", ecToString(EC),
+                        " this is unusual because both were executed individually before");
+                }
+                continue;
+            }
+            if (isUnusualLat(lat)) {
+                out(*ios, "unusual ", lat, " from ", mA, " and ", smallestB);
+                continue;
+            }
+            if (lat < minCombinedLat) {
+                smallestA = mA;
+                minCombinedLat = lat;
+            }
+            // optimization: there is nothing better than two instructions with latency 1 cy
+            if (minCombinedLat == 2) break;
+        }
+        if (isUnusualLat(minCombinedLat) || minCombinedLat < 2) {
+            out(*ios, "can not find a pair with normal latency for types");
+            continue;
+        }
+
+        smallestA.lowerBound = 1;
+        smallestA.upperBound = minCombinedLat - 1;
+        smallestB.lowerBound = 1;
+        smallestB.upperBound = minCombinedLat - 1;
+        // we now have the two measurements with the lowest combined latency
+        // use them to measure everything else
+        for (LatMeasurement4 &mA : measurementsA) {
+            if (opcodeBlacklist.find(mA.opcode) != opcodeBlacklist.end()) continue;
+            if (mA.opcode == smallestB.opcode) continue;
+            auto [EC, lat] = measureInSubprocess({mA, smallestB}, 1e6, Frequency, "l");
+            mA.ec = EC;
+            mA.lowerBound = lat - smallestB.upperBound;
+            mA.upperBound = lat - smallestB.lowerBound;
+            if (EC == SUCCESS) {
+                out(*ios, "---", mA, "---");
+                out(*ios, "\tDependencies: ", smallestA, ", ", smallestB);
+                out(*ios, "\tCombined: ", lat, " cycles");
+            }
+        }
+        for (LatMeasurement4 &mB : measurementsB) {
+            if (opcodeBlacklist.find(mB.opcode) != opcodeBlacklist.end()) continue;
+            if (mB.opcode == smallestA.opcode) continue;
+            auto [EC, lat] = measureInSubprocess({smallestA, mB}, 1e6, Frequency, "l");
+            mB.ec = EC;
+            mB.lowerBound = lat - smallestA.upperBound;
+            mB.upperBound = lat - smallestA.lowerBound;
+            if (EC == SUCCESS) {
+                out(*ios, "---", mB, "---");
+                out(*ios, "\tDependencies: ", smallestA, ", ", smallestB);
+                out(*ios, "\tCombined: ", lat, " cycles");
+            }
+        }
+    }
+
+    // print results
+    for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
+        for (LatMeasurement4 &measurement : measurementsA) {
+            std::string name = env.MCII->getName(measurement.opcode).data();
+            name.resize(27, ' ');
+
+            std::ostringstream ss;
+            ss << measurement;
+            if (!isError(measurement.ec)) {
+                std::printf("%s\n", ss.str().data());
+                fflush(stdout);
+            } else {
+                outs() << ss.str().data() << " " << "skipped for reason\t "
+                       << ecToString(measurement.ec) << "\n";
+                outs().flush();
+            }
+        }
+    }
+}
+
+int buildLatDatabase4(double Frequency) {
+    errs() << "phase1: finding helpers\n";
+    // fill the global helperInstructionsLat
+    findHelperInstructions(Frequency);
+    errs() << "\nphase2: main benchmarking phase\n";
+
+    // cache if execution results in ILLEGAL_INSTRUCTION to skip executing other
+    // variants of the instruction
+    std::set<unsigned> illegalInstructions;
     // main benchmarking phase
+    size_t progress = 0;
+    for (LatMeasurement4 &measurement : latencyDatabase4) {
+        displayProgress(progress++, latencyDatabase4.size());
+        if (measurement.ec != NO_ERROR_CODE) continue; // already measured (e.g. helper)
+        if (illegalInstructions.find(measurement.opcode) != illegalInstructions.end()) {
+            measurement.ec = ILLEGAL_INSTRUCTION;
+            continue;
+        }
 
-    //     // unsigned indexA, indexB = 0;
-    //     std::string currentIndex = "B";
-    //     unsigned minLatency;
-    //     std::vector<LatMeasurement> selectedA;
-    //     std::vector<LatMeasurement> selectedB;
-    //     while (true) {
-    //         double latCombined = 1; // measure TODO
-    //         if (equalWithTolerance(latCombined, minLatency)) {
-    //             if (currentIndex == "A")
-    //                 selectedA.emplace_back(typeA[indexA]);
-    //             else
-    //                 selectedB.emplace_back(typeA[indexB]);
-    //         }
-    //     }
+        if (measurement.type.canCreateDependencyChain()) {
+            // no helper needed
+            auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency, "l");
+            measurement.ec = EC;
+            measurement.lowerBound = lat;
+            measurement.upperBound = lat;
+            if (EC == ILLEGAL_INSTRUCTION) illegalInstructions.emplace(measurement.opcode);
+            continue;
+        }
+        if (helperInstructionsLat.find(measurement.type.reversed()) ==
+            helperInstructionsLat.end()) {
+            measurement.ec = ERROR_NO_HELPER;
+            continue;
+        }
+        auto helper = helperInstructionsLat.at(measurement.type.reversed());
+        auto [EC, lat] = measureInSubprocess({measurement, helper}, 1e6, Frequency, "l");
+        if (EC == ILLEGAL_INSTRUCTION) illegalInstructions.emplace(measurement.opcode);
+        if (EC == SUCCESS) out(*ios, "-----", measurement, "-----");
 
-    //     double targetLatency;
-    //     for (unsigned maxTargetLatency = 1; maxTargetLatency < 10; maxTargetLatency++) {
-    //         for (auto cur : typeA) {
-    //             for (auto opp : typeB) {
-    //                 // measure latency TODO
-    //                 double combinedLat = 2.024;
-    //                 // does meet target?
-    //                 if (!smallerEqWithTolerance(combinedLat, maxTargetLatency * 2.0))
-    //                     continue; // TODO cache result
-    //                 // validate with other selected instructions
-    //                 combinedLat = 1; // TODO
-    //                 if (!equalWithTolerance(combinedLat, targetLatency))
-    //                     selectedA.emplace_back(cur);
-    //                 selectedB.emplace_back(opp);
-    //                 if (selectedB.size() >= 3) break;
-    //             }
-    //             if (selectedA.size() >= 3) break;
-    //         }
-    //     }
-    // }
+        measurement.ec = EC;
+        measurement.lowerBound = lat - helper.upperBound;
+        measurement.upperBound = lat - helper.lowerBound;
+        if (EC == SUCCESS) {
+            out(*ios, "Helper: ", helper);
+            out(*ios, "Combined: ", lat, " cycles");
+            out(*ios, "Instruction: ", measurement);
+        }
+    }
+    // print results
+    for (LatMeasurement4 &measurement : latencyDatabase4) {
+        std::string name = env.MCII->getName(measurement.opcode).data();
+        name.resize(27, ' ');
 
-    // bool gotNewMeasurement = true;
-    // // rerun multiple times if more helper instructions are available now
-    // while (gotNewMeasurement) {
-    //     gotNewMeasurement = false;
-    //     for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-    //         displayProgress(opcode, MaxOpcode);
-    //         if (errorCodeDatabase[opcode] != ERROR_NO_HELPER) continue;
+        std::ostringstream ss;
+        ss << measurement;
+        if (measurement.ec == SUCCESS) {
+            std::printf("%s\n", ss.str().data());
+            fflush(stdout);
+        } else {
+            outs() << ss.str().data() << " " << "skipped for reason\t "
+                   << ecToString(measurement.ec) << "\n";
+            outs().flush();
+        }
+    }
+    return 0;
+}
 
 std::string generate_timestamped_filename(const std::string &prefix, const std::string &extension) {
     // Get current time
@@ -1113,7 +1339,7 @@ int main(int argc, char **argv) {
     };
     std::vector<std::string> instrNames;
     std::vector<unsigned> opcodes;
-    double frequency = 3.75;
+    double frequency;
     int opt;
     std::string cpu = "";
     std::string march = "";
@@ -1123,13 +1349,18 @@ int main(int argc, char **argv) {
         std::cerr << "Usage: " << argv[0] << " {TP|LAT|INTERLEAVE|DEV} [options]\n";
         return 1;
     }
+    std::string filename = generate_timestamped_filename("run", ".log");
+    setOutputToFile(filename);
+
     enum Modes { TP, LAT, INTERLEAVE, DEV };
     std::string modeStr = argv[1];
     Modes mode;
     if (modeStr == "TP") {
         mode = TP;
+        out(*ios, "Mode: Throughput");
     } else if (modeStr == "LAT") {
         mode = LAT;
+        out(*ios, "Mode: Latency");
     } else if (modeStr == "INTERLEAVE") {
         mode = INTERLEAVE;
     } else if (modeStr == "DEV") {
@@ -1173,23 +1404,28 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
+    out(*ios, "Frequency: ", frequency, " GHz");
     debug = false;
     dbgToFile = false;
-    std::string filename = generate_timestamped_filename("run", ".log");
-    setOutputToFile(filename);
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
     // static LLVMEnvironment  env = LLVMEnvironment(march, cpu);
     ErrorCode ec = env.setUp(march, cpu);
     if (ec != SUCCESS) {
-        outs() << "failed to set up environment: " << ecToString(ec) << "\n";
+        std::cerr << "failed to set up environment: " << ecToString(ec) << "\n";
         return 1;
     }
+    out(*ios, "Arch: ", env.MSTI->getCPU().str());
     if (maxOpcode == 0) maxOpcode = env.MCII->getNumOpcodes();
 
     latencyDatabase.resize(maxOpcode, -1.0);
     errorCodeDatabase.resize(maxOpcode, ERROR_NO_HELPER);
+
+    for (auto instrName : instrNames) {
+        unsigned opcode = env.getOpcode(instrName.data());
+        opcodes.emplace_back(opcode);
+    }
     switch (mode) {
     case INTERLEAVE: {
         dbg(__func__, "no code in INTERLEAVE mode");
@@ -1256,30 +1492,51 @@ int main(int argc, char **argv) {
         break;
     }
     case LAT: {
+        // skip instructions which take long and are irrelevant
+        std::set<std::string> skipInstructions = {
+            "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r",
+            "RDSEED16r", "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",
+            "SLDT64r",   "SMSW16r",   "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",
+            "STR64r",    "VERRr",     "VERWr"};
+
+        std::unordered_set<unsigned> skipOpcodes;
+        for (auto name : skipInstructions) {
+            skipOpcodes.insert(env.getOpcode(name));
+        }
+
         // example chain ADC16ri8 CMP16ri8
         // ADC32i32 PCMPESTRIrri CVTSI2SDrr TODO debug
-        if (instrNames.empty()) {
-            // buildLatDatabase(frequency, maxOpcode);
-            debug = true;
-            dbgToFile = true;
-            buildLatDatabase4(frequency, maxOpcode);
+        if (instrNames.empty() && opcodes.empty()) {
+            // debug = true;
+            out(*ios, "No instructions specified, measuring all instructions from opcode ",
+                minOpcode, " to ", maxOpcode);
+            debug = true; // TODO remove
+            latencyDatabase4 = genLatMeasurements4(minOpcode, maxOpcode, skipOpcodes);
+            buildLatDatabase(frequency);
             break;
         }
         dbgToFile = true;
         debug = true;
-        for (auto instrName : instrNames) {
-            unsigned opcode = env.getOpcode(instrName.data());
 
-            auto [EC, lat] = measureInSubprocess(opcode, frequency, "l");
-            if (EC != SUCCESS) {
-                outs() << "failed for reason: " << ecToString(EC) << "\n";
-                outs().flush();
-            } else {
-                std::printf("%.3f (clock cycles)\n", lat);
-                fflush(stdout);
-            }
-            latencyDatabase[env.getOpcode(instrName)] = lat;
+        for (auto opcode : opcodes) {
+            auto measurements = genLatMeasurements4(opcode, opcode + 1, {});
+            latencyDatabase4.insert(latencyDatabase4.begin(), measurements.begin(),
+                                    measurements.end());
         }
+        buildLatDatabase4(frequency);
+
+        // old lat
+        // for (auto opcode : opcodes) {
+        //     auto [EC, lower, upper] = measureInSubprocess(opcode, frequency, "l");
+        //     if (EC != SUCCESS) {
+        //         outs() << "failed for reason: " << ecToString(EC) << "\n";
+        //         outs().flush();
+        //     } else {
+        //         std::printf("%.3f (clock cycles)\n", lower);
+        //         fflush(stdout);
+        //     }
+        //     latencyDatabase[opcode] = lower;
+        // }
         break;
     }
     case DEV: {
@@ -1289,7 +1546,7 @@ int main(int argc, char **argv) {
     }
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
-    printf("total runtime: %f (s)\n", totalRuntime);
+    out(*ios, "total runtime: ", totalRuntime, " (s)");
     std::cerr << " done\n";
 
     return 0;

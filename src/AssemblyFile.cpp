@@ -4,7 +4,8 @@
 #include "llvm/Support/raw_ostream.h" // for raw_string_ostream, raw_ostream
 #include <assert.h>                   // for assert
 #include <cstdlib>                    // for size_t
-#include <string>                     // for basic_string, string, operator<
+#include <iostream>
+#include <string> // for basic_string, string, operator<
 
 // static std::string replaceFunctionName(std::string Str, std::string Name) {
 //     size_t pos = Str.find("latency");
@@ -73,6 +74,10 @@ std::string AssemblyFile::getInitNameFor(std::string BenchName) {
  * @return std::string Assembly code as a string.
  */
 std::string AssemblyFile::generateAssembly() {
+    if (arch == 0) {
+        std::cerr << "called generateAssembly on uninitialized AssemblyFile\n";
+        return "";
+    }
     std::string result;
     llvm::raw_string_ostream rso(result);
     Template benchTemplate = getTemplate(arch);

@@ -35,11 +35,16 @@ enum ErrorCode {
     ERROR_NO_REGISTERS,
     ERROR_GEN_REQUIREMENT,
     ERROR_UNSUPPORTED_ARCH,
+    WARNING_MULTIPLE_DEPENDENCIES,
     ERROR_SIGFPE,
     ERROR_EXEC,
+    NO_ERROR_CODE,
     ERROR_GENERIC,
 };
 
 std::string ecToString(ErrorCode EC);
+
+// returns true if EC is SUCCESS, a warning or the default EC
+bool isError(ErrorCode EC);
 
 #endif // ERROR_CODE_H

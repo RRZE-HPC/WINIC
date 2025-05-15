@@ -65,13 +65,21 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_GEN_REQUIREMENT";
     case ERROR_UNSUPPORTED_ARCH:
         return "ERROR_UNSUPPORTED_ARCH";
+    case WARNING_MULTIPLE_DEPENDENCIES:
+        return "WARNING_MULIPLE_DEPENDENCIES";
     case ERROR_SIGFPE:
         return "ERROR_SIGFPE";
     case ERROR_EXEC:
         return "ERROR_EXEC";
     case ERROR_GENERIC:
         return "ERROR_GENERIC";
+    case NO_ERROR_CODE:
+        return "NO_ERROR_CODE";
     default:
         return "description missing for this error";
     }
+}
+
+bool isError(ErrorCode EC) {
+    return EC != SUCCESS && EC != WARNING_MULTIPLE_DEPENDENCIES && EC != NO_ERROR_CODE;
 }

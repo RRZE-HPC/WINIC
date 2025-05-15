@@ -13,7 +13,6 @@
 #include <tuple>                // for tuple
 #include <unordered_map>        // for unordered_map
 #include <utility>              // for pair
-#include <variant>              // for tuple
 #include <vector>               // for vector
 
 class LLVMEnvironment;
@@ -21,9 +20,6 @@ namespace llvm {
 class MCInst;
 }
 
-class BenchmarkGenerator;
-class LLVMEnvironment;
-struct LatMeasurement4;
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
@@ -41,11 +37,15 @@ static std::unordered_map<unsigned, TPResult> throughputDatabase;
 // opcodes in this list will be used as helpers wherever possible even when they define a
 // superregister of the register we need a helper for
 static std::list<unsigned> priorityTPHelper;
+static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
+    helperInstructions; // opcode, read/write register
 
 static std::vector<float> latencyDatabase;
 static std::vector<ErrorCode> errorCodeDatabase;
-static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
-    helperInstructions; // opcode, read/write register
+
+static std::map<DependencyType, LatMeasurement4> helperInstructionsLat;
+static std::vector<LatMeasurement4> latencyDatabase4;
+
 static bool dbgToFile = true;
 extern LLVMEnvironment env;
 
@@ -63,8 +63,9 @@ std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>>
 getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg);
 
 // Measure the througput of the instructions with Opcode. Runs multiple benchmarks to correct
-// overhead of loop instructions. This may segfault e.g. on privileged instructions like CLGI
-std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, double Frequency);
+// overhead of loop instructions. This may segfault e.g. on privileged instructions like CLGI.
+// returns a lower and an upper bound for the TP.
+std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency);
 
 // Measure the latency of the instructions with Opcode. Runs multiple benchmarks to correct
 // overhead of loop instructions.
@@ -72,31 +73,38 @@ std::pair<ErrorCode, double> measureThroughput(unsigned Opcode, double Frequency
 std::pair<ErrorCode, double> measureLatency(unsigned Opcode, double Frequency);
 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount,
-                                             double Frequency);
+                                             unsigned NumInst, unsigned LoopCount, double Frequency,
+                                             bool Throughput);
 
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
-std::pair<ErrorCode, double> measureLatency4(std::list<LatMeasurement4> Measurements,
-                                             double Frequency);
+std::pair<ErrorCode, double> measureLatency4(const std::list<LatMeasurement4> &Measurements,
+                                             unsigned LoopCount, double Frequency);
 
 // calls one of the measure functions in a subprocess to recover from segfaults during the
 // benchmarking process Type = "t" for throughput or "l" for latency
-std::pair<ErrorCode, double> measureInSubprocess(unsigned Opcode, double Frequency,
-                                                 std::string Type);
+std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
+                                                          std::string Type);
 
-std::pair<ErrorCode, double> measureInSubprocess(std::list<LatMeasurement4> Measurements,
-                                                 double Frequency, std::string Type);
+std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement4> &Measurements,
+                                                 unsigned LoopCount, double Frequency,
+                                                 std::string Type);
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
 int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-int buildLatDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
+int buildLatDatabasePerInstruction(double Frequency, unsigned MinOpcode = 0,
+                                   unsigned MaxOpcode = 0);
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
 inline bool smallerEqWithTolerance(double A, double B) { return A < B || equalWithTolerance(A, B); }
-inline bool isSus(double A) { return !equalWithTolerance(std::round(A), A); }
+// usual latencies are close to an integer >= 1
+inline bool isUnusualLat(double A) {
+    if (A < 1) return true;
+    if (A > 600) return true;
+    return !equalWithTolerance(std::round(A), A);
+}
 
 bool hasConnectionTo(std::vector<std::pair<unsigned, unsigned>> Values, unsigned First,
                      unsigned Second);
@@ -106,13 +114,19 @@ std::string pairVectorToString(std::vector<std::pair<unsigned, unsigned>> Values
 std::vector<std::pair<unsigned, unsigned>>
 findFullyConnected(std::vector<std::pair<unsigned, unsigned>> Edges, unsigned Number);
 
+// check if a and b are the same instruction with different operands
 bool isVariant(unsigned A, unsigned B);
 
-void findHelperInstructions(std::vector<LatMeasurement4> Measurements, LLVMEnvironment &Env,
-                            double Frequency);
+// try to find a helper for all measurement types in latDatabase4
+void findHelperInstructions(LLVMEnvironment &Env, double Frequency);
 
-// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-int buildLatDatabase4(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
+// run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
+ErrorCode canMeasure(LatMeasurement4 Measurement, double Frequency);
+
+// measure all instructions in latencyDatabase4
+int buildLatDatabase4(double Frequency);
+
+void buildLatDatabase(double Frequency);
 
 int main(int argc, char **argv);
 

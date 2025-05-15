@@ -1,11 +1,13 @@
 
 #include "BenchmarkGenerator.h"
 
-#include "AssemblyFile.h"                    // for AssemblyFile, replaceAl...
-#include "CustomDebug.h"                     // for dbg
-#include "ErrorCode.h"                       // for ErrorCode, ecToString
-#include "Globals.h"                         // for env, LatMeasurement4
-#include "LLVMEnvironment.h"                 // for LLVMEnvironment
+#include "AssemblyFile.h" // for AssemblyFile, replaceAl...
+#include "CustomDebug.h"  // for dbg
+#include "ErrorCode.h"    // for ErrorCode, ecToString
+#include "Globals.h"      // for env, LatMeasurement4
+#include "LLVMBench.h"
+#include "LLVMEnvironment.h" // for LLVMEnvironment
+#include "MCTargetDesc/X86MCTargetDesc.h"
 #include "Templates.h"                       // for Template, getTemplate
 #include "llvm/ADT/ArrayRef.h"               // for ArrayRef
 #include "llvm/ADT/StringRef.h"              // for StringRef
@@ -68,7 +70,7 @@ std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned Ma
                     LatMeasurement4(opcode,
                                     DependencyType(Operand::fromRegClass(defOperand.RegClass),
                                                    Operand::fromRegClass(useOperand.RegClass)),
-                                    i, j, -1);
+                                    i, j);
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
             }
@@ -80,7 +82,7 @@ std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned Ma
                     LatMeasurement4(opcode,
                                     DependencyType(Operand::fromRegClass(defOperand.RegClass),
                                                    Operand::fromRegister(useReg)),
-                                    i, 999, -1);
+                                    i, 999);
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
             }
@@ -95,7 +97,7 @@ std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned Ma
                 auto m = LatMeasurement4(opcode,
                                          DependencyType(Operand::fromRegister(defReg),
                                                         Operand::fromRegClass(useOperand.RegClass)),
-                                         i, j, -1);
+                                         999, j);
 
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
@@ -106,8 +108,8 @@ std::vector<LatMeasurement4> genLatMeasurements4(unsigned MinOpcode, unsigned Ma
                 MCRegister useReg = implUses[j];
                 auto m = LatMeasurement4(
                     opcode,
-                    DependencyType(Operand::fromRegister(defReg), Operand::fromRegister(useReg)), i,
-                    j, -1);
+                    DependencyType(Operand::fromRegister(defReg), Operand::fromRegister(useReg)),
+                    999, 999);
 
                 measurements.emplace_back(m);
                 dbg(__func__, "adding ", m);
@@ -239,10 +241,10 @@ std::tuple<ErrorCode, AssemblyFile, int> genLatBenchmark(
     return {SUCCESS, assemblyFile, -1};
 }
 
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> Measurements,
+std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(const std::list<LatMeasurement4> &Measurements,
                                                     unsigned *TargetInstrCount,
                                                     std::set<MCRegister> UsedRegisters) {
-    // dbg(__func__, "generating latency benchmark for ", env.MCII->getName(Opcode).data());
+    dbg(__func__, "generating latency benchmark");
     auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
     for (unsigned i = 0; i < env.MRI->getNumRegs(); i++) {
@@ -291,7 +293,6 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> M
             // generate code to save and restore register
             // this currently also saves registers already saved in the template
             // which is redundant but not harmful
-            dbg(__func__, "generating save/restore code");
             auto [EC1, save] = genSaveRegister(reg);
             if (EC1 != SUCCESS) return {EC1, AssemblyFile()};
             saveRegs.append(save);
@@ -301,6 +302,8 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> M
         }
     }
 
+    dbg(__func__, "printing");
+
     std::string loopCode;
     llvm::raw_string_ostream lco(loopCode);
     for (unsigned i = 0; i < *TargetInstrCount; ++i) {
@@ -309,6 +312,7 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> M
             lco << "\n";
         }
     }
+    dbg(__func__, "inti code");
     std::string initCode;
     llvm::raw_string_ostream ico(initCode);
     ico << saveRegs << "\n";
@@ -325,11 +329,23 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark4(std::list<LatMeasurement4> M
     }
     ico << restoreRegs << "\n";
 
+    dbg(__func__, "assembly file");
     AssemblyFile assemblyFile(env.Arch);
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs, "init");
     assemblyFile.addBenchFunction("latencyUnrolled", saveRegs, loopCode + loopCode, restoreRegs,
                                   "init");
+    dbg(__func__, "checking deps");
+
+    // check if each instruction of the sequence has exactly one dependency to the next one.
+    // otherwise return a warning
+    for (size_t i = 0; i < instructions.size() - 1; i++)
+        if (getDependencies(instructions[i], instructions[i + 1]).size() != 1)
+            return {WARNING_MULTIPLE_DEPENDENCIES, assemblyFile};
+
+    if (getDependencies(instructions[instructions.size() - 1], instructions[0]).size() != 1)
+        return {WARNING_MULTIPLE_DEPENDENCIES, assemblyFile};
+
     return {SUCCESS, assemblyFile};
 }
 
@@ -740,7 +756,7 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
     std::tie(ec, Reg) = getSupermostRegister(Reg);
     if (ec != SUCCESS) return {ec, ""};
     std::string result;
-    llvm::raw_string_ostream rso(result); // Wrap with raw_ostream
+    llvm::raw_string_ostream os(result); // Wrap with raw_ostream
 
     switch (env.Arch) {
     case llvm::Triple::x86_64: {
@@ -748,8 +764,8 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
         inst.setOpcode(env.getOpcode("PUSH64r"));
         inst.clear();
         inst.addOperand(MCOperand::createReg(Reg));
-        env.MIP->printInst(&inst, 0, "", *env.MSTI, rso);
-        rso << "\n";
+        env.MIP->printInst(&inst, 0, "", *env.MSTI, os);
+        os << "\n";
         break;
     }
     case llvm::Triple::aarch64:
@@ -766,7 +782,7 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     std::tie(ec, Reg) = getSupermostRegister(Reg);
     if (ec != SUCCESS) return {ec, ""};
     std::string result;
-    llvm::raw_string_ostream rso(result);
+    llvm::raw_string_ostream os(result);
 
     switch (env.Arch) {
     case llvm::Triple::x86_64: {
@@ -774,8 +790,8 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
         inst.setOpcode(env.getOpcode("POP64r"));
         inst.clear();
         inst.addOperand(MCOperand::createReg(Reg));
-        env.MIP->printInst(&inst, 0, "", *env.MSTI, rso);
-        rso << "\n";
+        env.MIP->printInst(&inst, 0, "", *env.MSTI, os);
+        os << "\n";
         break;
     }
     case llvm::Triple::aarch64:
