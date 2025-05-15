@@ -1,5 +1,4 @@
 #include "LLVMEnvironment.h"
-#include "CustomDebug.h"
 
 #include "CustomDebug.h"                      // for dbg
 #include "llvm/ADT/ArrayRef.h"                // for ArrayRef
@@ -140,12 +139,12 @@ std::string LLVMEnvironment::regClassToString(unsigned RegClassID) {
     return MRI->getRegClassName(&regClass);
 }
 
-int LLVMEnvironment::getOpcode(std::string InstructionName) {
+unsigned LLVMEnvironment::getOpcode(std::string InstructionName) {
     for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i)
         if (MCII->getName(i) == InstructionName) return i;
 
     dbg(__func__, "Instruction not found: ", InstructionName);
-    return -1;
+    return std::numeric_limits<unsigned>::max();
 }
 
 std::set<MCRegister> LLVMEnvironment::getPossibleReadRegs(unsigned Opcode) {

@@ -3,7 +3,7 @@
 
 #include "AssemblyFile.h"       // for AssemblyFile
 #include "ErrorCode.h"          // for ErrorCode
-#include "Globals.h"            // for LatMeasurement4 (ptr only), Dependen...
+#include "Globals.h"            // for LatMeasurement (ptr only), Dependen...
 #include "llvm/MC/MCRegister.h" // for MCRegister
 #include <cmath>                // for round, abs
 #include <list>                 // for list
@@ -42,8 +42,8 @@ static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>
 static std::vector<float> latencyDatabase;
 static std::vector<ErrorCode> errorCodeDatabase;
 
-static std::map<DependencyType, LatMeasurement4> helperInstructionsLat;
-static std::vector<LatMeasurement4> latencyDatabase4;
+static std::map<DependencyType, LatMeasurement> helperInstructionsLat;
+static std::vector<LatMeasurement> latencyDatabase4;
 
 static bool dbgToFile = true;
 extern LLVMEnvironment env;
@@ -59,7 +59,7 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
 // if no helper is needed returns {SUCCESS, -1, {}}
 // if one is needed but none can be found returns {ERROR_NO_HELPER, -1, {}}
 std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>>
-getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg);
+getTPHelperInstruction(unsigned Opcode);
 
 // Measure the througput of the instructions with Opcode. Runs multiple benchmarks to correct
 // overhead of loop instructions. This may segfault e.g. on privileged instructions like CLGI.
@@ -72,7 +72,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
 
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
-std::pair<ErrorCode, double> measureLatency4(const std::list<LatMeasurement4> &Measurements,
+std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
                                              unsigned LoopCount, double Frequency);
 
 // calls measureThroughput in a subprocess to recover from segfaults during the
@@ -81,7 +81,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
 
 // calls measureLatency in a subprocess to recover from segfaults during the
 // benchmarking process
-std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement4> &Measurements,
+std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
                                                  unsigned LoopCount, double Frequency);
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
@@ -102,7 +102,7 @@ std::string pairVectorToString(std::vector<std::pair<unsigned, unsigned>> Values
 bool isVariant(unsigned A, unsigned B);
 
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
-ErrorCode canMeasure(LatMeasurement4 Measurement, double Frequency);
+ErrorCode canMeasure(LatMeasurement Measurement, double Frequency);
 
 void buildLatDatabase(double Frequency);
 

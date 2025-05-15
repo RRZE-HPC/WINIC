@@ -64,7 +64,7 @@ class LLVMEnvironment {
 
     // get Opcode for instruction
     // TODO there probably is a mechanism for this in llvm -> find and use
-    int getOpcode(std::string InstructionName);
+    unsigned getOpcode(std::string InstructionName);
 
     /**
      * get all registers which can be read by an instruction including implicit uses

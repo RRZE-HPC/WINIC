@@ -65,6 +65,7 @@ struct Operand {
         return reg;
     }
 };
+
 inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
     if (Op.isRegClass())
         return OS << "Class(" << env.MRI->getRegClassName(&env.MRI->getRegClass(Op.getRegClass()))
@@ -105,7 +106,7 @@ inline std::ostream &operator<<(std::ostream &OS, const DependencyType &Op) {
     return OS << Op.useOp << " -> " << Op.defOp;
 }
 
-struct LatMeasurement4 {
+struct LatMeasurement {
     unsigned opcode;
     DependencyType type; // e.g. R64 -> EFLAGS
     unsigned defIndex;   // which operand is type.defOp (999 if implicit)
@@ -115,12 +116,12 @@ struct LatMeasurement4 {
     double upperBound;
     ErrorCode ec;
 
-    LatMeasurement4() : lowerBound(-1), upperBound(-1), ec(NO_ERROR_CODE) {}
-    LatMeasurement4(unsigned Opcode, DependencyType Type, unsigned DefIndex, unsigned UseIndex,
-                    double LowerBound = -1, double UpperBound = -1, ErrorCode EC = NO_ERROR_CODE)
+    LatMeasurement() : lowerBound(-1), upperBound(-1), ec(NO_ERROR_CODE) {}
+    LatMeasurement(unsigned Opcode, DependencyType Type, unsigned DefIndex, unsigned UseIndex,
+                   double LowerBound = -1, double UpperBound = -1, ErrorCode EC = NO_ERROR_CODE)
         : opcode(Opcode), type(Type), defIndex(DefIndex), useIndex(UseIndex),
           lowerBound(LowerBound), upperBound(UpperBound), ec(EC) {}
-    bool operator==(const LatMeasurement4 &Other) const {
+    bool operator==(const LatMeasurement &Other) const {
         return opcode == Other.opcode && type == Other.type && defIndex == Other.defIndex &&
                useIndex == Other.useIndex;
     }
@@ -129,7 +130,8 @@ struct LatMeasurement4 {
         return "[" + std::to_string(lowerBound) + ";" + std::to_string(upperBound) + "]";
     }
 };
-inline std::ostream &operator<<(std::ostream &OS, const LatMeasurement4 &Op) {
+
+inline std::ostream &operator<<(std::ostream &OS, const LatMeasurement &Op) {
     std::string useIndexString = std::to_string(Op.useIndex);
     std::string defIndexString = std::to_string(Op.defIndex);
     // useIndex == 999 means unused which means implicit
