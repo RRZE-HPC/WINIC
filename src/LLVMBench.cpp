@@ -51,7 +51,45 @@
 #define CLANG_PATH "usr/bin/clang"
 #endif
 
-void *globalHandle = nullptr;
+namespace {
+std::string generateTimestampedFilename(const std::string &Prefix, const std::string &Extension) {
+    // Get current time
+    auto now = std::chrono::system_clock::now();
+    std::time_t nowC = std::chrono::system_clock::to_time_t(now);
+
+    // Format time
+    std::ostringstream ss;
+    ss << Prefix << std::put_time(std::localtime(&nowC), "_%Y-%m-%d_%H-%M-%S") << Extension;
+    return ss.str();
+}
+
+void setOutputToFile(const std::string &Filename) {
+    fileStream = std::make_unique<std::ofstream>(Filename);
+    if (fileStream->is_open()) {
+        ios = fileStream.get(); // Redirect global output
+    } else {
+        std::cerr << "Failed to open file: " << Filename << std::endl;
+        ios = &std::cout; // Fallback
+    }
+}
+
+void displayProgress(size_t Progress, size_t Total) {
+    int barWidth = 50;
+    float ratio = (float)Progress / (float)Total;
+    int pos = barWidth * ratio;
+
+    std::cerr << "\r[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos)
+            std::cerr << "#";
+        else if (i == pos)
+            std::cerr << ">";
+        else
+            std::cerr << " ";
+    }
+    std::cerr << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
+}
+} // namespace
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
@@ -130,7 +168,8 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     dbg(__func__, "assembly complete, loading shared library");
 
     // from ibench
-    if ((globalHandle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
+    void *handle = nullptr;
+    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         fprintf(stderr, "dlopen: failed to open .so file\n");
         return {ERROR_FILE, {}};
     }
@@ -138,7 +177,7 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
     std::unordered_map<std::string, double (*)()> initFunctionMap;
     for (std::string functionName : Assembly.getInitFunctionNames()) {
-        auto functionPtr = (double (*)())dlsym(globalHandle, functionName.data());
+        auto functionPtr = (double (*)())dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
             fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
             return {ERROR_GENERIC, {}};
@@ -146,7 +185,7 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
         initFunctionMap[functionName] = functionPtr;
     }
     for (std::string functionName : Assembly.getBenchFunctionNames()) {
-        auto functionPtr = (double (*)(int))dlsym(globalHandle, functionName.data());
+        auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
             fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
             return {ERROR_GENERIC, {}};
@@ -175,7 +214,7 @@ runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
     }
     dbg(__func__, "benchmarks complete");
 
-    dlclose(globalHandle);
+    dlclose(handle);
     return {SUCCESS, benchtimes};
 }
 
@@ -517,23 +556,6 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement4
     }
 }
 
-void displayProgress(int Progress, int Total) {
-    int barWidth = 50;
-    float ratio = Progress / (float)Total;
-    int pos = barWidth * ratio;
-
-    std::cerr << "\r[";
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos)
-            std::cerr << "#";
-        else if (i == pos)
-            std::cerr << ">";
-        else
-            std::cerr << " ";
-    }
-    std::cerr << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
-}
-
 int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions = {
@@ -545,13 +567,11 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
     // with other instructions
     if (env.Arch == Triple::ArchType::x86_64) {
-        auto [EC, lowerTP, upperTP] =
-            measureInSubprocess(env.getOpcode("TEST64rr"), Frequency);
+        auto [EC, lowerTP, upperTP] = measureInSubprocess(env.getOpcode("TEST64rr"), Frequency);
         throughputDatabase[env.getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
         priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
 
-        auto [EC2, lowerTP1, upperTP1] =
-            measureInSubprocess(env.getOpcode("MOV64ri32"), Frequency);
+        auto [EC2, lowerTP1, upperTP1] = measureInSubprocess(env.getOpcode("MOV64ri32"), Frequency);
         throughputDatabase[env.getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
         priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
     }
@@ -598,41 +618,6 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     return 0;
 }
 
-bool hasConnectionTo(std::vector<std::pair<unsigned, unsigned>> Values, unsigned First,
-                     unsigned Second) {
-    for (auto v : Values)
-        if (v.first == First && v.second == Second) return true;
-
-    return false;
-}
-
-std::vector<std::pair<unsigned, unsigned>>
-findFullyConnected(std::vector<std::pair<unsigned, unsigned>> Edges, unsigned Number) {
-    if (Number == 1 && !Edges.empty()) return {Edges[0]};
-    if (Edges.size() != 0) dbg(__func__, "Edges: ", Edges);
-
-    for (auto chosenEdge : Edges) {
-        dbg(__func__, "chosen: ", chosenEdge.first, " ", chosenEdge.second);
-        std::vector<std::pair<unsigned, unsigned>> edgesReduced;
-        // for full connection the edges in the next recursion need to be between nodes which
-        // both have a connection to the nodes of the chosen edge
-        for (auto e : Edges) {
-            if (e.first != chosenEdge.first && e.second != chosenEdge.second &&
-                hasConnectionTo(Edges, e.first, chosenEdge.second) &&
-                hasConnectionTo(Edges, chosenEdge.first, e.second))
-                edgesReduced.emplace_back(e);
-        }
-        auto next = findFullyConnected(edgesReduced, Number - 1);
-        if (!next.empty()) {
-            next.emplace_back(chosenEdge);
-            dbg(__func__, "good choice: ", chosenEdge.first, " ", chosenEdge.second);
-            return next;
-        }
-        dbg(__func__, "bad choice: ", chosenEdge.first, " ", chosenEdge.second);
-    }
-    return {};
-}
-
 bool isVariant(unsigned A, unsigned B) {
 
     std::string nameA = env.MCII->getName(A).data();
@@ -658,252 +643,6 @@ bool isVariant(unsigned A, unsigned B) {
     std::string namePrefixB = getPrefixWithFirstNumber(nameB);
     if (namePrefixA == namePrefixB) dbg(__func__, "found variant: ", nameA, " ", nameB);
     return namePrefixA == namePrefixB;
-}
-
-void findHelperInstructions(double Frequency) {
-    dbg(__func__, "number of measurements: ", latencyDatabase4.size());
-    // classify measurements by operand combination
-    std::map<DependencyType, std::vector<LatMeasurement4>> classifiedMeasurements;
-    for (auto m : latencyDatabase4)
-        classifiedMeasurements[m.type].emplace_back(m);
-
-    // to measure latencys of e.g. REG -> FLAGS we need some instruction (called helper
-    // instruction) with known latency FLAGS -> REG so we can interleave the two. We determine
-    // one such reference for each non trivial (non REG -> REG) latency operand to use in the
-    // main benchmarking phase.
-    // holds a helper instruction for every LatencyOperand combination.
-    std::set<DependencyType> noHelperPossible;
-    size_t progress = 0;
-    for (auto [dType, mTypeA] : classifiedMeasurements) {
-        displayProgress(progress, classifiedMeasurements.size());
-        ++progress;
-        if (helperInstructionsLat.find(dType) != helperInstructionsLat.end()) continue;
-        if (noHelperPossible.find(dType) != noHelperPossible.end()) continue;
-        if (dType.defOp == dType.useOp) {
-            // trivial case, source and target operand are of same type
-            for (auto m : mTypeA) {
-                auto [EC, lat] = measureInSubprocess({m}, 1e6, Frequency); // TODO check if this is correct
-                if (EC != 0 || lat < 2 || isUnusualLat(lat)) continue;
-                // use first successful measurement as helper
-                m.ec = EC;
-                m.lowerBound = lat;
-                m.upperBound = lat;
-                helperInstructionsLat.insert({dType, m});
-                dbg(__func__, "found helper trivial: ", m);
-                break;
-            }
-            continue;
-        }
-        dbg(__func__, "searching helper for type: ", dType);
-        // std::vector<LatMeasurement4> typeA = classifiedMeasurements[typeA.first];
-        std::vector<LatMeasurement4> mTypeB = classifiedMeasurements[dType.reversed()];
-        // We first want to find 3 instructions of the class and 3 of the reversed class to have
-        // a total of 9 interleave combinations with *equal* and *minimal* combined latency >=2.
-        // This is to make sure the instruction we select as helper really has the latency we
-        // think. TODO explain better
-        // :)
-
-        // map: rounded latency -> list of measurementIndex pairs with that latency
-        std::map<unsigned, std::vector<std::pair<unsigned, unsigned>>> values;
-        std::map<unsigned, std::vector<std::pair<unsigned, unsigned>>> tempValues;
-        // store instructions which cannot be measured (e.g. because they are not supported)
-        std::set<unsigned> ignoredIndicesA;
-        std::set<unsigned> ignoredIndicesB;
-
-        std::vector<std::pair<unsigned, unsigned>> fullyConnected = {};
-        unsigned indexA = 0, indexB = 0;
-        unsigned helperLatUpperBound = 0;
-        // increment indexA and indexB once per iteration and measure all new combinations
-        // possible. Then check if an instruction satisfies the conditions for a helper.
-        while ((indexA < mTypeA.size() || indexB < mTypeB.size()) && fullyConnected.empty()) {
-            // increment the range of instuctions considered of list A by one and measure new
-            // combinations
-            if (indexA < mTypeA.size()) {
-                // ignore variants of instructions already present
-                bool ignored = false;
-                for (unsigned i = 0; i < indexA; i++) {
-                    if (isVariant(mTypeA[indexA].opcode, mTypeA[i].opcode)) {
-                        ignoredIndicesA.insert(indexA);
-                        indexA++;
-                        ignored = true;
-                        break;
-                    }
-                }
-                if (ignored) continue;
-
-                // add values for current indexA
-                unsigned unusualVaueCounter = 0;
-                tempValues.clear();
-                for (unsigned b = 0; b < indexB; b++) {
-                    if (ignoredIndicesB.find(b) != ignoredIndicesB.end()) continue;
-                    if (mTypeA[indexA].opcode == mTypeB[b].opcode)
-                        continue; // dont interleave same instruction
-
-                    dbg(__func__, "indices ", indexA, "/", mTypeA.size(), " ", b, "/",
-                        mTypeB.size());
-                    auto [EC, combinedLat] =
-                        measureInSubprocess({mTypeA[indexA], mTypeB[b]}, 1e6, Frequency);
-                    // if unsuccessful, if sus or too small, add to ignored
-                    if (EC != 0 || combinedLat < 2 || isUnusualLat(combinedLat)) {
-                        unusualVaueCounter++;
-                        continue;
-                    }
-                    // insert measured value/2 (lat per operand)
-                    tempValues[std::round(combinedLat)].emplace_back(indexA, b);
-                }
-                if (unusualVaueCounter > tempValues.size()) {
-                    // this instruction behaved very unreliable, dont add it to potential
-                    // helpers
-                    dbg(__func__, indexB, " marked as unusual");
-                    ignoredIndicesA.insert(indexA);
-                } else {
-                    // move results into values
-                    for (auto &[key, vec] : tempValues) {
-                        auto &targetVec = values[key];
-                        targetVec.insert(targetVec.end(), std::make_move_iterator(vec.begin()),
-                                         std::make_move_iterator(vec.end()));
-                    }
-                }
-                indexA++;
-            }
-            // increment the range of instuctions considered of list B by one and measure new
-            // combinations
-            if (indexB < mTypeB.size()) {
-                // ignore variants of instructions already present
-                bool ignored = false;
-                for (unsigned i = 0; i < indexB; i++) {
-                    if (isVariant(mTypeB[indexB].opcode, mTypeB[i].opcode)) {
-                        ignoredIndicesB.insert(indexA);
-                        indexB++;
-                        ignored = true;
-                        break;
-                    }
-                }
-                if (ignored) continue;
-
-                // add values for fixed B
-                unsigned susCounter = 0;
-                tempValues.clear();
-                for (unsigned a = 0; a < indexA; a++) {
-                    if (ignoredIndicesA.find(a) != ignoredIndicesA.end()) continue;
-                    if (mTypeA[a].opcode == mTypeB[indexB].opcode)
-                        continue; // dont interleave same instruciton
-                    dbg(__func__, "indices ", a, "/", mTypeA.size(), " ", indexB, "/",
-                        mTypeB.size());
-                    auto [EC, combinedLat] =
-                        measureInSubprocess({mTypeA[a], mTypeB[indexB]}, 1e6, Frequency);
-                    // if unsuccessful, if sus or too small, add to ignored
-                    if (EC != 0 || combinedLat < 2 || isUnusualLat(combinedLat)) {
-                        susCounter++;
-                        continue;
-                    }
-                    // insert measured value/2 (lat per operand)
-                    tempValues[std::round(combinedLat / 2)].emplace_back(a, indexB);
-                }
-                if (susCounter > tempValues.size()) {
-                    // this instruction behaved very unreliable, dont add it to potential
-                    // helpers
-                    dbg(__func__, indexB, " marked as sus");
-                    ignoredIndicesB.insert(indexB);
-                } else {
-                    // move results into values
-                    for (auto &[key, vec] : tempValues) {
-                        auto &targetVec = values[key];
-                        targetVec.insert(targetVec.end(), std::make_move_iterator(vec.begin()),
-                                         std::make_move_iterator(vec.end()));
-                    }
-                }
-                indexB++;
-            }
-            // check if new data is enough to determine two good helpers
-            // currently only use helpers with latency <=6
-            // e.g. we cannot infer from a combined latency of 3 which instruction has 2 and which
-            // has 1, so we will get ranges as results
-            for (unsigned combinedLat = 1; combinedLat < 6; combinedLat++) {
-                if (values[combinedLat].size() < 9) continue; // not possible with less than 9 edges
-                fullyConnected = findFullyConnected(values[combinedLat], 3);
-                if (!fullyConnected.empty()) {
-                    helperLatUpperBound = combinedLat - 1;
-                    dbg(__func__, "found fully connected with latency ", combinedLat);
-                    break;
-                }
-            }
-        }
-        if (fullyConnected.empty()) {
-            // no helper for this type pair found, helpers always come in pairs so opposite
-            // direction will not be possible either
-            dbg(__func__, "no helper for ", dType);
-            noHelperPossible.insert(dType);
-            noHelperPossible.insert(dType.reversed());
-            continue;
-        }
-        // helper found, insert into helperInstructions
-        auto measurementA = mTypeA[fullyConnected[0].first];
-        auto measurementB = mTypeB[fullyConnected[0].second];
-        measurementA.lowerBound = 1;
-        measurementA.upperBound = helperLatUpperBound - 1;
-        measurementB.lowerBound = 1;
-        measurementB.upperBound = helperLatUpperBound - 1;
-
-        helperInstructionsLat.insert({measurementA.type, measurementA});
-        helperInstructionsLat.insert({measurementB.type, measurementB});
-        dbg(__func__, "found a helper for ", measurementA.type, ": ", measurementA);
-        dbg(__func__, "found a helper for opposite type ", measurementB.type, ": ", measurementB);
-    }
-    // until now for e.g. xmm1 -> class(GR64) only instructions of exactly this type
-    // were considered, however if no suitable instructions were found we can use
-    // instructions with class(VR128X) -> class(GR64) as well.
-    for (auto [mType, m] : classifiedMeasurements) {
-        if (helperInstructionsLat.find(mType) == helperInstructionsLat.end()) {
-            dbg(__func__, "no helper for ", mType, "searching for replacement");
-            // holds all operands which can be used instead of the register
-            std::set<Operand> replacementDefOperands;
-            // insert the original operand to be used for new combination
-            replacementDefOperands.insert(mType.defOp);
-
-            // in case of a register, insert all reg classes this register belongs to
-            if (mType.defOp.isRegister()) {
-                auto reg = mType.defOp.getRegister();
-                for (unsigned i = 0; i < env.MRI->getNumRegClasses(); i++)
-                    if (env.regInRegClass(reg, i))
-                        replacementDefOperands.insert(Operand::fromRegClass(i));
-            }
-            std::set<Operand> replacementUseOperands;
-            replacementUseOperands.insert(mType.useOp);
-            if (mType.useOp.isRegister()) {
-                auto reg = mType.useOp.getRegister();
-                for (unsigned i = 0; i < env.MRI->getNumRegClasses(); i++)
-                    if (env.regInRegClass(reg, i))
-                        replacementUseOperands.insert(Operand::fromRegClass(i));
-            }
-
-            // check if we have helpers for any combination of the replacement operands
-            bool found = false;
-            for (auto defOpType : replacementDefOperands) {
-                for (auto useOpType : replacementUseOperands) {
-                    DependencyType replacementType = DependencyType(defOpType, useOpType);
-                    if (helperInstructionsLat.find(replacementType) !=
-                        helperInstructionsLat.end()) {
-                        // we have a helper for this type, use it for the current type
-                        LatMeasurement4 h = helperInstructionsLat.at(replacementType);
-                        helperInstructionsLat.insert({mType, h});
-                        dbg(__func__, "using", h, "as replacement helper for ", mType);
-                        found = true;
-                        break;
-                    }
-                }
-                if (found) break;
-            }
-            if (!found) dbg(__func__, "still no helper");
-
-        } else {
-            LatMeasurement4 h = helperInstructionsLat.at(mType);
-            dbg(__func__, "helper for ", mType, ":  ", h, " ", h.lowerBound);
-        }
-    }
-    for (auto [mType, m] : helperInstructionsLat) {
-        out(*ios, "helper for ", mType, ": ", m);
-    }
 }
 
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
@@ -1114,93 +853,6 @@ void buildLatDatabase(double Frequency) {
     }
 }
 
-int buildLatDatabase4(double Frequency) {
-    errs() << "phase1: finding helpers\n";
-    // fill the global helperInstructionsLat
-    findHelperInstructions(Frequency);
-    errs() << "\nphase2: main benchmarking phase\n";
-
-    // cache if execution results in ILLEGAL_INSTRUCTION to skip executing other
-    // variants of the instruction
-    std::set<unsigned> illegalInstructions;
-    // main benchmarking phase
-    size_t progress = 0;
-    for (LatMeasurement4 &measurement : latencyDatabase4) {
-        displayProgress(progress++, latencyDatabase4.size());
-        if (measurement.ec != NO_ERROR_CODE) continue; // already measured (e.g. helper)
-        if (illegalInstructions.find(measurement.opcode) != illegalInstructions.end()) {
-            measurement.ec = ILLEGAL_INSTRUCTION;
-            continue;
-        }
-
-        if (measurement.type.canCreateDependencyChain()) {
-            // no helper needed
-            auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency);
-            measurement.ec = EC;
-            measurement.lowerBound = lat;
-            measurement.upperBound = lat;
-            if (EC == ILLEGAL_INSTRUCTION) illegalInstructions.emplace(measurement.opcode);
-            continue;
-        }
-        if (helperInstructionsLat.find(measurement.type.reversed()) ==
-            helperInstructionsLat.end()) {
-            measurement.ec = ERROR_NO_HELPER;
-            continue;
-        }
-        auto helper = helperInstructionsLat.at(measurement.type.reversed());
-        auto [EC, lat] = measureInSubprocess({measurement, helper}, 1e6, Frequency);
-        if (EC == ILLEGAL_INSTRUCTION) illegalInstructions.emplace(measurement.opcode);
-        if (EC == SUCCESS) out(*ios, "-----", measurement, "-----");
-
-        measurement.ec = EC;
-        measurement.lowerBound = lat - helper.upperBound;
-        measurement.upperBound = lat - helper.lowerBound;
-        if (EC == SUCCESS) {
-            out(*ios, "Helper: ", helper);
-            out(*ios, "Combined: ", lat, " cycles");
-            out(*ios, "Instruction: ", measurement);
-        }
-    }
-    // print results
-    for (LatMeasurement4 &measurement : latencyDatabase4) {
-        std::string name = env.MCII->getName(measurement.opcode).data();
-        name.resize(27, ' ');
-
-        std::ostringstream ss;
-        ss << measurement;
-        if (measurement.ec == SUCCESS) {
-            std::printf("%s\n", ss.str().data());
-            fflush(stdout);
-        } else {
-            outs() << ss.str().data() << " " << "skipped for reason\t "
-                   << ecToString(measurement.ec) << "\n";
-            outs().flush();
-        }
-    }
-    return 0;
-}
-
-std::string generate_timestamped_filename(const std::string &prefix, const std::string &extension) {
-    // Get current time
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-
-    // Format time
-    std::ostringstream ss;
-    ss << prefix << std::put_time(std::localtime(&now_c), "_%Y-%m-%d_%H-%M-%S") << extension;
-    return ss.str();
-}
-
-void setOutputToFile(const std::string &filename) {
-    fileStream = std::make_unique<std::ofstream>(filename);
-    if (fileStream->is_open()) {
-        ios = fileStream.get(); // Redirect global output
-    } else {
-        std::cerr << "Failed to open file: " << filename << std::endl;
-        ios = &std::cout; // Fallback
-    }
-}
-
 int main(int argc, char **argv) {
     struct option longOptions[] = {
         {"help", no_argument, nullptr, 'h'},
@@ -1225,7 +877,7 @@ int main(int argc, char **argv) {
         std::cerr << "Usage: " << argv[0] << " {TP|LAT|INTERLEAVE|DEV} [options]\n";
         return 1;
     }
-    std::string filename = generate_timestamped_filename("run", ".log");
+    std::string filename = generateTimestampedFilename("run", ".log");
     setOutputToFile(filename);
 
     enum Modes { TP, LAT, INTERLEAVE, DEV };
@@ -1320,8 +972,7 @@ int main(int argc, char **argv) {
         // TODO release exclude from debug
         if (env.Arch == Triple::ArchType::x86_64) {
             // two common helpers for x86
-            auto [EC, lower, upper] =
-                measureInSubprocess(env.getOpcode("TEST64rr"), frequency);
+            auto [EC, lower, upper] = measureInSubprocess(env.getOpcode("TEST64rr"), frequency);
             if (EC == SUCCESS) {
                 throughputDatabase[env.getOpcode("TEST64rr")] = {SUCCESS, lower, upper};
                 priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
@@ -1329,8 +980,7 @@ int main(int argc, char **argv) {
                 dbg(__func__, "TEST64rr failed for reason: ", ecToString(EC));
                 exit(1);
             }
-            auto [EC2, lower2, upper2] =
-                measureInSubprocess(env.getOpcode("MOV64ri32"), frequency);
+            auto [EC2, lower2, upper2] = measureInSubprocess(env.getOpcode("MOV64ri32"), frequency);
             if (EC2 == SUCCESS) {
                 throughputDatabase[env.getOpcode("MOV64ri32")] = {SUCCESS, lower2, upper2};
                 priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
@@ -1399,7 +1049,7 @@ int main(int argc, char **argv) {
             latencyDatabase4.insert(latencyDatabase4.begin(), measurements.begin(),
                                     measurements.end());
         }
-        buildLatDatabase4(frequency);
+        buildLatDatabase(frequency);
 
         // old lat
         // for (auto opcode : opcodes) {

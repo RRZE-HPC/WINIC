@@ -96,25 +96,13 @@ inline bool isUnusualLat(double A) {
     return !equalWithTolerance(std::round(A), A);
 }
 
-bool hasConnectionTo(std::vector<std::pair<unsigned, unsigned>> Values, unsigned First,
-                     unsigned Second);
-
 std::string pairVectorToString(std::vector<std::pair<unsigned, unsigned>> Values);
-
-std::vector<std::pair<unsigned, unsigned>>
-findFullyConnected(std::vector<std::pair<unsigned, unsigned>> Edges, unsigned Number);
 
 // check if a and b are the same instruction with different operands
 bool isVariant(unsigned A, unsigned B);
 
-// try to find a helper for all measurement types in latDatabase4
-void findHelperInstructions(LLVMEnvironment &Env, double Frequency);
-
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
 ErrorCode canMeasure(LatMeasurement4 Measurement, double Frequency);
-
-// measure all instructions in latencyDatabase4
-int buildLatDatabase4(double Frequency);
 
 void buildLatDatabase(double Frequency);
 
