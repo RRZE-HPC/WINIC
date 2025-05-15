@@ -20,7 +20,6 @@ namespace llvm {
 class MCInst;
 }
 
-
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
 #endif
@@ -67,11 +66,6 @@ getTPHelperInstruction(unsigned Opcode, bool BreakDependencyOnSuperreg);
 // returns a lower and an upper bound for the TP.
 std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency);
 
-// Measure the latency of the instructions with Opcode. Runs multiple benchmarks to correct
-// overhead of loop instructions.
-// This may segfault e.g. on privileged instructions like CLGI
-std::pair<ErrorCode, double> measureLatency(unsigned Opcode, double Frequency);
-
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
                                              unsigned NumInst, unsigned LoopCount, double Frequency,
                                              bool Throughput);
@@ -81,21 +75,17 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
 std::pair<ErrorCode, double> measureLatency4(const std::list<LatMeasurement4> &Measurements,
                                              unsigned LoopCount, double Frequency);
 
-// calls one of the measure functions in a subprocess to recover from segfaults during the
-// benchmarking process Type = "t" for throughput or "l" for latency
-std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
-                                                          std::string Type);
+// calls measureThroughput in a subprocess to recover from segfaults during the
+// benchmarking process
+std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency);
 
+// calls measureLatency in a subprocess to recover from segfaults during the
+// benchmarking process
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement4> &Measurements,
-                                                 unsigned LoopCount, double Frequency,
-                                                 std::string Type);
+                                                 unsigned LoopCount, double Frequency);
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
 int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
-
-// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-int buildLatDatabasePerInstruction(double Frequency, unsigned MinOpcode = 0,
-                                   unsigned MaxOpcode = 0);
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
 inline bool smallerEqWithTolerance(double A, double B) { return A < B || equalWithTolerance(A, B); }
