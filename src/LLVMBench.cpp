@@ -563,18 +563,6 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
         "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     if (MaxOpcode == 0) MaxOpcode = env.MCII->getNumOpcodes();
 
-    // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
-    // with other instructions
-    if (env.Arch == Triple::ArchType::x86_64) {
-        auto [EC, lowerTP, upperTP] = measureInSubprocess(env.getOpcode("TEST64rr"), Frequency);
-        throughputDatabase[env.getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
-        priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
-
-        auto [EC2, lowerTP1, upperTP1] = measureInSubprocess(env.getOpcode("MOV64ri32"), Frequency);
-        throughputDatabase[env.getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
-        priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
-    }
-
     bool gotNewMeasurement = true;
     while (gotNewMeasurement) {
         gotNewMeasurement = false;
@@ -961,6 +949,18 @@ int main(int argc, char **argv) {
         break;
     }
     case TP: {
+        // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
+        // with other instructions
+        if (env.Arch == Triple::ArchType::x86_64) {
+            auto [EC, lowerTP, upperTP] = measureInSubprocess(env.getOpcode("TEST64rr"), frequency);
+            throughputDatabase[env.getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
+            priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
+
+            auto [EC2, lowerTP1, upperTP1] =
+                measureInSubprocess(env.getOpcode("MOV64ri32"), frequency);
+            throughputDatabase[env.getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
+            priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
+        }
         if (instrNames.empty() && opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
@@ -969,26 +969,6 @@ int main(int argc, char **argv) {
         }
         dbgToFile = true;
         debug = true;
-        // TODO release exclude from debug
-        if (env.Arch == Triple::ArchType::x86_64) {
-            // two common helpers for x86
-            auto [EC, lower, upper] = measureInSubprocess(env.getOpcode("TEST64rr"), frequency);
-            if (EC == SUCCESS) {
-                throughputDatabase[env.getOpcode("TEST64rr")] = {SUCCESS, lower, upper};
-                priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
-            } else {
-                dbg(__func__, "TEST64rr failed for reason: ", ecToString(EC));
-                exit(1);
-            }
-            auto [EC2, lower2, upper2] = measureInSubprocess(env.getOpcode("MOV64ri32"), frequency);
-            if (EC2 == SUCCESS) {
-                throughputDatabase[env.getOpcode("MOV64ri32")] = {SUCCESS, lower2, upper2};
-                priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
-            } else {
-                dbg(__func__, "MOV64ri32 failed for reason: ", ecToString(EC));
-                exit(1);
-            }
-        }
         for (unsigned opcode : opcodes) {
             auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
             throughputDatabase[opcode] = {EC, lower, upper};
@@ -1033,7 +1013,7 @@ int main(int argc, char **argv) {
         for (auto opcode : opcodes) {
             auto measurements = genLatMeasurements(opcode, opcode + 1, {});
             latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
-                                    measurements.end());
+                                   measurements.end());
         }
         buildLatDatabase(frequency);
         break;
