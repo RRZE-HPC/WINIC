@@ -92,7 +92,7 @@ void displayProgress(size_t Progress, size_t Total) {
 } // namespace
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, int N, unsigned Runs) {
+runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     dbg(__func__, "loopCount: ", N);
     std::string clangPath = CLANG_PATH;
     if (clangPath == "usr/bin/clang") {
@@ -279,19 +279,19 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     return {SUCCESS, cyclesPerInstruction};
 }
 
-std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>> getTPHelperInstruction(unsigned Opcode) {
+std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>> getTPHelperInstruction(unsigned Opcode) {
     // first check if this instruction needs a helper
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
     auto [ec1, inst1] = genInst(Opcode, {}, usedRegs);
     auto [ec2, inst2] = genInst(Opcode, {}, usedRegs);
     std::list<DependencyType> dependencies = getDependencies(inst1, inst2);
-    if (dependencies.empty()) return {SUCCESS, -1, {}}; // no helper needed
+    if (dependencies.empty()) return {SUCCESS, MAX_UNSIGNED, {}}; // no helper needed
     if (dependencies.size() > 1) {
         dbg(__func__, "multiple dependencies");
         // this instruction has multiple dependencies on itself, this
         // is currently not supported
-        return {ERROR_NO_HELPER, -1, {}};
+        return {ERROR_NO_HELPER, MAX_UNSIGNED, {}};
     }
     // this instruction will always have one dependency on itself. We have to break this by
     // interleaving another instruction. The other instruction has to:
@@ -301,7 +301,7 @@ std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>> getTPHelperInstructio
     auto dep = dependencies.front();
     auto useReg = dep.useOp.getRegister();
 
-    unsigned helperOpcode = -1;
+    unsigned helperOpcode = MAX_UNSIGNED;
     std::map<unsigned, MCRegister> helperConstraints;
     // first we try opcodes in the priorityTPHelper list. Those are allowed to be used as helper
     // even if they write not to the register itself but a superregister
@@ -319,7 +319,7 @@ std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>> getTPHelperInstructio
                 useReg = possibleWriteReg;
                 auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
                 // we checked the instruction is able to define the register
-                if (EC != SUCCESS) return {ERROR_UNREACHABLE, -1, {}};
+                if (EC != SUCCESS) return {ERROR_UNREACHABLE, MAX_UNSIGNED, {}};
                 if (opIndex != -1)
                     helperConstraints.insert({(unsigned)opIndex, useReg});
                 else {
@@ -341,7 +341,7 @@ std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>> getTPHelperInstructio
             }
         }
     }
-    if (helperOpcode != -1) return {SUCCESS, helperOpcode, helperConstraints};
+    if (helperOpcode != MAX_UNSIGNED) return {SUCCESS, helperOpcode, helperConstraints};
     dbg(__func__, "no prio helper");
     // the no priorityHelper can be used, try all other instructions now
     for (auto [possibleHelper, res] : throughputDatabase) {
@@ -350,7 +350,7 @@ std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>> getTPHelperInstructio
         std::set<MCRegister> possibleWrites = env.getPossibleWriteRegs(possibleHelper);
         if (possibleWrites.find(useReg) != possibleWrites.end()) {
             auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
-            if (EC != SUCCESS) return {ERROR_UNREACHABLE, -1, {}};
+            if (EC != SUCCESS) return {ERROR_UNREACHABLE, MAX_UNSIGNED, {}};
             if (opIndex != -1) helperConstraints.insert({(unsigned)opIndex, useReg});
             std::set<MCRegister> tmpUsedRegs;
             auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs);
@@ -361,7 +361,7 @@ std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>> getTPHelperInstructio
             break;
         }
     }
-    if (helperOpcode == -1) return {ERROR_NO_HELPER, -1, {}};
+    if (helperOpcode == MAX_UNSIGNED) return {ERROR_NO_HELPER, MAX_UNSIGNED, {}};
     return {SUCCESS, helperOpcode, helperConstraints};
 }
 
@@ -373,7 +373,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     if (isValid(desc) != SUCCESS) return {isValid(desc), -1, -1};
     out(*ios, "-----", env.MCII->getName(Opcode).data(), "-----");
     unsigned numInst = 12;
-    double n = 1000000; // loop count
+    unsigned n = 1000000; // loop count
     AssemblyFile assembly;
     ErrorCode ec;
     std::set<MCRegister> usedRegs;
@@ -397,7 +397,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
         *std::min_element(benchResults["tpUnroll2"].begin(), benchResults["tpUnroll2"].end());
 
     auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency, true);
-    if (helperOpcode > -1) {
+    if (helperOpcode != MAX_UNSIGNED) {
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
         dbg(__func__, "correcting ", correctedTP, " with ", env.MCII->getName(helperOpcode).data(),
@@ -423,7 +423,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
-    double n = LoopCount;
+    unsigned n = LoopCount;
     ErrorCode ec;
     ErrorCode warning = NO_ERROR_CODE;
     AssemblyFile assembly;
@@ -881,7 +881,7 @@ int main(int argc, char **argv) {
     } else if (modeStr == "DEV") {
         mode = DEV;
     } else {
-        std::cerr << "Unknown subprogram: " << mode << "\n";
+        std::cerr << "Unknown subprogram: " << modeStr << "\n";
         return 1;
     }
 

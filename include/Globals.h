@@ -18,6 +18,8 @@ extern LLVMEnvironment env;
 extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
 
+const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
+
 enum class LatOperandKind { RegisterClass, Register };
 
 struct Operand {

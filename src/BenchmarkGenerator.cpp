@@ -232,7 +232,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   unsigned UnrollCount,
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                  int HelperOpcode) {
+                                                  unsigned HelperOpcode) {
     // TODO change to list of opcodes
     dbg(__func__, "getting template");
     auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
@@ -251,9 +251,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     // this is the hepler instruciton if needed.
     std::list<MCInst> instructions;
     ErrorCode EC;
-    if (HelperOpcode > -1) {
-        unsigned helperOpcode = HelperOpcode;
-        std::tie(EC, instructions) = genTPInnerLoop({Opcode, helperOpcode}, {{}, HelperConstraints},
+    if (HelperOpcode != MAX_UNSIGNED) {
+        std::tie(EC, instructions) = genTPInnerLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
                                                     *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated, dont include
@@ -479,7 +478,7 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &R
                                                         std::set<MCRegister> UsedRegisters) {
     for (auto reg : RegClass)
         if (UsedRegisters.find(reg) == UsedRegisters.end()) return {SUCCESS, reg};
-    return {ERROR_NO_REGISTERS, -1};
+    return {ERROR_NO_REGISTERS, MAX_UNSIGNED};
 }
 
 std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,

@@ -46,16 +46,16 @@ static bool dbgToFile = true;
 extern LLVMEnvironment env;
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, int N, unsigned Runs);
+runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
 
 // returns a list of dependencies between Inst1 and Inst2, taking into account implicit and explicit
 // defs/uses
 std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
 
 // if a helper is needed and one can be found returns {SUCCESS, helperOpcode, helperConstraints}
-// if no helper is needed returns {SUCCESS, -1, {}}
-// if one is needed but none can be found returns {ERROR_NO_HELPER, -1, {}}
-std::tuple<ErrorCode, int, std::map<unsigned, MCRegister>>
+// if no helper is needed returns {SUCCESS, MAX_UNSIGNED, {}}
+// if one is needed but none can be found returns {ERROR_NO_HELPER, MAX_UNSIGNED, {}}
+std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
 getTPHelperInstruction(unsigned Opcode);
 
 // Measure the througput of the instructions with Opcode. Runs multiple benchmarks to correct

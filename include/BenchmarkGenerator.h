@@ -28,7 +28,7 @@ std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemp
 // generates all possible latency measurements for all instructions TODO swap args, put
 // default=0
 std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
-                                                 std::unordered_set<unsigned> SkipOpcodes);
+                                               std::unordered_set<unsigned> SkipOpcodes);
 
 /**
  * generates a benchmark based on the list of measurements
@@ -36,14 +36,14 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
  * using the same registers on the useOps and defOps
  */
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
-                                                    unsigned *TargetInstrCount,
-                                                    std::set<MCRegister> UsedRegisters = {});
+                                                   unsigned *TargetInstrCount,
+                                                   std::set<MCRegister> UsedRegisters = {});
 
 std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
                                                   unsigned UnrollCount,
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                  int HelperOpcode);
+                                                  unsigned HelperOpcode);
 
 /**
  * generate the inner loop for a throughput measurement. Doesnt introduce dependency between the
@@ -56,8 +56,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
  */
 std::pair<ErrorCode, std::list<MCInst>>
 genTPInnerLoop(std::vector<unsigned> Opcodes,
-                std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
-                unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters);
+               std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
+               unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters);
 
 // generate a constraint (operand -> Register) to make an instruction use/def a specific register
 // returns SUCCESS and a operand number
@@ -81,15 +81,16 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
  * \return ErrorCode and generated instruction.
  */
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                      std::set<MCRegister> &UsedRegisters);
+                                     std::set<MCRegister> &UsedRegisters);
 
 std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg);
 
 std::pair<ErrorCode, MCRegisterClass> getBaseClass(MCRegister Reg);
 
 std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &RegClass,
-                                  std::set<MCRegister> UsedRegisters);
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters);
+                                                        std::set<MCRegister> UsedRegisters);
+std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
+                                                        std::set<MCRegister> UsedRegisters);
 
 // TODO find ISA independent function in llvm
 std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
