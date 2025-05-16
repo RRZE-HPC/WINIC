@@ -6,19 +6,19 @@ bool debug = false;
 
 // clang-format off
 std::set<std::string> functionBlacklist = {
-    "isVariant",
-    "calculateCycles",
-    "genLatBenchmark4",
-    "genLatMeasurements4",
+    // "main",
+    // "setUp",
+    // "isVariant",
+    // "runBenchmark",
+    // "genLatBenchmark",
+    "genLatMeasurements",
+    // "buildLatDatabase",
     "findFullyConnected",
     "genInst",
-    // "runBenchmark",
     // "measureThroughput",
-    "buildLatDatabase4",
     "genTPInnerLoop",
-    // "main",
-    "setUp",
     "buildTPDatabase",
     // "genTPBenchmark",
+    // "calculateCycles",
 };
 // clang-format on
