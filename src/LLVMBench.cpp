@@ -220,8 +220,8 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
 
 std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
     std::list<DependencyType> dependencies;
-    const MCInstrDesc &desc1 = env.MCII->get(Inst1.getOpcode());
-    const MCInstrDesc &desc2 = env.MCII->get(Inst2.getOpcode());
+    const MCInstrDesc &desc1 = getEnv().MCII->get(Inst1.getOpcode());
+    const MCInstrDesc &desc2 = getEnv().MCII->get(Inst2.getOpcode());
     // collect all registers Inst1 will define
     std::set<MCRegister> defs1;
     for (unsigned i = 0; i < desc1.getNumDefs(); i++) {
@@ -313,8 +313,8 @@ std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>> getTPHelperInstr
         dbg(__func__, "checking possible ", tpRes.ec, " ", tpRes.lowerTP);
         if (tpRes.ec != SUCCESS) continue;  // no value
         if (tpRes.lowerTP < 0.25) continue; // we dont trust values this low
-        for (MCRegister possibleWriteReg : env.getPossibleWriteRegs(possibleHelper)) {
-            if (env.TRI->isSuperRegisterEq(useReg, possibleWriteReg)) {
+        for (MCRegister possibleWriteReg : getEnv().getPossibleWriteRegs(possibleHelper)) {
+            if (getEnv().TRI->isSuperRegisterEq(useReg, possibleWriteReg)) {
                 dbg(__func__, "found reg ", possibleHelper);
                 useReg = possibleWriteReg;
                 auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
@@ -347,7 +347,7 @@ std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>> getTPHelperInstr
     for (auto [possibleHelper, res] : throughputDatabase) {
         if (res.ec != SUCCESS) continue;
         if (res.lowerTP < 0.25) continue;
-        std::set<MCRegister> possibleWrites = env.getPossibleWriteRegs(possibleHelper);
+        std::set<MCRegister> possibleWrites = getEnv().getPossibleWriteRegs(possibleHelper);
         if (possibleWrites.find(useReg) != possibleWrites.end()) {
             auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
             if (EC != SUCCESS) return {ERROR_UNREACHABLE, MAX_UNSIGNED, {}};
@@ -369,9 +369,9 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     // TODO do this much earlier
-    const MCInstrDesc &desc = env.MCII->get(Opcode);
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     if (isValid(desc) != SUCCESS) return {isValid(desc), -1, -1};
-    out(*ios, "-----", env.MCII->getName(Opcode).data(), "-----");
+    out(*ios, "-----", getEnv().MCII->getName(Opcode).data(), "-----");
     unsigned numInst = 12;
     unsigned n = 1000000; // loop count
     AssemblyFile assembly;
@@ -400,9 +400,9 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     if (helperOpcode != MAX_UNSIGNED) {
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
-        dbg(__func__, "correcting ", correctedTP, " with ", env.MCII->getName(helperOpcode).data(),
+        dbg(__func__, "correcting ", correctedTP, " with ", getEnv().MCII->getName(helperOpcode).data(),
             " ", throughputDatabase[helperOpcode].lowerTP);
-        out(*ios, "Helper: ", env.MCII->getName(helperOpcode).data(), " ",
+        out(*ios, "Helper: ", getEnv().MCII->getName(helperOpcode).data(), " ",
             throughputDatabase[helperOpcode].lowerTP);
         double tpSamePorts = correctedTP - throughputDatabase[helperOpcode].lowerTP;
         if (tpSamePorts < 1 / 4) {
@@ -447,7 +447,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     if (ec != SUCCESS) {
         std::string chainString = "";
         for (auto m : Measurements) {
-            chainString += env.MCII->getName(m.opcode).data();
+            chainString += getEnv().MCII->getName(m.opcode).data();
             chainString += " -> ";
         }
         std::printf("   anomaly detected during measurement of %s:\n", chainString.data());
@@ -561,7 +561,7 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
         "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
         "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
         "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
-    if (MaxOpcode == 0) MaxOpcode = env.MCII->getNumOpcodes();
+    if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
 
     bool gotNewMeasurement = true;
     while (gotNewMeasurement) {
@@ -571,7 +571,7 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != ERROR_NO_HELPER) continue;
             displayProgress(opcode, MaxOpcode);
-            std::string name = env.MCII->getName(opcode).data();
+            std::string name = getEnv().MCII->getName(opcode).data();
             if (skipInstructions.find(name) != skipInstructions.end()) {
                 out(*ios, name, ": skipped for reason\tskippedManually");
                 continue;
@@ -586,7 +586,7 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
     }
     // print results
     for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-        std::string name = env.MCII->getName(opcode).data();
+        std::string name = getEnv().MCII->getName(opcode).data();
         name.resize(27, ' ');
 
         TPResult res = throughputDatabase[opcode];
@@ -607,8 +607,8 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
 
 bool isVariant(unsigned A, unsigned B) {
 
-    std::string nameA = env.MCII->getName(A).data();
-    std::string nameB = env.MCII->getName(B).data();
+    std::string nameA = getEnv().MCII->getName(A).data();
+    std::string nameB = getEnv().MCII->getName(B).data();
     if (nameA == nameB) return true;
     // llvm names for the same instruction normally match until the first occurrence of a number
     // e.g. ADD8ri_EVEX ADD8ri_ND ADD8ri_NF ADD8ri_NF_ND
@@ -823,7 +823,7 @@ void buildLatDatabase(double Frequency) {
     // print results
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
         for (LatMeasurement &measurement : measurementsA) {
-            std::string name = env.MCII->getName(measurement.opcode).data();
+            std::string name = getEnv().MCII->getName(measurement.opcode).data();
             name.resize(27, ' ');
 
             std::ostringstream ss;
@@ -926,16 +926,16 @@ int main(int argc, char **argv) {
     struct timeval start, end;
     gettimeofday(&start, NULL);
     // static LLVMEnvironment  env = LLVMEnvironment(march, cpu);
-    ErrorCode ec = env.setUp(march, cpu);
+    ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {
         std::cerr << "failed to set up environment: " << ecToString(ec) << "\n";
         return 1;
     }
-    out(*ios, "Arch: ", env.MSTI->getCPU().str());
-    if (maxOpcode == 0) maxOpcode = env.MCII->getNumOpcodes();
+    out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
+    if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
 
     for (auto instrName : instrNames) {
-        unsigned opcode = env.getOpcode(instrName.data());
+        unsigned opcode = getEnv().getOpcode(instrName.data());
         if (opcode == std::numeric_limits<unsigned>::max()) {
             std::cerr << "No instruction with name \"" << instrName << "\"\n";
             exit(1);
@@ -951,15 +951,15 @@ int main(int argc, char **argv) {
     case TP: {
         // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
         // with other instructions
-        if (env.Arch == Triple::ArchType::x86_64) {
-            auto [EC, lowerTP, upperTP] = measureInSubprocess(env.getOpcode("TEST64rr"), frequency);
-            throughputDatabase[env.getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
-            priorityTPHelper.emplace_back(env.getOpcode("TEST64rr"));
+        if (getEnv().Arch == Triple::ArchType::x86_64) {
+            auto [EC, lowerTP, upperTP] = measureInSubprocess(getEnv().getOpcode("TEST64rr"), frequency);
+            throughputDatabase[getEnv().getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
+            priorityTPHelper.emplace_back(getEnv().getOpcode("TEST64rr"));
 
             auto [EC2, lowerTP1, upperTP1] =
-                measureInSubprocess(env.getOpcode("MOV64ri32"), frequency);
-            throughputDatabase[env.getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
-            priorityTPHelper.emplace_back(env.getOpcode("MOV64ri32"));
+                measureInSubprocess(getEnv().getOpcode("MOV64ri32"), frequency);
+            throughputDatabase[getEnv().getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
+            priorityTPHelper.emplace_back(getEnv().getOpcode("MOV64ri32"));
         }
         if (instrNames.empty() && opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
@@ -973,11 +973,11 @@ int main(int argc, char **argv) {
             auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
             throughputDatabase[opcode] = {EC, lower, upper};
             if (EC != SUCCESS) {
-                outs() << env.MCII->getName(opcode) << " failed for reason: " << ecToString(EC)
+                outs() << getEnv().MCII->getName(opcode) << " failed for reason: " << ecToString(EC)
                        << "\n";
                 outs().flush();
             } else {
-                std::printf("%s: %.3f (clock cycles)\n", env.MCII->getName(opcode).data(), lower);
+                std::printf("%s: %.3f (clock cycles)\n", getEnv().MCII->getName(opcode).data(), lower);
                 fflush(stdout);
             }
         }
@@ -993,7 +993,7 @@ int main(int argc, char **argv) {
 
         std::unordered_set<unsigned> skipOpcodes;
         for (auto name : skipInstructions) {
-            skipOpcodes.insert(env.getOpcode(name));
+            skipOpcodes.insert(getEnv().getOpcode(name));
         }
 
         // example chain ADC16ri8 CMP16ri8
