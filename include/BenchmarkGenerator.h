@@ -92,6 +92,10 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &R
 std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
                                                         std::set<MCRegister> UsedRegisters);
 
+// returns a list of dependencies between Inst1 and Inst2, taking into account implicit and explicit
+// defs/uses
+std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
+
 // TODO find ISA independent function in llvm
 std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
 

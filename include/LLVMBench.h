@@ -48,10 +48,6 @@ extern LLVMEnvironment env;
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
 
-// returns a list of dependencies between Inst1 and Inst2, taking into account implicit and explicit
-// defs/uses
-std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
-
 // if a helper is needed and one can be found returns {SUCCESS, helperOpcode, helperConstraints}
 // if no helper is needed returns {SUCCESS, MAX_UNSIGNED, {}}
 // if one is needed but none can be found returns {ERROR_NO_HELPER, MAX_UNSIGNED, {}}

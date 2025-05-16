@@ -5,7 +5,7 @@
 #include "CustomDebug.h"  // for dbg
 #include "ErrorCode.h"    // for ErrorCode, ecToString
 #include "Globals.h"      // for env, LatMeasurement
-#include "LLVMBench.h"
+// #include "LLVMBench.h"
 #include "LLVMEnvironment.h" // for LLVMEnvironment
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "Templates.h"                       // for Template, getTemplate
@@ -475,6 +475,35 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
                                                         std::set<MCRegister> UsedRegisters) {
     const MCRegisterClass &regClass = getEnv().MRI->getRegClass(RegClassID);
     return getFreeRegisterInClass(regClass, UsedRegisters);
+}
+
+std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
+    std::list<DependencyType> dependencies;
+    const MCInstrDesc &desc1 = getEnv().MCII->get(Inst1.getOpcode());
+    const MCInstrDesc &desc2 = getEnv().MCII->get(Inst2.getOpcode());
+    // collect all registers Inst1 will define
+    std::set<MCRegister> defs1;
+    for (unsigned i = 0; i < desc1.getNumDefs(); i++) {
+        if (Inst1.getOperand(i).isReg()) defs1.insert(Inst1.getOperand(i).getReg());
+    }
+    for (MCRegister implDef : desc1.implicit_defs()) {
+        defs1.insert(implDef);
+    }
+    // collect all registers Inst2 will use
+    std::set<MCRegister> uses2;
+    for (unsigned i = desc2.getNumDefs(); i < desc2.getNumOperands(); i++) {
+        if (Inst2.getOperand(i).isReg()) uses2.insert(Inst2.getOperand(i).getReg());
+    }
+    for (MCRegister implUse : desc2.implicit_uses()) {
+        uses2.insert(implUse);
+    }
+    // create dependencyType for every register which is defined by 1 and used by 2
+    for (MCRegister def : defs1)
+        for (MCRegister use : uses2)
+            if (def == use)
+                dependencies.emplace_back(
+                    DependencyType(Operand::fromRegister(def), Operand::fromRegister(use)));
+    return dependencies;
 }
 
 std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
