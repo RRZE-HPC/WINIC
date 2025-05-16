@@ -72,7 +72,6 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
             errs() << "unsupported architecture: " << TargetTriple.getArchName() << "\n";
         return ERROR_TARGET_DETECT;
     }
-    // StringRef TargetTripleStr = "x86_64--";
     // copied from InstrRefLDVTest.cpp
     Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"
                        "f80:128-n8:16:32:64-S128");
@@ -87,15 +86,17 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     assert(type && "Unable to create Type");
     Function *f = Function::Create(type, GlobalValue::ExternalLinkage, "Test", &*Mod);
     assert(type && "Unable to create Function");
-    // auto F = Function::Create(Type, GlobalValue::ExternalLinkage, "Test");
-    // /own
     unsigned functionNum = 42;
-    MMI =
-        std::make_unique<MachineModuleInfo>(Machine.get());
-    // MMI =
-    //     std::make_unique<MachineModuleInfo>(static_cast<const LLVMTargetMachine *>(Machine.get()));
+
+    // release/20.x
+    MMI = std::make_unique<MachineModuleInfo>(Machine.get());
     const TargetSubtargetInfo &stimpl = *Machine->getSubtargetImpl(*f);
     MF = std::make_unique<MachineFunction>(*f, *Machine, stimpl, MMI->getContext(), functionNum);
+
+    // pre release/20.x
+    // MMI =
+    //     std::make_unique<MachineModuleInfo>(static_cast<const LLVMTargetMachine *>(Machine.get()));
+    // const TargetSubtargetInfo &stimpl = *Machine->getSubtargetImpl(*f);
     // MF = std::make_unique<MachineFunction>(*f,
     //                                        *static_cast<const LLVMTargetMachine *>(Machine.get()),
     //                                        stimpl, functionNum, *MMI.get());
@@ -183,20 +184,6 @@ std::set<MCRegister> LLVMEnvironment::getPossibleWriteRegs(unsigned Opcode) {
         writes.insert(MCRegister::from(reg));
     }
     return writes;
-}
-
-std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getBaseClass(MCRegister Reg) {
-    dbg(__func__, "getBaseClass ", TRI->getName(Reg));
-    for (unsigned i = 0; i < MRI->getNumRegClasses(); i++) {
-        MCRegisterClass regClass = MRI->getRegClass(i);
-
-        if (MRI->getRegClass(i).contains(Reg)) {
-            dbg(__func__, "found regClass ", MRI->getRegClassName(&regClass), "checking baseClass");
-            if (regClass.isBaseClass()) return {SUCCESS, regClass};
-        }
-    }
-    dbg(__func__, "no baseClass found for ", TRI->getName(Reg));
-    return {ERROR_UNREACHABLE, MRI->getRegClass(0)};
 }
 
 std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {
