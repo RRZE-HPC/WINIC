@@ -4,10 +4,14 @@
 NAME is a platform-independent automated micro-benchmarking tool. It currently works for x86 and ARM on Linux.
 NAME can automatically determine latency and throughput values for all instructions the given CPU supports.
 
+## Limitations
+NAME currently cannot measure: 
+- instructions accessing memory (this will be added in the future)
+- branches, returns, system calls
+
 # Download and Build
 
-NAME is relying on LLVM and clang to generate and assemble benchmarks. Use `setup.sh` after cloning this repository to automatically download and build LLVM aswell as NAME. 
-
+NAME is relying on LLVM and clang to generate and assemble benchmarks. Use `setup.sh` after cloning this repository to automatically download and build LLVM aswell as NAME. To manage multiple builds e.g. for multiple platforms in an HPC context specify `--dir <buildName>` to build a version of LLVM into ./llvm-build-buildName and NAME into ./build-buildName.
 
 # Usage
 
@@ -21,7 +25,7 @@ By default NAME measures all available instructions and generates a .yaml file w
 
 To measure single instructions add one or more `-i LLVM_INSTRUCTION_NAME` options. In single instruction mode a debug.s file is generated which contains the assembly code generated for the benchmark.
 
-## Helper instrucitons
+## Helper instructions
 
 NAME automatically uses helper instructions to:
 - break dependencies between instructions to measure throughput

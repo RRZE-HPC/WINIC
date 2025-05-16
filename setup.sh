@@ -10,21 +10,30 @@ else
     cd llvm-project
     git sparse-checkout init --cone
     git sparse-checkout set llvm clang third-party cmake
+    cd ..
 fi
 
-BUILD_DIR="build"
+BUILD_DIR=""
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        --dir) BUILD_DIR="$2"; shift ;;
-        --help) echo "Usage: $0 [--dir buildDirName]"; exit 0 ;;
+        --dir) 
+            BUILD_DIR="-$2"
+            shift 
+            ;;
+        --help)
+            qecho "Usage: $0 [--dir buildDirIdentifier]"
+            exit 0 
+            ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
 done
 
-LLVM_BUILD_DIR="./lb-$BUILD_DIR"
+BUILD_DIR="build$BUILD_DIR"
+
+LLVM_BUILD_DIR="./llvm-$BUILD_DIR"
 
 # Check if build dir exists
 if [ -d "$LLVM_BUILD_DIR" ]; then
