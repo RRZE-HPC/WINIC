@@ -1,6 +1,7 @@
 #include "Templates.h"
 
 #include "llvm/Support/raw_ostream.h" // for errs, raw_fd_ostream
+#include "llvm/TargetParser/Triple.h" // for Triple
 #include <set>                        // for set
 #include <stdlib.h>                   // for exit, EXIT_FAILURE
 
@@ -180,6 +181,91 @@ done_functionName:
         {"default", "mov reg, #imm"}},
     {"w0"}};
 
+Template RISCVTemplate = {
+    R"(
+#define N x0
+
+.section .text
+
+)",
+    R"(
+.align 4
+.globl functionName
+.type functionName, @function
+functionName:
+)",
+    R"(
+    ret
+.size functionName, .-functionName
+)",
+    R"(
+
+.align 4
+.globl functionName
+.type functionName, @function
+functionName:
+    # push callee-save registers onto stack
+    addi    sp, sp, -12*8         # Make space for 11 registers (s0–s11), 8 bytes each
+    sd      s0,  0(sp)
+    sd      s1,  8(sp)
+    sd      s2, 16(sp)
+    sd      s3, 24(sp)
+    sd      s4, 32(sp)
+    sd      s5, 40(sp)
+    sd      s6, 48(sp)
+    sd      s7, 56(sp)
+    sd      s8, 64(sp)
+    sd      s9, 72(sp)
+    sd      s10, 80(sp)
+    sd      s11, 88(sp)
+    mv      s0, sp             # Set new frame pointer
+
+    li      t0, 0               # i = 0
+    mv      t1, a0
+
+    blez    t1, done_tp
+
+)",
+    R"(
+loop_functionName:
+    addi    t0, t0, 1           # i++
+)",
+    R"(
+        blt     t0, t1, loop_functionName
+done_functionName:
+)",
+    R"(
+        # pop callee-save registers from stack
+        ld      s0,  0(sp)
+    ld      s1,  8(sp)
+    ld      s2, 16(sp)
+    ld      s3, 24(sp)
+    ld      s4, 32(sp)
+    ld      s5, 40(sp)
+    ld      s6, 48(sp)
+    ld      s7, 56(sp)
+    ld      s8, 64(sp)
+    ld      s9, 72(sp)
+    ld      s10, 80(sp)
+    ld      s11, 88(sp)
+    addi    sp, sp, 11*8         # Restore stack pointer
+    ret
+
+.size functionName, .-functionName
+)",
+    R"(
+)",
+    std::vector<std::pair<string, string>>{
+        // will be checked in order, default must be last and gets used if no other apply
+        // map to "None" if the register type should not be initialized.
+        // every instance of "reg" will be replaced by the register to initialize, every instance of
+        // "imm" will be replaced by the immediate value to initialize it with
+        {"x", "li reg, imm"},
+        {"f", "li reg, imm"},
+        {"v", "li t2, imm\nvsetvli a0, zero, e32\nvmv.v.x reg, t2"},
+        {"default", "li reg, imm"}},
+    {"t0", "t1", "t2", "a0"}};
+
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
     case llvm::Triple::x86_64: {
@@ -189,7 +275,9 @@ Template getTemplate(llvm::Triple::ArchType Arch) {
         return AArch64Template;
     }
     default:
-        llvm::errs() << "Tried to get a template for an unsupported arch, this should not happen\n";
+        llvm::errs() << "Tried to get a template for an unsupported arch: "
+                     << llvm::Triple::getArchTypeName(Arch) << " archNumber: " << Arch
+                     << " this should not happen\n";
         exit(EXIT_FAILURE);
     }
 }
