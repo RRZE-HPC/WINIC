@@ -51,11 +51,11 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
     std::vector<LatMeasurement> measurements;
     for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
         if (SkipOpcodes.find(opcode) != SkipOpcodes.end()) continue;
-        // if (Opcode != getOpcode("AND8rr_ND")) continue;
         const MCInstrDesc &desc = getEnv().MCII->get(opcode);
         ErrorCode ec = isValid(desc);
         if (ec != SUCCESS) {
-            dbg(__func__, getEnv().MCII->getName(opcode).data(), " skipped for reason ", ecToString(ec));
+            dbg(__func__, getEnv().MCII->getName(opcode).data(), " skipped for reason ",
+                ecToString(ec));
             continue;
         }
         auto operands = desc.operands();
@@ -211,9 +211,8 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
     dbg(__func__, "assembly file");
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("latency", saveRegs, loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("latencyUnrolled", saveRegs, loopCode + loopCode, restoreRegs,
-                                  "init");
+    assemblyFile.addBenchFunction("lat", saveRegs, loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("lat2", saveRegs, loopCode + loopCode, restoreRegs, "init");
     dbg(__func__, "checking deps");
 
     // check if each instruction of the sequence has exactly one dependency to the next one.
@@ -303,8 +302,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("tp", saveRegs, loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("tpUnroll2", saveRegs, loopCode + loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("tpUnroll4", saveRegs, loopCode + loopCode + loopCode + loopCode,
+    assemblyFile.addBenchFunction("tp2", saveRegs, loopCode + loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tp4", saveRegs, loopCode + loopCode + loopCode + loopCode,
                                   restoreRegs, "init");
     return {SUCCESS, assemblyFile};
 }
@@ -399,7 +398,6 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
             if (inst.getOperand(tiedToOp).isReg()) {
                 MCRegister reg = inst.getOperand(tiedToOp).getReg();
                 localUsedRegisters.insert(reg);
-                // dbg(__func__, "using tied register: ", getEnv().TRI->getName(reg));
             }
         } else {
             switch (opInfo.OperandType) {
@@ -407,10 +405,6 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                 // check if Constraints force registers for this operand
                 if (Constraints.find(j) != Constraints.end()) {
                     inst.addOperand(MCOperand::createReg(Constraints[j]));
-                    localUsedRegisters.insert(Constraints[j]);
-                    // dbg(__func__,
-                    //     "using register to satisfy constraint: ",
-                    //     getEnv().TRI->getName(Constraints[j]));
                     break;
                 }
 
@@ -425,19 +419,19 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                         // see X86RegisterInfo.td:586
                         continue;
                     // dont use this if sub- or superregisters are in usedRegisters
-                    if (std::any_of(UsedRegisters.begin(), UsedRegisters.end(),
-                                    [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
+                    if (std::any_of(
+                            UsedRegisters.begin(), UsedRegisters.end(),
+                            [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
                         continue;
 
                     // dont reuse any registers
-                    if (std::any_of(localUsedRegisters.begin(), localUsedRegisters.end(),
-                                    [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
+                    if (std::any_of(
+                            localUsedRegisters.begin(), localUsedRegisters.end(),
+                            [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
                         continue;
 
                     inst.addOperand(MCOperand::createReg(reg));
                     localUsedRegisters.insert(reg);
-
-                    // dbg(__func__, "using register: ", getEnv().TRI->getName(reg));
                     foundRegister = true;
                     break;
                 }
@@ -449,14 +443,10 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                 inst.addOperand(MCOperand::createImm(7));
                 break;
             case MCOI::OPERAND_MEMORY:
-                // errs() << "instructions accessing memory are not supported at this "
-                //           "time\n";
                 return {MEMORY_OPERAND, {}};
             case MCOI::OPERAND_PCREL:
-                // errs() << "branches are not supported at this time\n";
                 return {PCREL_OPERAND, {}};
             default:
-                // errs() << "unknown operand type\n";
                 return {UNKNOWN_OPERAND, {}};
             }
         }
@@ -557,8 +547,8 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     std::string temp;
     llvm::raw_string_ostream tso(temp);
     getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, tso);
-    // this is very ugly, these # instructions have isCodeGenOnly flag, how can
-    // we check it?
+    // this is very ugly, these # instructions have isCodeGenOnly flag, how to
+    // check it?
     if (temp.find("#") != std::string::npos) return IS_CODE_GEN_ONLY;
 
     // some pseudo instructions are not marked as pseudo (ABS_Fp32)

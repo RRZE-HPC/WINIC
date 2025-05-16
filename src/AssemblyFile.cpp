@@ -7,13 +7,6 @@
 #include <iostream>
 #include <string> // for basic_string, string, operator<
 
-// static std::string replaceFunctionName(std::string Str, std::string Name) {
-//     size_t pos = Str.find("latency");
-//     if (pos != std::string::npos) {
-//         Str.replace(pos, 7, Name);
-//     }
-//     return Str;
-// }
 std::string replaceFunctionName(std::string Str, const std::string Name) {
     size_t startPos = 0;
     while ((startPos = Str.find("functionName", startPos)) != std::string::npos) {
@@ -32,7 +25,6 @@ std::string replaceAllInstances(std::string Str, std::string ToReplace,
     return Str;
 }
 
-// void AssemblyFile::setArch(llvm::Triple::ArchType Arch) { this->Arch = Arch; }
 ErrorCode AssemblyFile::addInitFunction(std::string Name, std::string InitCode) {
     initFunctions.insert({Name, InitCode});
     return SUCCESS;

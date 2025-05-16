@@ -25,6 +25,7 @@
 #include <algorithm>                          // for set_difference, set_in...
 #include <assert.h>                           // for assert
 #include <iterator>                           // for insert_iterator, inserter
+#include <limits>                             // for numeric_limits
 #include <optional>                           // for nullopt, nullopt_t
 
 using namespace llvm;
@@ -95,11 +96,12 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
 
     // pre release/20.x
     // MMI =
-    //     std::make_unique<MachineModuleInfo>(static_cast<const LLVMTargetMachine *>(Machine.get()));
+    //     std::make_unique<MachineModuleInfo>(static_cast<const LLVMTargetMachine
+    //     *>(Machine.get()));
     // const TargetSubtargetInfo &stimpl = *Machine->getSubtargetImpl(*f);
     // MF = std::make_unique<MachineFunction>(*f,
-    //                                        *static_cast<const LLVMTargetMachine *>(Machine.get()),
-    //                                        stimpl, functionNum, *MMI.get());
+    //                                        *static_cast<const LLVMTargetMachine
+    //                                        *>(Machine.get()), stimpl, functionNum, *MMI.get());
 
     TRI = MF->getSubtarget().getRegisterInfo();
     // copied from InstrRefLDVTest.cpp

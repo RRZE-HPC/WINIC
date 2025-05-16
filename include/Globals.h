@@ -9,6 +9,7 @@
 #include "llvm/MC/MCRegisterInfo.h" // for MCRegisterInfo
 #include <assert.h>                 // for assert
 #include <fstream>                  // for basic_ostream, operator<<, ostream
+#include <limits>                   // for numeric_limits
 #include <memory>                   // for unique_ptr
 #include <string>                   // for char_traits, allocator, basic_st...
 #include <tuple>                    // for tie, operator<, tuple
@@ -70,7 +71,8 @@ struct Operand {
 
 inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
     if (Op.isRegClass())
-        return OS << "Class(" << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
+        return OS << "Class("
+                  << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
                   << ")";
 
     return OS << getEnv().MRI->getName(Op.getRegister()) << "(" << Op.getRegister() << ")";

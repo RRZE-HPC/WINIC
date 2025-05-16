@@ -11,7 +11,6 @@
 #include "llvm/MC/MCInstrDesc.h"             // for MCInstrDesc
 #include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
 #include "llvm/MC/MCRegister.h"              // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h"          // for MCRegisterInfo
 #include "llvm/MC/MCSubtargetInfo.h"         // for MCSubtargetInfo
 #include "llvm/Support/raw_ostream.h"        // for raw_fd_ostream, raw_ost...
 #include "llvm/TargetParser/Triple.h"        // for Triple
@@ -24,11 +23,12 @@
 #include <ctype.h>                           // for isdigit
 #include <dlfcn.h>                           // for dlsym, dlclose, dlopen
 #include <fcntl.h>                           // for open, O_WRONLY, O_TRUNC
+#include <filesystem>                        // for current_path, path
 #include <fstream>                           // for basic_ostream, operator<<
 #include <getopt.h>                          // for required_argument, option
 #include <iomanip>                           // for operator<<, put_time
 #include <iostream>                          // for cerr, cout
-#include <iterator>                          // for move_iterator, make_mov...
+#include <limits>                            // for numeric_limits
 #include <map>                               // for map, operator!=, operat...
 #include <memory>                            // for unique_ptr, make_unique
 #include <sstream>                           // for basic_ostringstream
@@ -109,8 +109,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     asmFile.close();
     if (dbgToFile) {
         // TODO make path relative
-        std::string debugPath =
-            "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/own_tools/llvm-bench/debug.s";
+        std::string debugPath = std::filesystem::current_path().string() + "/debug.s";
         std::ofstream debugFile(debugPath);
         if (!debugFile) {
             std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
@@ -279,7 +278,8 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     return {SUCCESS, cyclesPerInstruction};
 }
 
-std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>> getTPHelperInstruction(unsigned Opcode) {
+std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
+getTPHelperInstruction(unsigned Opcode) {
     // first check if this instruction needs a helper
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
@@ -393,15 +393,15 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
     double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
-    double time2 =
-        *std::min_element(benchResults["tpUnroll2"].begin(), benchResults["tpUnroll2"].end());
+    double time2 = *std::min_element(benchResults["tp2"].begin(), benchResults["tp2"].end());
 
     auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency, true);
     if (helperOpcode != MAX_UNSIGNED) {
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
-        dbg(__func__, "correcting ", correctedTP, " with ", getEnv().MCII->getName(helperOpcode).data(),
-            " ", throughputDatabase[helperOpcode].lowerTP);
+        dbg(__func__, "correcting ", correctedTP, " with ",
+            getEnv().MCII->getName(helperOpcode).data(), " ",
+            throughputDatabase[helperOpcode].lowerTP);
         out(*ios, "Helper: ", getEnv().MCII->getName(helperOpcode).data(), " ",
             throughputDatabase[helperOpcode].lowerTP);
         double tpSamePorts = correctedTP - throughputDatabase[helperOpcode].lowerTP;
@@ -436,12 +436,10 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
     if (ec != SUCCESS) return {ec, -1};
 
-    // take minimum of runs. "latency" and "latencyUnrolled" is naming convention defined in
+    // take minimum of runs. "lat" and "lat2" is naming convention defined in
     // runBenchmark()
-    double time1 =
-        *std::min_element(benchResults["latency"].begin(), benchResults["latency"].end());
-    double time2 = *std::min_element(benchResults["latencyUnrolled"].begin(),
-                                     benchResults["latencyUnrolled"].end());
+    double time1 = *std::min_element(benchResults["lat"].begin(), benchResults["lat"].end());
+    double time2 = *std::min_element(benchResults["lat2"].begin(), benchResults["lat2"].end());
     double cycles;
     std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency, false);
     if (ec != SUCCESS) {
@@ -451,7 +449,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
             chainString += " -> ";
         }
         std::printf("   anomaly detected during measurement of %s:\n", chainString.data());
-        for (auto time : benchResults["latencyUnrolled"]) {
+        for (auto time : benchResults["lat2"]) {
             std::printf("   %.3f ", time);
         }
         return {ERROR_GENERIC, -1};
@@ -925,7 +923,6 @@ int main(int argc, char **argv) {
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
-    // static LLVMEnvironment  env = LLVMEnvironment(march, cpu);
     ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {
         std::cerr << "failed to set up environment: " << ecToString(ec) << "\n";
@@ -952,7 +949,8 @@ int main(int argc, char **argv) {
         // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
         // with other instructions
         if (getEnv().Arch == Triple::ArchType::x86_64) {
-            auto [EC, lowerTP, upperTP] = measureInSubprocess(getEnv().getOpcode("TEST64rr"), frequency);
+            auto [EC, lowerTP, upperTP] =
+                measureInSubprocess(getEnv().getOpcode("TEST64rr"), frequency);
             throughputDatabase[getEnv().getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
             priorityTPHelper.emplace_back(getEnv().getOpcode("TEST64rr"));
 
@@ -977,7 +975,8 @@ int main(int argc, char **argv) {
                        << "\n";
                 outs().flush();
             } else {
-                std::printf("%s: %.3f (clock cycles)\n", getEnv().MCII->getName(opcode).data(), lower);
+                std::printf("%s: %.3f (clock cycles)\n", getEnv().MCII->getName(opcode).data(),
+                            lower);
                 fflush(stdout);
             }
         }
