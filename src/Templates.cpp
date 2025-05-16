@@ -274,6 +274,9 @@ Template getTemplate(llvm::Triple::ArchType Arch) {
     case llvm::Triple::aarch64: {
         return AArch64Template;
     }
+    case llvm::Triple::riscv64: {
+        return RISCVTemplate;
+    }
     default:
         llvm::errs() << "Tried to get a template for an unsupported arch: "
                      << llvm::Triple::getArchTypeName(Arch) << " archNumber: " << Arch

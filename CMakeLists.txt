@@ -42,6 +42,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
   Support
   X86
   AArch64
+  RISCV
 )
 
 # Clang libraries (for any Clang Tooling usage)
@@ -72,6 +73,8 @@ target_include_directories(LLVMBench SYSTEM PRIVATE
   ${LLVM_BINARY_DIR}/lib/Target/X86
   ${LLVM_SOURCE_DIR}/lib/Target/AArch64
   ${LLVM_BINARY_DIR}/lib/Target/AArch64
+  ${LLVM_SOURCE_DIR}/lib/Target/RISCV
+  ${LLVM_BINARY_DIR}/lib/Target/RISCV
 )
 
 # Compiler warning flags

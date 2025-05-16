@@ -64,10 +64,10 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
         LLVMInitializeAArch64TargetMC();
         LLVMInitializeAArch64AsmPrinter();
     } else if (TargetTriple.getArch() == Triple::ArchType::riscv64) {
-        // LLVMInitializeRISCVTarget();
-        // LLVMInitializeRISCVTargetInfo();
-        // LLVMInitializeRISCVTargetMC();
-        // LLVMInitializeRISCVAsmPrinter();
+        LLVMInitializeRISCVTarget();
+        LLVMInitializeRISCVTargetInfo();
+        LLVMInitializeRISCVTargetMC();
+        LLVMInitializeRISCVAsmPrinter();
     } else {
         if (TargetTriple.getArch() != llvm::Triple::UnknownArch)
             errs() << "unsupported architecture: " << TargetTriple.getArchName() << "\n";

@@ -526,6 +526,8 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
     }
     case llvm::Triple::aarch64:
         return {SUCCESS, ""}; // all registers saved in template
+    case llvm::Triple::riscv64:
+        return {SUCCESS, ""}; // all registers saved in template
     default:
         return {ERROR_UNSUPPORTED_ARCH, ""};
     }
@@ -551,6 +553,8 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
         break;
     }
     case llvm::Triple::aarch64:
+        return {SUCCESS, ""}; // all registers restored in template
+    case llvm::Triple::riscv64:
         return {SUCCESS, ""}; // all registers restored in template
     default:
         return {ERROR_UNSUPPORTED_ARCH, ""};
