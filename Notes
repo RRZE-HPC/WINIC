@@ -1,23 +1,56 @@
 
 TODO
-    installed valgrind but how to load
+    before publish
+        loop_tpUnroll2 asm label improve naming convention
+        replace tp at end of notes
+        make debug print function parameters
+        implement setup
+        implement output system
+        run iwyu
+    lat: dont report 0 if lower boundry
+    investigate vcvtph2ps ymm xmm on cascadelake, why match if no uops data
+    ADD_FrST0 takes 7 cycles on zen4 and 400+ on cascadelake. think about what to do.
+    cleanup init code generation in genLatBenchmark4
+    rename 
+        tpInnerLoop -> tploop
+    add init registers to tp benchmark
+    fix always munmap
+    main does not keep order of mixed input opcode and instruction names
+    
+    proof of concept riscv
+    improve comparison to uops
+    plan release packaging
+    issues to add:
+        improve register saving logic (use llvm)
+        calculateCycles move explanation into issue
+        tp match immediate to immediate size
+    latency
+        is helper selection deterministic?
+        round 0.999 to 1
+        find best instead of first helper (with minimal sideeffects)
+        RCR16rCL values missing and incorrect
+        why does CDQ use helper?
+        IMUL16r no prio helper mov?
+        BTC16ri8 has r->r 1 and r->flags 2 but i get opposite?
+        there may be implicit dependencys which hide the latency we want to measure. -> add a check for this
+        add measurements with same regs for different operands to check if zero
+        optimize canMeasure to do less loop iterations
+        add check for helpers not to be variants of same instruction
+    Throughput
+        
+        if bounds 2.76612 - 3.01737 dont report lower
+        make single measurement args order independent
+        
     /dev/shm/temp.s:114:2: error: instruction requires: Not 64-bit mode mov cr0, eax investigate
-    no helper EFLAGS (28) -> Class(GR64) -maybe fixed, check
-    BTC16ri8 has r->r 1 and r->flags 2 but i get opposite?
-    there may be implicit dependencys which hide the latency we want to measure. -> add a check for this
-    loop_tpUnroll2 asm label imnprove naming convention
-    something is causing free(): invalid (genoa, TP, around opcode 4692)
-    latency performance is not dominated by loop, check maybe impact of helpers 
-    some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without breaking the dependency on the flags. try to avoid
     add frequency check
-    check latency results with uops
     test lukewarm
         test Latency
         test sve
     test riscv
-        add templates for riscv plan release packaging configure llvm installation to include clang but be as fast as possible
-    properly organize and create headers
+        add templates for riscv
+    
     instructions with weird TP values
+        KMOVWrk weird when unroll 1-2 loops, correct when 2-4 loops
         ADD_FST0r 
         XOR8rr_NOREX
         ADC16ri8 - adcs are broken bc of flags dependency
@@ -28,7 +61,6 @@ TODO
         IMUL16r
         LAHF
         MUL32r
-        MUL8r - broken because always on same register
     instructions with weird LAT values
         VRSQRTSSr -0.5 in bench but correct 4.0 when single measurement?
         VUNPCKLPDZrr - 1.114 but should be 1.0 -> probably transition penalty? not solved via init function
@@ -37,11 +69,17 @@ TODO
         CDQ
         CMP16ri
         SUB32rr broken in Lat4.log check if fixed now 
+    instructions with better values than uops
+        VANDPDZ128rrk TP
 
 
-    done:
+done:
     instructions with weird values
         -COM_Fpr32 - was an undetected pseudo instruction
+    -add runtime to output
+    -properly organize and create headers
+    -something is causing free(): invalid (genoa, TP, around opcode 4692) it was STD which corrupts the heap
+    -some instructions e.g. adc (ADC16ri8) on zen4 get a TP penalty when unrolling the loop without breaking the dependency on the flags. try to avoid
     -restructure project
     -write global toString function
     -put normal and unrolled benchmarks in same assemby file
@@ -72,11 +110,15 @@ State
     -how to set/read clock frequency on arm
         warmup: 2.2GHz
         grace admin
-    likwid broken on arm likwid/grace
+    likwid broken on arm likwid/grace use -> grace verion
 
 Questions:
-    always same immediate correct?
-    TP only to determine number of execution units?
+
+
+riscv testen
+verschiedene immediates testen -> warning
+
+llvm git commit hash developed against: 8616c873350a2fd91c0c8028065daf8026ce515f
 
 
 helpful
@@ -90,21 +132,40 @@ use 2.4Ghz on genoa1 and 2.3Ghz on genoa2
 cd bachelor/llvm-project/build/own_tools/llvm-bench
 salloc --nodes=1 -w icx36 --time=02:00:00 -C hwperf
 srun --nodes=1 -w genoa1 --time=04:00:00 --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 > genoaLat.log
-srun --nodes=1 -w genoa1 --time=04:00:00 --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 > genoa.log
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 > genoaLAT.log
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 --minOpcode=4699 --maxOpcode=4700 > genoa.log
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 -o 4693
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 -n 1000 > genoaLatDebug.log
-srun --cpu-freq=2400000-2400000:performance cat /proc/cpuinfo | grep MHz
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench LAT -f 2.4 -i ADC16ri8
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench TP -f 2.4 -i ADC16ri8
-srun --cpu-freq=2400000-2400000:performance ./quick 2.4
-./LLVMBench -f 2.2 > warmup.log
+srun --nodes=1 -w genoa3 --time=04:00:00 --cpu-freq=1500000-1500000:performance ./LLVMBench TP -f 1.5 > genoa.log
+srun --nodes=1 -w genoa2 --time=04:00:00 --cpu-freq=1500000-1500000:performance ./LLVMBench LAT -f 1.5 > genoaLAT.log
+# fritz sapphire rapid 
+srun --cpu-freq=2000000-2000000:performance ./LLVMBench TP -f 2.0 > spr.log
+# casclakesp2
+srun --cpu-freq=1000000-1000000:performance ./LLVMBench TP -f 1.0 -i VANDPDZ128rrk
+# ivyep1
+srun --cpu-freq=1200000-1200000:performance ./LLVMBench TP -f 1.2 -i ADC16ri8
+# genoa
+ml likwid/5.2.2 && likwid-setFrequencies -t 0 && likwid-setFrequencies -f 1.5
+ml likwid/5.2.2 && likwid-setFrequencies -t 1 && likwid-setFrequencies -f 3.25
 
-#compiled with -fsanitize=address -fno-omit-frame-pointer, works only sometimes, run ~5 times
-./LLVMBench TP -f 2.4 -o 2567 &> sanitize1.log
+#get freq
+srun --cpu-freq=2000000-2000000:performance cat /proc/cpuinfo | grep MHz
+srun --nodes=1  --time=04:00:00 --cpu-freq=1500000-1500000:performance ./LLVMBench1 LAT -f 1.5 > genoaLAT.log
+./LLVMBench LAT -f 2.4 > genoaLAT.log
+./LLVMBench TP -f 2.4 > genoa.log
+./LLVMBench TP -f 2.4 --minOpcode=4699 --maxOpcode=4700 > genoa.log
+./LLVMBench TP -f 2.4 -o 4693
+./LLVMBench LAT -f 2.4 -n 1000 > genoaLatDebug.log
+./LLVMBench LAT -f 2.4 -i ADC16ri8
+./LLVMBench TP -f 2.4 -i ADC16ri8
+./quick 2.4
+cat /proc/cpuinfo | grep MHz
+module load likwid/5.2.2
+likwid-setFrequencies -p #print
+likwid-setFrequencies -l #list freq
+likwid-setFrequencies -f 1.5 #set
+ml likwid/5.2.2 && likwid-setFrequencies -t 0 && likwid-setFrequencies -f 1.5
+ml likwid/5.2.2 && likwid-setFrequencies -t 0 && likwid-setFrequencies -f 1.2
+likwid-setFrequencies -reset
 
-srun --cpu-freq=2400000-2400000:performance ./LLVMBench -f 2.4 -i MMX_PMULLWrr 
+
+/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared debug.s
 
 benchmark
     perf record -g ./LLVMBench LAT -f 2.4 -n 1000
@@ -116,38 +177,74 @@ Testfront setup
     salloc --nodes=1 -w icx36 --time=02:00:00
     salloc --nodes=1 -w genoa1 --time=02:00:00
 
-    module load cmake gcc python
-    mkdir -p llvm-project/build && cd llvm-project/build
-    cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON ../llvm
-    cmake --build . -- -j 32
-    mkdir own_tools && cd own_tools
-    git clone https://github.com/TobiasRTR/llvm-bench.git
+    module load cmake gcc python likwid
+        
+        mkdir -p llvm-project/build && cd llvm-project/build
+        cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON ../llvm
+        cmake --build . -- -j 32
+        mkdir own_tools && cd own_tools
+        git clone https://github.com/TobiasRTR/llvm-bench.git
 
     #build with clangd or all
-    cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra"
-    cmake --build . --target clangd/all -- -j 64
+        cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra"
+        cmake --build . --target clangd/all -- -j 64
 
 
-    build_x86_2 (this will be 150GB)
-    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
-    cmake --build . --target install -- -j 64
+    #build_x86_2 (this will be 150GB)
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../llvm -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
+        cmake --build . --target install -- -j 64
 
     # iwyu
-    git clone https://github.com/llvm/llvm-project.git
-    git clone https://github.com/include-what-you-use/include-what-you-use.git
-    cd llvm-project
-    git checkout release/20.x
-    cd ../include-what-you-use
-    git checkout release/clang_20
-    cd ..
-    mkdir build && cd build
-    cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_ENABLE_PROJECTS=clang -DLLVM_EXTERNAL_PROJECTS=iwyu -DLLVM_EXTERNAL_IWYU_SOURCE_DIR=../../include-what-you-use 
-    likwid-pin -c 0-191 cmake --build . -- -j 192
-    alias iwyu="/home/woody/ihpc/ihpc149h/bachelor/llvm-project/build/bin/include-what-you-use"
+        git clone https://github.com/llvm/llvm-project.git
+        git clone https://github.com/include-what-you-use/include-what-you-use.git
+        cd llvm-project
+        git checkout release/20.x
+        cd ../include-what-you-use
+        git checkout release/clang_20
+        cd ..
+        mkdir build && cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ../llvm -DLLVM_ENABLE_PROJECTS=clang -DLLVM_EXTERNAL_PROJECTS=iwyu -DLLVM_EXTERNAL_IWYU_SOURCE_DIR=../../include-what-you-use 
+        
+        alias iwyu="/home/woody/ihpc/ihpc149h/bachelor/llvm-project/build/bin/include-what-you-use"
 
+        #haswell for valgrind
+        cd $WORK
+        cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON -DCMAKE_CXX_FLAGS="-march=haswell" -DLLVM_TARGETS_TO_BUILD="X86;AArch64" ../llvm
+        objdump -d ./LLVMBench | grep -iE 'vpdpbusd|vpmadd52|vpopcntd|zmm'
+
+    likwid-pin -c 0-191 cmake --build . -- -j 192
 
     # create compile_commands.json
     ~/bachelor/llvm-project/build_x86/bin/intercept-build make
+
+    #valgrind. doesnt work because unknown instruction likely avx512 -> recompiled llvm for haswell but didnt work
+    module use /home/woody/ihpc/ihpc149h/USER-SPACK/share/spack/modules/linux-ubuntu24.04-x86_64_v4/
+    ml valgrind
+
+    LD_HWCAP_MASK=0x0 valgrind --sim-hints=lax-ioctls --vex-iropt-level=0 ./LLVMBench TP -f 2.4 --minOpcode=4690 --maxOpcode=4700
+    likwid-pin -c 0-191 cmake --build . -- -j 192
+
+#old 
+cmake -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_SOURCE_DIR=../../../llvm \
+  -DLLVM_BINARY_DIR=../../../build_x86 \
+  -DLLVM_DIR=.../../../build_x86/lib/ cmake/llvm \
+  -DClang_DIR=../../../build_x86/lib/cmake/clang \
+  -DCLANG_PATH=../../../build_x86/bin/clang ..
+
+debugging
+    ./LLVMBench TP -f 2.4 --minOpcode=4690 --maxOpcode=4700 is crashing
+    #this doesnt show ouptut???
+    ASAN_SYMBOLIZER_PATH=//home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/bin/llvm-symbolizer ./LLVMBench TP -f 2.4 --minOpcode=4690 --maxOpcode=4700
+    
+Dont do this again:
+    ALWAYS wrap measurements in a subprocess.
+    even if signals are caught reliably there are too many side effects we cannot predict:
+    STD reverses order of string operations and causes heap corruption
+
+Parial write penalty on zen4:
+    e.g. mov al 7 needs 2 uops because no wiring to write only 8 bits
+
     
 
 total runtime: 34.612634 (s) lat n= 1000
@@ -479,3 +576,90 @@ clangd include paths in .clangd
     test r12, r12
 	adox	r14d, r15d
     test r12, r12
+
+TODO change to this
+    std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
+                                                  unsigned UnrollCount,
+                                                  std::set<MCRegister> UsedRegisters,
+                                                  std::map<unsigned, MCRegister> HelperConstraints,
+                                                  int HelperOpcode) {
+    // TODO change to list of opcodes
+    dbg(__func__, "getting template");
+    auto benchTemplate = getTemplate(env.MSTI->getTargetTriple().getArch());
+    // extract list of registers used by the template
+    // TODO optimize
+    dbg(__func__, "getting usedRegs");
+    for (unsigned i = 0; i < env.MRI->getNumRegs(); i++) {
+        MCRegister reg = MCRegister::from(i);
+        if (benchTemplate.usedRegisters.find(env.TRI->getRegAsmName(reg).lower().data()) !=
+            benchTemplate.usedRegisters.end())
+            UsedRegisters.insert(reg);
+    }
+
+    dbg(__func__, "call gen inner loop");
+
+    // this is the hepler instruction if needed.
+    std::list<MCInst> instructions;
+    ErrorCode EC;
+    auto currentUsedRegisters = UsedRegisters;
+    if (HelperOpcode > -1) {
+        unsigned helperOpcode = HelperOpcode;
+        std::tie(EC, instructions) =
+            genTPInnerLoop4({Opcode, helperOpcode}, {{}, HelperConstraints}, *TargetInstrCount,
+                            currentUsedRegisters);
+        if (EC != SUCCESS) return {EC, AssemblyFile()};
+        // update TargetInstructionCount to actual number of instructions generated, dont include
+        // helper instructions
+        *TargetInstrCount = UnrollCount * instructions.size() / 2;
+    } else {
+        // ho helper
+        std::tie(EC, instructions) =
+            genTPInnerLoop4({Opcode}, {{}}, *TargetInstrCount, currentUsedRegisters);
+        if (EC != SUCCESS) return {EC, AssemblyFile()};
+        // update TargetInstructionCount to actual number of instructions generated
+        *TargetInstrCount = UnrollCount * instructions.size();
+    }
+    auto benchUsedRegistes = env.regDifference(currentUsedRegisters, UsedRegisters);
+
+    dbg(__func__, "inner loop generated");
+
+    // save registers used (genTPInnerLoop updates usedRegisters)
+    std::string saveRegs;
+    std::string restoreRegs;
+    std::string initCode;
+    llvm::raw_string_ostream ico(initCode);
+    for (MCRegister reg : benchUsedRegistes) {
+        if (env.TRI->isCalleeSavedPhysReg(reg, *env.MF)) {
+            // generate code to save and restore register
+            // this currently also saves registers already saved in the template
+            // which is redundant but not harmful
+            auto [EC1, save] = genSaveRegister(reg);
+            if (EC1 != SUCCESS) return {EC1, AssemblyFile()};
+            saveRegs.append(save);
+            auto [EC2, restore] = genRestoreRegister(reg);
+            if (EC2 != SUCCESS) return {EC2, AssemblyFile()};
+            restoreRegs.insert(0, restore);
+        }
+        ico << genRegInit(reg, "0x4", benchTemplate);
+    }
+
+    dbg(__func__, "starting to build benchmark code");
+
+    std::string singleLoopCode;
+    llvm::raw_string_ostream slo(singleLoopCode);
+    for (auto inst : instructions) {
+        env.MIP->printInst(&inst, 0, "", *env.MSTI, slo);
+        slo << "\n";
+    }
+    std::string loopCode;
+    for (unsigned i = 0; i < UnrollCount; i++)
+        loopCode.append(singleLoopCode);
+
+    AssemblyFile assemblyFile(env.Arch);
+    assemblyFile.addInitFunction("init", saveRegs + initCode + singleLoopCode + restoreRegs + "\n");
+    assemblyFile.addBenchFunction("tp", saveRegs, loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tpUnroll2", saveRegs, loopCode + loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tpUnroll4", saveRegs, loopCode + loopCode + loopCode + loopCode,
+                                  restoreRegs, "init");
+    return {SUCCESS, assemblyFile};
+}
