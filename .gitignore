@@ -24,3 +24,7 @@ perf-archive.sh
 obj
 .cache
 vgcore.*
+unused_code.cpp1
+build
+presentation
+old
