@@ -1,4 +1,4 @@
 CompileFlags:
-  Add: [--std=c++17, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/own_tools/llvm-bench/include, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/llvm/lib/Target/X86, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/lib/Target/X86]
+  Add: [--std=c++17, -Wall, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/own_tools/llvm-bench/include, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/llvm/lib/Target/X86, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build/lib/Target/X86]
   Remove: [-fno-lifetime-dse]
   #, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/clang/include/, -I/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/tools/clang/include/
