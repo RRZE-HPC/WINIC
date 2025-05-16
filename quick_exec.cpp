@@ -30,7 +30,7 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     std::string command =
     // "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_all/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> assembler_out";
-    "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> assembler_out";
+    "/home/hpc/ihpc/ihpc149h/bachelor/llvm-project/build_x86/bin/clang -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> assembler_out.log";
     // "gcc -x assembler-with-cpp -shared " + sPath + " -o " + oPath + " 2> gcc_out";
     if (system(command.data()) != 0) return {-1};
 
@@ -45,7 +45,7 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
         return {-1};
     }
     if ((latency = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
-        fprintf(stderr, "dlsym: couldn't find function latency\n");
+        fprintf(stderr, "dlsym: couldn't find function\n");
         fflush(stdout);
         return {-1};
     }
@@ -84,7 +84,8 @@ static std::list<double> runBenchmark(int N, unsigned Runs, unsigned *NumInst, d
         }
     } else {
         dlclose(handle);
-        return {-1};
+        std::cout << "benchmark terminated on signal\n";
+        exit(1);
     }
     // *NumInst = *ninst;
 
