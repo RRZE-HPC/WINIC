@@ -13,7 +13,7 @@
 #include <string>                   // for char_traits, allocator, basic_st...
 #include <tuple>                    // for tie, operator<, tuple
 
-extern LLVMEnvironment env;
+LLVMEnvironment &getEnv();
 
 extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
@@ -70,10 +70,10 @@ struct Operand {
 
 inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
     if (Op.isRegClass())
-        return OS << "Class(" << env.MRI->getRegClassName(&env.MRI->getRegClass(Op.getRegClass()))
+        return OS << "Class(" << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
                   << ")";
 
-    return OS << env.MRI->getName(Op.getRegister()) << "(" << Op.getRegister() << ")";
+    return OS << getEnv().MRI->getName(Op.getRegister()) << "(" << Op.getRegister() << ")";
 }
 
 struct DependencyType {
@@ -97,9 +97,9 @@ struct DependencyType {
     bool canCreateDependencyChain() {
         if (isSymmetric()) return true;
         if (defOp.isRegClass() && useOp.isRegister())
-            return env.regInRegClass(useOp.getRegister(), defOp.getRegClass());
+            return getEnv().regInRegClass(useOp.getRegister(), defOp.getRegClass());
         if (defOp.isRegister() && useOp.isRegClass())
-            return env.regInRegClass(defOp.getRegister(), useOp.getRegClass());
+            return getEnv().regInRegClass(defOp.getRegister(), useOp.getRegClass());
         return false; // unreachable
     }
 };
@@ -141,11 +141,11 @@ inline std::ostream &operator<<(std::ostream &OS, const LatMeasurement &Op) {
     if (Op.defIndex == 999) defIndexString = "impl";
 
     if (!isError(Op.ec))
-        return OS << env.MCII->getName(Op.opcode).str() << "(" << useIndexString << "->"
+        return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "->"
                   << defIndexString << ") " << Op.type << " [" << Op.lowerBound << ";"
                   << Op.upperBound << "]";
 
-    return OS << env.MCII->getName(Op.opcode).str() << "(" << useIndexString << "->"
+    return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "->"
               << defIndexString << ") " << Op.type;
 }
 

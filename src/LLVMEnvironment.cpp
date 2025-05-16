@@ -29,10 +29,9 @@
 
 using namespace llvm;
 
-LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("beehives", Ctx)) {}
+LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("my_module", Ctx)) {}
 
 ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
-
     // LLVMInitializeX86AsmParser();
     // LLVMInitializeX86Disassembler();
     // LLVMInitializeX86TargetMCA();
@@ -91,9 +90,14 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     // auto F = Function::Create(Type, GlobalValue::ExternalLinkage, "Test");
     // /own
     unsigned functionNum = 42;
-    MMI = std::make_unique<MachineModuleInfo>(Machine.get());
+    MMI =
+        std::make_unique<MachineModuleInfo>(static_cast<const LLVMTargetMachine *>(Machine.get()));
     const TargetSubtargetInfo &stimpl = *Machine->getSubtargetImpl(*f);
-    MF = std::make_unique<MachineFunction>(*f, *Machine, stimpl, MMI->getContext(), functionNum);
+    // MF = std::make_unique<MachineFunction>(*f, *Machine, stimpl, MMI->getContext(), functionNum);
+    MF = std::make_unique<MachineFunction>(*f,
+                                           *static_cast<const LLVMTargetMachine *>(Machine.get()),
+                                           stimpl, functionNum, *MMI.get());
+
     TRI = MF->getSubtarget().getRegisterInfo();
     // copied from InstrRefLDVTest.cpp
     MaxReg = TRI->getNumSupportedRegs(*MF);
