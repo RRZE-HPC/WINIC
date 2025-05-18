@@ -1,31 +1,31 @@
 #include "LLVMBench.h"
 
-#include "BenchmarkGenerator.h"              // for genInst4, isValid, whic...
-#include "CustomDebug.h"                     // for dbg, debug
+#include "BenchmarkGenerator.h"              // for genInst, getDependencies
+#include "CLI11.hpp"                         // for App, Option, CLI11_PARSE
+#include "CustomDebug.h"                     // for out, dbg, debug
 #include "ErrorCode.h"                       // for ErrorCode, ecToString
-#include "Globals.h"                         // for LatMeasurement, Depend...
+#include "Globals.h"                         // for LatMeasurement, getEnv
 #include "LLVMEnvironment.h"                 // for LLVMEnvironment
 #include "llvm/ADT/StringRef.h"              // for StringRef
 #include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
-#include "llvm/MC/MCInst.h"                  // for MCInst, MCOperand
-#include "llvm/MC/MCInstrDesc.h"             // for MCInstrDesc
+#include "llvm/MC/MCInst.h"                  // for MCInst
 #include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
 #include "llvm/MC/MCRegister.h"              // for MCRegister
 #include "llvm/MC/MCSubtargetInfo.h"         // for MCSubtargetInfo
-#include "llvm/Support/raw_ostream.h"        // for raw_fd_ostream, raw_ost...
+#include "llvm/Support/raw_ostream.h"        // for raw_fd_ostream, outs
 #include "llvm/TargetParser/Triple.h"        // for Triple
-#include <algorithm>                         // for min_element, max
+#include <AssemblyFile.h>                    // for AssemblyFile
+#include <algorithm>                         // for min_element
 #include <chrono>                            // for system_clock
-#include <csignal>                           // for SIGSEGV, size_t, SIGILL
-#include <cstdio>                            // for printf, NULL, fflush
-#include <cstdlib>                           // for exit, atoi, EXIT_SUCCESS
+#include <csignal>                           // for size_t, SIGILL, SIGSEGV
+#include <cstdio>                            // for NULL, printf, perror
+#include <cstdlib>                           // for exit, EXIT_SUCCESS, WTE...
 #include <ctime>                             // for localtime, time_t
 #include <ctype.h>                           // for isdigit
 #include <dlfcn.h>                           // for dlsym, dlclose, dlopen
-#include <fcntl.h>                           // for open, O_WRONLY, O_TRUNC
+#include <fcntl.h>                           // for open, O_WRONLY, O_CREAT
 #include <filesystem>                        // for current_path, path
-#include <fstream>                           // for basic_ostream, operator<<
-#include <getopt.h>                          // for required_argument, option
+#include <fstream>                           // for basic_ostream, basic_of...
 #include <iomanip>                           // for operator<<, put_time
 #include <iostream>                          // for cerr, cout
 #include <limits>                            // for numeric_limits
@@ -33,12 +33,12 @@
 #include <memory>                            // for unique_ptr, make_unique
 #include <sstream>                           // for basic_ostringstream
 #include <string>                            // for basic_string, hash, cha...
-#include <sys/mman.h>                        // for mmap, munmap, MAP_ANONY...
+#include <sys/mman.h>                        // for munmap, mmap, MAP_ANONY...
 #include <sys/time.h>                        // for timeval, gettimeofday
 #include <sys/types.h>                       // for pid_t
 #include <sys/wait.h>                        // for waitpid
-#include <tuple>                             // for tuple, get, tie
-#include <unistd.h>                          // for optarg, _exit, fork, dup2
+#include <tuple>                             // for get, tuple, tie
+#include <unistd.h>                          // for fork, _exit, dup2, execl
 #include <unordered_map>                     // for unordered_map, operator!=
 #include <unordered_set>                     // for unordered_set
 #include <vector>                            // for vector
@@ -46,6 +46,10 @@
 // #include "X86RegisterInfo.h"
 // #include "MCTargetDesc/X86MCTargetDesc.h"
 // #include "MCTargetDesc/X86BaseInfo.h"
+
+namespace llvm {
+class MCInstrDesc;
+}
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
@@ -118,16 +122,15 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         debugFile << Assembly.generateAssembly();
         debugFile.close();
     }
-
     dbg(__func__, "assembling benchmark");
-
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2>
     // gcc_out";
 
     // slightly worse performance than fork
     //  std::string compiler = CLANG_PATH;
-    //  std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " + oPath;
+    //  std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " +
+    // oPath;
     //  if (dbgToFile)
     //      command += " 2> assembler_out.log";
     //  else
@@ -212,6 +215,54 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         }
     }
     dbg(__func__, "benchmarks complete");
+
+    dlclose(handle);
+    return {SUCCESS, benchtimes};
+}
+
+std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned Runs,
+                                                    unsigned NumInst, int LoopCount,
+                                                    double Frequency, std::string FunctionName,
+                                                    std::string InitName) {
+    dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
+        " LoopCount: ", LoopCount, " Frequency: ", Frequency, " FunctionName: ", FunctionName,
+        " InitName: ", InitName);
+    std::string clangPath = CLANG_PATH;
+    std::string oPath = "/dev/shm/temp.so";
+    std::string command = clangPath + " -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
+                          " 2> assembler_out.log";
+    if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {}};
+
+    // from ibench
+    void *handle;
+    double (*function)(int);
+    double (*init)() = nullptr;
+    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
+        fprintf(stderr, "dlopen: failed to open .so file\n");
+        fflush(stdout);
+        return {ERROR_ASSEMBLY, {}};
+    }
+    if (!InitName.empty()) {
+        if ((init = (double (*)())dlsym(handle, InitName.data())) == NULL) {
+            std::cerr << "dlsym: couldn't find function" << InitName << std::endl;
+            return {ERROR_GENERIC, {}};
+        }
+    }
+    if ((function = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
+        std::cerr << "dlsym: couldn't find function" << FunctionName << std::endl;
+        return {ERROR_GENERIC, {}};
+    }
+    struct timeval start, end;
+    std::vector<double> benchtimes;
+    for (unsigned i = 0; i < Runs; i++) {
+        if (init) (*init)();
+        gettimeofday(&start, NULL);
+        // actual call to benchmarked function
+        (*function)(LoopCount);
+        gettimeofday(&end, NULL);
+        benchtimes.insert(benchtimes.end(),
+                          (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
+    }
 
     dlclose(handle);
     return {SUCCESS, benchtimes};
@@ -445,9 +496,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
     }
 
     pid_t pid = fork();
-    if (pid == -1) {
-        return {ERROR_FORK, -1, -1};
-    }
+    if (pid == -1) return {ERROR_FORK, -1, -1};
 
     if (pid == 0) { // Child process
         ErrorCode ec;
@@ -465,10 +514,16 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         waitpid(pid, &status, 0);
         dbg(__func__, "child exited on status ", status);
 
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1, -1};
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1, -1};
-        if (WIFSIGNALED(status)) return {ERROR_SIGNAL, -1, -1};
-        if (WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1, -1};
+        if (WIFSIGNALED(status)) {
+            munmap(sharedLowerBound, sizeof(double));
+            munmap(sharedUpperBound, sizeof(double));
+            munmap(sharedEC, sizeof(ErrorCode));
+            if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1, -1};
+            if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1, -1};
+            return {ERROR_SIGNAL, -1, -1};
+        }
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
+            return {ERROR_UNREACHABLE, -1, -1};
 
         ErrorCode ec = *sharedEC;
         double lower = *sharedLowerBound;
@@ -494,9 +549,7 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     }
 
     pid_t pid = fork();
-    if (pid == -1) {
-        return {ERROR_FORK, -1};
-    }
+    if (pid == -1) return {ERROR_FORK, -1};
 
     if (pid == 0) { // Child process
         ErrorCode ec;
@@ -511,16 +564,73 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
         waitpid(pid, &status, 0);
         dbg(__func__, "child exited on status ", status);
 
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1};
-        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1};
-        if (WIFSIGNALED(status)) return {ERROR_SIGNAL, -1};
-        if (WEXITSTATUS(status) != EXIT_SUCCESS) return {ERROR_GENERIC, -1};
+        if (WIFSIGNALED(status)) {
+            munmap(sharedResult, sizeof(double));
+            munmap(sharedEC, sizeof(ErrorCode));
+            if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, {}};
+            if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, {}};
+            return {ERROR_SIGNAL, {}};
+        }
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
+            return {ERROR_UNREACHABLE, {}};
 
         ErrorCode ec = *sharedEC;
         double res = *sharedResult;
-        munmap(sharedResult, sizeof(int));
+        munmap(sharedResult, sizeof(double));
         munmap(sharedEC, sizeof(ErrorCode));
         return {ec, res};
+    }
+}
+std::pair<ErrorCode, std::vector<double>>
+measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
+                    double Frequency, std::string FunctionName, std::string InitName) {
+    // allocate memory to communicate result
+    double *sharedResults = static_cast<double *>(mmap(
+        NULL, Runs * sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+    ErrorCode *sharedEC = static_cast<ErrorCode *>(
+        mmap(NULL, sizeof(ErrorCode), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+
+    if (sharedResults == MAP_FAILED || sharedEC == MAP_FAILED) {
+        perror("mmap");
+        return {ERROR_MMAP, {}};
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) return {ERROR_FORK, {}};
+
+    if (pid == 0) { // Child process
+        ErrorCode EC;
+        std::vector<double> res;
+        std::tie(EC, res) =
+            runManual(SPath, Runs, NumInst, LoopCount, Frequency, FunctionName, InitName);
+        for (unsigned i = 0; i < Runs; i++) {
+            sharedResults[i] = res[i];
+        }
+
+        *sharedEC = EC;
+        exit(EXIT_SUCCESS);
+    } else { // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFSIGNALED(status)) {
+            munmap(sharedResults, Runs * sizeof(double));
+            munmap(sharedEC, sizeof(ErrorCode));
+            if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, {}};
+            if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, {}};
+            return {ERROR_SIGNAL, {}};
+        }
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
+            return {ERROR_UNREACHABLE, {}};
+
+        ErrorCode EC = *sharedEC;
+        std::vector<double> res;
+        for (unsigned i = 0; i < Runs; i++)
+            res.push_back(sharedResults[i]);
+
+        munmap(sharedResults, Runs * sizeof(double));
+        munmap(sharedEC, sizeof(ErrorCode));
+        return {EC, res};
     }
 }
 
@@ -695,7 +805,7 @@ void buildLatDatabase(double Frequency) {
             dbg(__func__, "measured ", lat, " from ", mB, " and ", smallestA);
             if (EC != SUCCESS) {
                 if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
-                    out(*ios, "Detected multiple dependencys between the interleaved instructions. "
+                    out(*ios, "Detected multiple dependencys between the MANd instructions. "
                               "This will not be considered for finding helpers");
                 } else {
                     out(*ios, "measuring ", smallestA, " and ", mB,
@@ -730,7 +840,7 @@ void buildLatDatabase(double Frequency) {
             dbg(__func__, "measured ", lat, " from ", mA, " and ", smallestB);
             if (EC != SUCCESS) {
                 if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
-                    out(*ios, "Detected multiple dependencys between the interleaved instructions. "
+                    out(*ios, "Detected multiple dependencys between the MANd instructions. "
                               "This will not be considered for finding helpers");
                 } else {
                     out(*ios, "measuring ", mA, " and ", smallestB,
@@ -810,84 +920,43 @@ void buildLatDatabase(double Frequency) {
 }
 
 int main(int argc, char **argv) {
-    struct option longOptions[] = {
-        {"help", no_argument, nullptr, 'h'},
-        {"instruction", required_argument, nullptr, 'i'},
-        {"opcode", required_argument, nullptr, 'o'},
-        {"frequency", required_argument, nullptr, 'f'},
-        {"cpu", required_argument, nullptr, 'c'},
-        {"march", required_argument, nullptr, 'm'},
-        {"minOpcode", required_argument, nullptr, 0},
-        {"maxOpcode", required_argument, nullptr, 0},
-        {nullptr, 0, nullptr, 0} // End marker
-    };
-    std::vector<std::string> instrNames;
-    std::vector<unsigned> opcodes;
     double frequency;
-    int opt;
     std::string cpu = "";
     std::string march = "";
+    CLI::App app{"LLVMBench"};
+    app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
+    app.add_option("-c,--cpu", cpu, "CPU model");
+    app.add_option("-m,--march", march, "Architecture");
+
+    std::vector<std::string> instrNames;
+    std::vector<unsigned> opcodes;
     unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " {TP|LAT|INTERLEAVE|DEV} [options]\n";
-        return 1;
-    }
+    auto *tp = app.add_subcommand("TP", "Throughput");
+    auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    tp->add_option("--minOpcode", minOpcode, "Minimum opcode to test")->excludes(tpInstOpt);
+    tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to test")->excludes(tpInstOpt);
+
+    auto *lat = app.add_subcommand("LAT", "Latency");
+    auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    lat->add_option("--minOpcode", minOpcode, "Minimum opcode to test")->excludes(latInstOpt);
+    lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to test")->excludes(latInstOpt);
+
+    std::string sPath, funcName, initName = "";
+    unsigned numInst;
+    auto *man = app.add_subcommand("MAN", "Manual");
+    man->add_option("-p,--path", sPath, "Assembly file path")->required()->check(CLI::ExistingPath);
+    man->add_option("--funcName", funcName, "Function to benchmark")->required();
+    man->add_option("-n,--nInst", numInst, "Number of iterations")->required();
+    man->add_option("--initName", initName, "Initialization function");
+
+    app.require_subcommand(1, 1);
+
+    CLI11_PARSE(app, argc, argv);
+
     std::string filename = generateTimestampedFilename("run", ".log");
     setOutputToFile(filename);
 
-    enum Modes { TP, LAT, INTERLEAVE, DEV };
-    std::string modeStr = argv[1];
-    Modes mode;
-    if (modeStr == "TP") {
-        mode = TP;
-        out(*ios, "Mode: Throughput");
-    } else if (modeStr == "LAT") {
-        mode = LAT;
-        out(*ios, "Mode: Latency");
-    } else if (modeStr == "INTERLEAVE") {
-        mode = INTERLEAVE;
-    } else if (modeStr == "DEV") {
-        mode = DEV;
-    } else {
-        std::cerr << "Unknown subprogram: " << modeStr << "\n";
-        return 1;
-    }
-
-    int optionIndex = 0;
-    argc -= 1; // Shift arguments
-    argv += 1;
-    while ((opt = getopt_long(argc, argv, "hi:f:m:o:", longOptions, &optionIndex)) != -1) {
-        switch (opt) {
-        case 0:
-            if (strcmp(longOptions[optionIndex].name, "minOpcode") == 0)
-                minOpcode = atoi(optarg);
-            else if (strcmp(longOptions[optionIndex].name, "maxOpcode") == 0)
-                maxOpcode = atoi(optarg);
-            break;
-        case 'h':
-            std::cout << "Usage:" << argv[0]
-                      << "[--help] [--instruction INST] [--frequency FREQ(GHz)] [--ninst nMax]\n";
-            return 0;
-        case 'i':
-            instrNames.emplace_back(optarg);
-            break;
-        case 'o':
-            opcodes.emplace_back(atoi(optarg));
-            break;
-        case 'f':
-            frequency = atof(optarg);
-            break;
-        case 'm':
-            march = optarg;
-            break;
-        case 'c':
-            cpu = optarg;
-            break;
-        default:
-            return 1;
-        }
-    }
     out(*ios, "Frequency: ", frequency, " GHz");
     debug = false;
     dbgToFile = false;
@@ -911,12 +980,8 @@ int main(int argc, char **argv) {
         opcodes.emplace_back(opcode);
     }
 
-    switch (mode) {
-    case INTERLEAVE: {
-        dbg(__func__, "no code in INTERLEAVE mode");
-        break;
-    }
-    case TP: {
+    if (*tp) {
+        out(*ios, "Mode: Throughput");
         // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
         // with other instructions
         if (getEnv().Arch == Triple::ArchType::x86_64) {
@@ -934,26 +999,25 @@ int main(int argc, char **argv) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
             buildTPDatabase(frequency, minOpcode, maxOpcode);
-            break;
-        }
-        dbgToFile = true;
-        debug = true;
-        for (unsigned opcode : opcodes) {
-            auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
-            throughputDatabase[opcode] = {EC, lower, upper};
-            if (EC != SUCCESS) {
-                outs() << getEnv().MCII->getName(opcode) << " failed for reason: " << ecToString(EC)
-                       << "\n";
-                outs().flush();
-            } else {
-                std::printf("%s: %.3f (clock cycles)\n", getEnv().MCII->getName(opcode).data(),
-                            lower);
-                fflush(stdout);
+        } else {
+            dbgToFile = true;
+            debug = true;
+            for (unsigned opcode : opcodes) {
+                auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
+                throughputDatabase[opcode] = {EC, lower, upper};
+                if (EC != SUCCESS) {
+                    outs() << getEnv().MCII->getName(opcode)
+                           << " failed for reason: " << ecToString(EC) << "\n";
+                    outs().flush();
+                } else {
+                    std::printf("%s: %.3f (clock cycles)\n", getEnv().MCII->getName(opcode).data(),
+                                lower);
+                    fflush(stdout);
+                }
             }
         }
-        break;
-    }
-    case LAT: {
+    } else if (*lat) {
+        out(*ios, "Mode: Latency");
         // skip instructions which take long and are irrelevant
         std::set<std::string> skipInstructions = {
             "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r",
@@ -975,24 +1039,35 @@ int main(int argc, char **argv) {
             debug = true; // TODO remove
             latencyDatabase = genLatMeasurements(minOpcode, maxOpcode, skipOpcodes);
             buildLatDatabase(frequency);
-            break;
+        } else {
+            dbgToFile = true;
+            debug = true;
+            for (auto opcode : opcodes) {
+                auto measurements = genLatMeasurements(opcode, opcode + 1, {});
+                latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
+                                       measurements.end());
+            }
+            buildLatDatabase(frequency);
         }
-        dbgToFile = true;
+    } else if (*man) {
         debug = true;
-
-        for (auto opcode : opcodes) {
-            auto measurements = genLatMeasurements(opcode, opcode + 1, {});
-            latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
-                                   measurements.end());
+        auto [EC, times] =
+            measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
+        if (EC != SUCCESS) {
+            std::cout << "failed for reason: " << ecToString(EC) << "\n";
+            return 1;
         }
-        buildLatDatabase(frequency);
-        break;
+        for (auto time : times) {
+            std::cout << time << " ";
+        }
+        double minTime = *std::min_element(times.begin(), times.end());
+        std::cout << " min: " << minTime << "\n";
+
+        // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
+        double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
+        std::printf("%.3f (clock cycles)\n", cyclesPerInstruction);
     }
-    case DEV: {
-        dbg(__func__, "no code in DEV mode");
-        break;
-    }
-    }
+
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
     out(*ios, "total runtime: ", totalRuntime, " (s)");

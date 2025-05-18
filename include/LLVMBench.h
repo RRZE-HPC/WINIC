@@ -16,9 +16,6 @@
 #include <vector>               // for vector
 
 class LLVMEnvironment;
-namespace llvm {
-class MCInst;
-}
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
@@ -48,6 +45,11 @@ extern LLVMEnvironment env;
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
 
+std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned Runs,
+                                                    unsigned NumInst, int LoopCount,
+                                                    double Frequency, std::string FunctionName,
+                                                    std::string InitName = "");
+
 // if a helper is needed and one can be found returns {SUCCESS, helperOpcode, helperConstraints}
 // if no helper is needed returns {SUCCESS, MAX_UNSIGNED, {}}
 // if one is needed but none can be found returns {ERROR_NO_HELPER, MAX_UNSIGNED, {}}
@@ -66,7 +68,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
-                                             unsigned LoopCount, double Frequency);
+                                            unsigned LoopCount, double Frequency);
 
 // calls measureThroughput in a subprocess to recover from segfaults during the
 // benchmarking process
@@ -76,6 +78,12 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
 // benchmarking process
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
                                                  unsigned LoopCount, double Frequency);
+
+// calls measureManual in a subprocess to recover from segfaults during the
+// benchmarking process
+std::pair<ErrorCode, std::vector<double>>
+measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
+                    double Frequency, std::string FunctionName, std::string InitName = "");
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
 int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
