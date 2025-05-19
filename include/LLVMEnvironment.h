@@ -1,19 +1,19 @@
 #ifndef LLVM_ENVIRONMENT_H
 #define LLVM_ENVIRONMENT_H
 
-#include "ErrorCode.h"                      // for ErrorCode
-#include "llvm/CodeGen/MachineFunction.h"   // for MachineFunction
-#include "llvm/CodeGen/MachineModuleInfo.h" // for MachineModuleInfo
-#include "llvm/IR/LLVMContext.h"            // for LLVMContext
-#include "llvm/IR/Module.h"                 // for Module
-#include "llvm/MC/MCRegister.h"             // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h"         // for MCRegisterClass, MCRegis...
-#include "llvm/Target/TargetMachine.h"      // for TargetMachine
-#include "llvm/TargetParser/Triple.h"       // for Triple
-#include <memory>                           // for unique_ptr
-#include <set>                              // for set
-#include <string>                           // for basic_string, string
-#include <utility>                          // for pair
+#include "ErrorCode.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Triple.h"
+#include <memory>
+#include <set>
+#include <string>
+#include <utility>
 namespace llvm {
 class MCAsmInfo;
 }

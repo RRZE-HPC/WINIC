@@ -1,11 +1,11 @@
 #ifndef TEMPLATES_H
 #define TEMPLATES_H
 
-#include "llvm/TargetParser/Triple.h" // for Triple
-#include <set>                        // for set
-#include <string>                     // for basic_string, string
-#include <utility>                    // for pair
-#include <vector>                     // for vector
+#include "llvm/TargetParser/Triple.h"
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 using std::string;
 

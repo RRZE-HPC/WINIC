@@ -1,20 +1,20 @@
 #ifndef BENCHMARK_GENERATOR_H
 #define BENCHMARK_GENERATOR_H
 
-#include "AssemblyFile.h"           // for AssemblyFile
-#include "ErrorCode.h"              // for ErrorCode
-#include "Globals.h"                // for LatMeasurement
-#include "llvm/MC/MCInst.h"         // for MCInst
-#include "llvm/MC/MCRegister.h"     // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h" // for MCRegisterClass
-#include <list>                     // for list
-#include <map>                      // for map
-#include <set>                      // for set
-#include <string>                   // for string
-#include <tuple>                    // for tuple
-#include <unordered_set>            // for unordered_set
-#include <utility>                  // for pair
-#include <vector>                   // for vector
+#include "AssemblyFile.h"
+#include "ErrorCode.h"
+#include "Globals.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include <list>
+#include <map>
+#include <set>
+#include <string>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace llvm {
 class MCInstrDesc;

@@ -1,19 +1,20 @@
 #ifndef LLVM_INSTR_GEN_H
 #define LLVM_INSTR_GEN_H
 
-#include "AssemblyFile.h"       // for AssemblyFile
-#include "ErrorCode.h"          // for ErrorCode
-#include "Globals.h"            // for LatMeasurement (ptr only), Dependen...
-#include "llvm/MC/MCRegister.h" // for MCRegister
-#include <cmath>                // for round, abs
-#include <list>                 // for list
-#include <map>                  // for map
-#include <set>                  // for set
-#include <string>               // for string, basic_string
-#include <tuple>                // for tuple
-#include <unordered_map>        // for unordered_map
-#include <utility>              // for pair
-#include <vector>               // for vector
+#include "AssemblyFile.h"
+#include "ErrorCode.h"
+#include "Globals.h"
+#include "llvm/MC/MCRegister.h"
+#include <cmath>
+#include <list>
+#include <map>
+#include <set>
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 class LLVMEnvironment;
 
@@ -86,7 +87,8 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
                     double Frequency, std::string FunctionName, std::string InitName = "");
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0);
+int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0,
+                    std::unordered_set<unsigned> OpcodeBlacklist = {});
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
 inline bool smallerEqWithTolerance(double A, double B) { return A < B || equalWithTolerance(A, B); }

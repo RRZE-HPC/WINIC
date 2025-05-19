@@ -1,18 +1,18 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#include "ErrorCode.h"              // for ErrorCode, isError
-#include "LLVMEnvironment.h"        // for LLVMEnvironment
-#include "llvm/ADT/StringRef.h"     // for StringRef
-#include "llvm/MC/MCInstrInfo.h"    // for MCInstrInfo
-#include "llvm/MC/MCRegister.h"     // for MCRegister
-#include "llvm/MC/MCRegisterInfo.h" // for MCRegisterInfo
-#include <assert.h>                 // for assert
-#include <fstream>                  // for basic_ostream, operator<<, ostream
-#include <limits>                   // for numeric_limits
-#include <memory>                   // for unique_ptr
-#include <string>                   // for char_traits, allocator, basic_st...
-#include <tuple>                    // for tie, operator<, tuple
+#include "ErrorCode.h"
+#include "LLVMEnvironment.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include <assert.h>
+#include <fstream>
+#include <limits>
+#include <memory>
+#include <string>
+#include <tuple>
 
 LLVMEnvironment &getEnv();
 

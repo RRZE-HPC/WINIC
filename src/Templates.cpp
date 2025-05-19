@@ -1,9 +1,9 @@
 #include "Templates.h"
 
-#include "llvm/Support/raw_ostream.h" // for errs, raw_fd_ostream
-#include "llvm/TargetParser/Triple.h" // for Triple
-#include <set>                        // for set
-#include <stdlib.h>                   // for exit, EXIT_FAILURE
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Triple.h"
+#include <set>
+#include <stdlib.h>
 
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
                    string EndLoop, string PostLoop, string Suffix,

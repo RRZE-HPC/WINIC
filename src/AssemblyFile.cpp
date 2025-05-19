@@ -1,11 +1,11 @@
 #include "AssemblyFile.h"
 
-#include "Templates.h"                // for Template
-#include "llvm/Support/raw_ostream.h" // for raw_string_ostream, raw_ostream
-#include <assert.h>                   // for assert
-#include <cstdlib>                    // for size_t
+#include "Templates.h"
+#include "llvm/Support/raw_ostream.h"
+#include <assert.h>
+#include <cstdlib>
 #include <iostream>
-#include <string> // for basic_string, string, operator<
+#include <string>
 
 std::string replaceFunctionName(std::string Str, const std::string Name) {
     size_t startPos = 0;

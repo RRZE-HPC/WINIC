@@ -1,6 +1,6 @@
 #include "Globals.h"
 
-#include <iostream> // for cout
+#include <iostream> 
 
 LLVMEnvironment &getEnv() {
   static LLVMEnvironment env;

@@ -1,47 +1,47 @@
 #include "LLVMBench.h"
 
-#include "BenchmarkGenerator.h"              // for genInst, getDependencies
-#include "CLI11.hpp"                         // for App, Option, CLI11_PARSE
-#include "CustomDebug.h"                     // for out, dbg, debug
-#include "ErrorCode.h"                       // for ErrorCode, ecToString
-#include "Globals.h"                         // for LatMeasurement, getEnv
-#include "LLVMEnvironment.h"                 // for LLVMEnvironment
-#include "llvm/ADT/StringRef.h"              // for StringRef
-#include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
-#include "llvm/MC/MCInst.h"                  // for MCInst
-#include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
-#include "llvm/MC/MCRegister.h"              // for MCRegister
-#include "llvm/MC/MCSubtargetInfo.h"         // for MCSubtargetInfo
-#include "llvm/Support/raw_ostream.h"        // for raw_fd_ostream, outs
-#include "llvm/TargetParser/Triple.h"        // for Triple
-#include <AssemblyFile.h>                    // for AssemblyFile
-#include <algorithm>                         // for min_element
-#include <chrono>                            // for system_clock
-#include <csignal>                           // for size_t, SIGILL, SIGSEGV
-#include <cstdio>                            // for NULL, printf, perror
-#include <cstdlib>                           // for exit, EXIT_SUCCESS, WTE...
-#include <ctime>                             // for localtime, time_t
-#include <ctype.h>                           // for isdigit
-#include <dlfcn.h>                           // for dlsym, dlclose, dlopen
-#include <fcntl.h>                           // for open, O_WRONLY, O_CREAT
-#include <filesystem>                        // for current_path, path
-#include <fstream>                           // for basic_ostream, basic_of...
-#include <iomanip>                           // for operator<<, put_time
-#include <iostream>                          // for cerr, cout
-#include <limits>                            // for numeric_limits
-#include <map>                               // for map, operator!=, operat...
-#include <memory>                            // for unique_ptr, make_unique
-#include <sstream>                           // for basic_ostringstream
-#include <string>                            // for basic_string, hash, cha...
-#include <sys/mman.h>                        // for munmap, mmap, MAP_ANONY...
-#include <sys/time.h>                        // for timeval, gettimeofday
-#include <sys/types.h>                       // for pid_t
-#include <sys/wait.h>                        // for waitpid
-#include <tuple>                             // for get, tuple, tie
-#include <unistd.h>                          // for fork, _exit, dup2, execl
-#include <unordered_map>                     // for unordered_map, operator!=
-#include <unordered_set>                     // for unordered_set
-#include <vector>                            // for vector
+#include "BenchmarkGenerator.h"
+#include "CLI11.hpp"
+#include "CustomDebug.h"
+#include "ErrorCode.h"
+#include "Globals.h"
+#include "LLVMEnvironment.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Triple.h"
+#include <AssemblyFile.h>
+#include <algorithm>
+#include <chrono>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <ctype.h>
+#include <dlfcn.h>
+#include <fcntl.h>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <sys/mman.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <tuple>
+#include <unistd.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 // #include "X86RegisterInfo.h"
 // #include "MCTargetDesc/X86MCTargetDesc.h"
@@ -634,27 +634,24 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
     }
 }
 
-int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode) {
+int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
+                    std::unordered_set<unsigned> OpcodeBlacklist) {
     // skip instructions which take long and are irrelevant
-    std::set<std::string> skipInstructions = {
-        "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
-        "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
-        "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
 
     bool gotNewMeasurement = true;
     while (gotNewMeasurement) {
         gotNewMeasurement = false;
         for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
+            if (OpcodeBlacklist.find(opcode) != OpcodeBlacklist.end()) {
+                throughputDatabase[opcode].ec = SKIP_MANUALLY;
+                continue;
+            }
             // first check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != ERROR_NO_HELPER) continue;
             displayProgress(opcode, MaxOpcode);
             std::string name = getEnv().MCII->getName(opcode).data();
-            if (skipInstructions.find(name) != skipInstructions.end()) {
-                out(*ios, name, ": skipped for reason\tskippedManually");
-                continue;
-            }
 
             auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency);
             throughputDatabase[opcode] = {EC, lowerTP, upperTP};
@@ -947,7 +944,7 @@ int main(int argc, char **argv) {
     auto *man = app.add_subcommand("MAN", "Manual");
     man->add_option("-p,--path", sPath, "Assembly file path")->required()->check(CLI::ExistingPath);
     man->add_option("--funcName", funcName, "Function to benchmark")->required();
-    man->add_option("-n,--nInst", numInst, "Number of iterations")->required();
+    man->add_option("-n,--nInst", numInst, "Number of instructions in loop")->required();
     man->add_option("--initName", initName, "Initialization function");
 
     app.require_subcommand(1, 1);
@@ -980,11 +977,21 @@ int main(int argc, char **argv) {
         opcodes.emplace_back(opcode);
     }
 
+    // skip instructions which take long and are irrelevant
+    std::set<std::string> skipInstructions = {
+        "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
+        "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
+        "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
+
+    std::unordered_set<unsigned> opcodeBlacklist;
+    for (auto name : skipInstructions)
+        opcodeBlacklist.insert(getEnv().getOpcode(name));
+
     if (*tp) {
         out(*ios, "Mode: Throughput");
-        // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for interleaving
-        // with other instructions
         if (getEnv().Arch == Triple::ArchType::x86_64) {
+            // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for
+            // interleaving with other instructions
             auto [EC, lowerTP, upperTP] =
                 measureInSubprocess(getEnv().getOpcode("TEST64rr"), frequency);
             throughputDatabase[getEnv().getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
@@ -995,10 +1002,10 @@ int main(int argc, char **argv) {
             throughputDatabase[getEnv().getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
             priorityTPHelper.emplace_back(getEnv().getOpcode("MOV64ri32"));
         }
-        if (instrNames.empty() && opcodes.empty()) {
+        if (opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
-            buildTPDatabase(frequency, minOpcode, maxOpcode);
+            buildTPDatabase(frequency, minOpcode, maxOpcode, opcodeBlacklist);
         } else {
             dbgToFile = true;
             debug = true;
@@ -1018,26 +1025,13 @@ int main(int argc, char **argv) {
         }
     } else if (*lat) {
         out(*ios, "Mode: Latency");
-        // skip instructions which take long and are irrelevant
-        std::set<std::string> skipInstructions = {
-            "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r",
-            "RDSEED16r", "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",
-            "SLDT64r",   "SMSW16r",   "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",
-            "STR64r",    "VERRr",     "VERWr"};
-
-        std::unordered_set<unsigned> skipOpcodes;
-        for (auto name : skipInstructions) {
-            skipOpcodes.insert(getEnv().getOpcode(name));
-        }
 
         // example chain ADC16ri8 CMP16ri8
         // ADC32i32 PCMPESTRIrri CVTSI2SDrr TODO debug
-        if (instrNames.empty() && opcodes.empty()) {
-            // debug = true;
+        if (opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
-            debug = true; // TODO remove
-            latencyDatabase = genLatMeasurements(minOpcode, maxOpcode, skipOpcodes);
+            latencyDatabase = genLatMeasurements(minOpcode, maxOpcode, opcodeBlacklist);
             buildLatDatabase(frequency);
         } else {
             dbgToFile = true;

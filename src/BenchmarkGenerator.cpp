@@ -1,30 +1,29 @@
 
 #include "BenchmarkGenerator.h"
 
-#include "AssemblyFile.h" // for AssemblyFile, replaceAl...
-#include "CustomDebug.h"  // for dbg
-#include "ErrorCode.h"    // for ErrorCode, ecToString
-#include "Globals.h"      // for env, LatMeasurement
-// #include "LLVMBench.h"
-#include "LLVMEnvironment.h" // for LLVMEnvironment
+#include "AssemblyFile.h"
+#include "CustomDebug.h"
+#include "ErrorCode.h"
+#include "Globals.h"
+#include "LLVMEnvironment.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
-#include "Templates.h"                       // for Template, getTemplate
-#include "llvm/ADT/ArrayRef.h"               // for ArrayRef
-#include "llvm/ADT/StringRef.h"              // for StringRef
-#include "llvm/ADT/iterator_range.h"         // for iterator_range
-#include "llvm/CodeGen/TargetRegisterInfo.h" // for TargetRegisterInfo
-#include "llvm/MC/MCInst.h"                  // for MCInst, MCOperand
-#include "llvm/MC/MCInstPrinter.h"           // for MCInstPrinter
-#include "llvm/MC/MCInstrDesc.h"             // for MCInstrDesc, MCOperandInfo
-#include "llvm/MC/MCInstrInfo.h"             // for MCInstrInfo
-#include "llvm/MC/MCRegister.h"              // for MCRegister
-#include "llvm/MC/MCSubtargetInfo.h"         // for MCSubtargetInfo
-#include "llvm/Support/raw_ostream.h"        // for raw_string_ostream, raw...
-#include "llvm/TargetParser/Triple.h"        // for Triple
-#include <algorithm>                         // for any_of
-#include <cstddef>                           // for NULL
-#include <initializer_list>                  // for initializer_list
-#include <memory>                            // for unique_ptr
+#include "Templates.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCInstrDesc.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Triple.h"
+#include <algorithm>
+#include <cstddef>
+#include <initializer_list>
+#include <memory>
 
 std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate) {
     std::string regName = getEnv().TRI->getRegAsmName(Reg).lower().data();
@@ -44,13 +43,13 @@ std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemp
 }
 
 std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
-                                               std::unordered_set<unsigned> SkipOpcodes) {
+                                               std::unordered_set<unsigned> OpcodeBlacklist) {
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
     // generate a function for each read write dependency combination possible
 
     std::vector<LatMeasurement> measurements;
     for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
-        if (SkipOpcodes.find(opcode) != SkipOpcodes.end()) continue;
+        if (OpcodeBlacklist.find(opcode) != OpcodeBlacklist.end()) continue;
         const MCInstrDesc &desc = getEnv().MCII->get(opcode);
         ErrorCode ec = isValid(desc);
         if (ec != SUCCESS) {
