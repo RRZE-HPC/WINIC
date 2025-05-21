@@ -65,6 +65,7 @@ include_directories(LLVMBench SYSTEM PRIVATE
   ${LLVM_INCLUDE_DIRS}
   ${Clang_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include-third-party
 )
 
 # Add backend include paths for target descriptions
