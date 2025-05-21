@@ -34,7 +34,7 @@ class AssemblyFile {
     AssemblyFile(llvm::Triple::ArchType Arch) { this->arch = Arch; }
     ~AssemblyFile() = default;
 
-    void setArch(llvm::Triple::ArchType Arch) { this->arch = Arch; };
+    void setArch(llvm::Triple::ArchType Arch) { this->arch = Arch; }
     ErrorCode addInitFunction(std::string Name, std::string InitCode);
     ErrorCode addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
                                std::string PostLoopCode, std::string InitFunction);

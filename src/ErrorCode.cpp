@@ -75,9 +75,8 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_GENERIC";
     case NO_ERROR_CODE:
         return "NO_ERROR_CODE";
-    default:
-        return "description missing for this error";
     }
+    return "UNREACHABLE";
 }
 
 bool isError(ErrorCode EC) {
