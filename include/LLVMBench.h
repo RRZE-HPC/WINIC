@@ -24,13 +24,14 @@ class LLVMEnvironment;
 
 using namespace llvm;
 
-struct TPResult {
+struct TPMeasurement {
+    unsigned opcode;
     ErrorCode ec;
     double lowerTP;
     double upperTP;
 };
 
-static std::unordered_map<unsigned, TPResult> throughputDatabase;
+static std::unordered_map<unsigned, TPMeasurement> throughputDatabase;
 // opcodes in this list will be used as helpers wherever possible even when they define a
 // superregister of the register we need a helper for
 static std::list<unsigned> priorityTPHelper;

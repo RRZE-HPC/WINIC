@@ -5,10 +5,12 @@
 #include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "Globals.h"
+#include "IOSystem.h"
 #include "LLVMEnvironment.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -17,6 +19,7 @@
 #include <AssemblyFile.h>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -331,7 +334,7 @@ getTPHelperInstruction(unsigned Opcode) {
     // priorityTPHelper can be used to prevent this from happening
     dbg(__func__, "checking size ", priorityTPHelper.size());
     for (unsigned possibleHelper : priorityTPHelper) {
-        TPResult tpRes = throughputDatabase[possibleHelper];
+        TPMeasurement tpRes = throughputDatabase[possibleHelper];
         dbg(__func__, "checking possible ", tpRes.ec, " ", tpRes.lowerTP);
         if (tpRes.ec != SUCCESS) continue;  // no value
         if (tpRes.lowerTP < 0.25) continue; // we dont trust values this low
@@ -638,6 +641,9 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
                     std::unordered_set<unsigned> OpcodeBlacklist) {
     // skip instructions which take long and are irrelevant
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
+    // mark instructions to measure
+    for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++)
+        throughputDatabase[opcode].ec = NO_ERROR_CODE;
 
     bool gotNewMeasurement = true;
     while (gotNewMeasurement) {
@@ -649,12 +655,13 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
             }
             // first check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
-                if (throughputDatabase[opcode].ec != ERROR_NO_HELPER) continue;
+                if (throughputDatabase[opcode].ec != ERROR_NO_HELPER &&
+                    throughputDatabase[opcode].ec != NO_ERROR_CODE)
+                    continue;
             displayProgress(opcode, MaxOpcode);
-            std::string name = getEnv().MCII->getName(opcode).data();
 
             auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency);
-            throughputDatabase[opcode] = {EC, lowerTP, upperTP};
+            throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
         errs() << "\n";
@@ -665,7 +672,7 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
         std::string name = getEnv().MCII->getName(opcode).data();
         name.resize(27, ' ');
 
-        TPResult res = throughputDatabase[opcode];
+        TPMeasurement res = throughputDatabase[opcode];
         if (res.ec == SUCCESS) {
             // select lower bound for print except it is close or equal to 0
             double selected = res.lowerTP;
@@ -725,7 +732,7 @@ void buildLatDatabase(double Frequency) {
     errs() << "phase1: trivial measurements\n";
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement>> classifiedMeasurements;
-    for (auto measurement : latencyDatabase) {
+    for (auto &measurement : latencyDatabase) {
         displayProgress(progress++, latencyDatabase.size());
         if (measurement.type.isSymmetric()) {
             auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency);
@@ -820,7 +827,7 @@ void buildLatDatabase(double Frequency) {
                 minCombinedLat = lat;
             }
             // optimization: there is nothing better than two instructions with latency 1 cy
-            if (minCombinedLat == 2) break;
+            if (equalWithTolerance(minCombinedLat, 2)) break;
         }
         // check if there is any valid B
         if (opcodeBlacklist.find(smallestB.opcode) != opcodeBlacklist.end()) {
@@ -855,7 +862,7 @@ void buildLatDatabase(double Frequency) {
                 minCombinedLat = lat;
             }
             // optimization: there is nothing better than two instructions with latency 1 cy
-            if (minCombinedLat == 2) break;
+            if (equalWithTolerance(minCombinedLat, 2)) break;
         }
         if (isUnusualLat(minCombinedLat) || minCombinedLat < 2) {
             out(*ios, "can not find a pair with normal latency for types");
@@ -899,6 +906,8 @@ void buildLatDatabase(double Frequency) {
     // print results
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
         for (LatMeasurement &measurement : measurementsA) {
+            // re-add to database
+            latencyDatabase[measurement.opcode] = measurement;
             std::string name = getEnv().MCII->getName(measurement.opcode).data();
             name.resize(27, ' ');
 
@@ -918,26 +927,31 @@ void buildLatDatabase(double Frequency) {
 
 int main(int argc, char **argv) {
     double frequency;
+    bool silent = false;
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"LLVMBench"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
+    app.add_flag("-s,--silent", silent, "Dont generate report file");
 
     std::vector<std::string> instrNames;
     std::vector<unsigned> opcodes;
     unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
+    std::string databasePath = "";
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
-    tp->add_option("--minOpcode", minOpcode, "Minimum opcode to test")->excludes(tpInstOpt);
-    tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to test")->excludes(tpInstOpt);
+    tp->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(tpInstOpt);
+    tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(tpInstOpt);
+    tp->add_option("--updateDatabase", databasePath, "Write new values to existing database");
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
-    lat->add_option("--minOpcode", minOpcode, "Minimum opcode to test")->excludes(latInstOpt);
-    lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to test")->excludes(latInstOpt);
+    lat->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
+    lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
+    lat->add_option("--updateDatabase", databasePath, "Write new values to existing database");
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;
@@ -948,11 +962,18 @@ int main(int argc, char **argv) {
     man->add_option("--initName", initName, "Initialization function");
 
     app.require_subcommand(1, 1);
+    CLI11_PARSE(app, argc, argv)
 
-    CLI11_PARSE(app, argc, argv);
-
+    // configure output
     std::string filename = generateTimestampedFilename("run", ".log");
-    setOutputToFile(filename);
+
+    std::cout.precision(3);
+    if (silent) {
+        setOutputToFile("/dev/null");
+    } else {
+        setOutputToFile(filename);
+        ios->precision(3);
+    }
 
     out(*ios, "Frequency: ", frequency, " GHz");
     debug = false;
@@ -987,31 +1008,37 @@ int main(int argc, char **argv) {
     for (auto name : skipInstructions)
         opcodeBlacklist.insert(getEnv().getOpcode(name));
 
+    if (!databasePath.empty()) {
+        out(*ios, "Using existing database: ", databasePath);
+        ErrorCode EC = loadYaml(databasePath);
+        if (EC != SUCCESS) return 1;
+    }
     if (*tp) {
         out(*ios, "Mode: Throughput");
         if (getEnv().Arch == Triple::ArchType::x86_64) {
             // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for
             // interleaving with other instructions
-            auto [EC, lowerTP, upperTP] =
-                measureInSubprocess(getEnv().getOpcode("TEST64rr"), frequency);
-            throughputDatabase[getEnv().getOpcode("TEST64rr")] = {EC, lowerTP, upperTP};
-            priorityTPHelper.emplace_back(getEnv().getOpcode("TEST64rr"));
+            unsigned opcodeTest = getEnv().getOpcode("TEST64rr");
+            auto [EC, lowerTP, upperTP] = measureInSubprocess(opcodeTest, frequency);
+            throughputDatabase[opcodeTest] = {opcodeTest, EC, lowerTP, upperTP};
+            priorityTPHelper.emplace_back(opcodeTest);
 
-            auto [EC2, lowerTP1, upperTP1] =
-                measureInSubprocess(getEnv().getOpcode("MOV64ri32"), frequency);
-            throughputDatabase[getEnv().getOpcode("MOV64ri32")] = {EC, lowerTP1, upperTP1};
-            priorityTPHelper.emplace_back(getEnv().getOpcode("MOV64ri32"));
+            unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
+            auto [EC2, lowerTP1, upperTP1] = measureInSubprocess(opcodeMov, frequency);
+            throughputDatabase[opcodeMov] = {opcodeMov, EC, lowerTP1, upperTP1};
+            priorityTPHelper.emplace_back(opcodeMov);
         }
         if (opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
+
             buildTPDatabase(frequency, minOpcode, maxOpcode, opcodeBlacklist);
         } else {
             dbgToFile = true;
             debug = true;
             for (unsigned opcode : opcodes) {
                 auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
-                throughputDatabase[opcode] = {EC, lower, upper};
+                throughputDatabase[opcode] = {opcode, EC, lower, upper};
                 if (EC != SUCCESS) {
                     outs() << getEnv().MCII->getName(opcode)
                            << " failed for reason: " << ecToString(EC) << "\n";
@@ -1023,6 +1050,16 @@ int main(int argc, char **argv) {
                 }
             }
         }
+        // update database with new values
+        for (auto &[opcode, result] : throughputDatabase)
+            if (result.ec == SUCCESS) updateDatabaseEntryTP(result);
+
+        // save database
+        if (databasePath.empty()) {
+            databasePath = generateTimestampedFilename("db", ".yaml");
+        }
+        ErrorCode EC = saveYaml(databasePath);
+        if (EC != SUCCESS) return 1;
     } else if (*lat) {
         out(*ios, "Mode: Latency");
 
@@ -1043,6 +1080,25 @@ int main(int argc, char **argv) {
             }
             buildLatDatabase(frequency);
         }
+        // update database with new values
+        for (LatMeasurement result : latencyDatabase) {
+            // if (!isError(result.ec)) {
+            dbg(__func__, "updating ", result);
+            ErrorCode EC = updateDatabaseEntryLAT(result);
+            if (EC != SUCCESS) {
+                std::cerr << "failed to update database entry: " << ecToString(EC) << "\n";
+                return 1;
+            }
+            // }
+        }
+
+        // save database
+        if (databasePath.empty()) {
+            databasePath = generateTimestampedFilename("db", ".yaml");
+        }
+        dbg(__func__, "size of database: ", outputDatabase.size());
+        ErrorCode EC = saveYaml(databasePath);
+        if (EC != SUCCESS) return 1;
     } else if (*man) {
         debug = true;
         auto [EC, times] =
