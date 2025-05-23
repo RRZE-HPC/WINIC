@@ -50,9 +50,9 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     opInst.operands = operands;
     opInst.operandLatencies = {};
     opInst.latency = 0;
-    opInst.throughput = 0;
-    opInst.throughputMin = 0;
-    opInst.throughputMax = 0;
+    opInst.throughput = std::nullopt;
+    opInst.throughputMin = std::nullopt;
+    opInst.throughputMax = std::nullopt;
     return {SUCCESS, opInst};
 }
 
@@ -63,18 +63,25 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
     auto it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
                            [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
     if (it != outputDatabase.end()) {
+        dbg(__func__, "update ", name, " throughput: ", lowerTP, " ", upperTP);
         // Found entry, update it:
         it->throughput = lowerTP;
         it->throughputMin = lowerTP;
         it->throughputMax = upperTP;
     } else {
+        dbg(__func__, "insert ", name, " throughput: ", lowerTP, " ", upperTP);
         // Not found, insert
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
-
-        opInst.throughput = lowerTP;
-        opInst.throughputMin = lowerTP;
-        opInst.throughputMax = upperTP;
+        if (isError(M.ec)) {
+            opInst.throughput = 0;
+            opInst.throughputMin = 0;
+            opInst.throughputMax = 0;
+        } else {
+            opInst.throughput = lowerTP;
+            opInst.throughputMin = lowerTP;
+            opInst.throughputMax = upperTP;
+        }
         outputDatabase.push_back(opInst);
     }
     return SUCCESS;
@@ -85,7 +92,7 @@ unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc) {
     if (OpNum >= Desc.getNumDefs()) {
         // this is a use operand, may have to shift it
         unsigned shiftAmount = 0;
-        for (unsigned i = Desc.getNumDefs(); i <= OpNum; i++) {
+        for (unsigned i = Desc.getNumDefs(); i <= OpNum && i < Desc.getNumOperands(); i++) {
             const MCOperandInfo &opInfo = Desc.operands()[i];
             if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
                 // this operand is tied to another operand, therefore a duplicate
@@ -99,7 +106,6 @@ unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc) {
 
 ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     std::string name = getEnv().MCII->getName(M.opcode).str();
-    // LLVM has operands twice if they are used as both use and def
     const MCInstrDesc &desc = getEnv().MCII->get(M.opcode);
     unsigned correctedUseIndex = llvmOpNumToNormalOpNum(M.useIndex, desc);
 
@@ -111,23 +117,26 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         defIndexString = getEnv().MRI->getName(M.type.defOp.getRegister());
     auto it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
                            [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    if (it != outputDatabase.end()) {
-        // Found entry, update it:
-        if (isError(M.ec))
-            it->operandLatencies[useIndexString][defIndexString] = -1;
-        else
-            it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
-    } else {
-        // Not found, insert
+    if (it == outputDatabase.end()) {
+        dbg(__func__, "insert ", name);
+        // Not found, create first
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
-        if (isError(M.ec))
-            opInst.operandLatencies[useIndexString][defIndexString] = -1;
-        else
-            opInst.operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
-
         outputDatabase.push_back(opInst);
     }
+    it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
+                      [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
+    dbg(__func__, "found ", name);
+    // Found entry, update it:
+    if (isError(M.ec))
+        it->operandLatencies[useIndexString][defIndexString] = std::nullopt;
+    else {
+        it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
+        // take any latency value for now to ensure OSACA compatibility, remove once OSACA is
+        // updated to use operandLatencies
+        it->latency = std::round(M.lowerBound);
+    }
+
     return SUCCESS;
 }
 
@@ -141,7 +150,7 @@ ErrorCode loadYaml(std::string Path) {
     try {
         yin >> outputDatabase;
     } catch (const std::exception &e) {
-        llvm::errs() << "YAML serialization error: " << e.what() << "\n";
+        std::cerr << "YAML serialization error: " << e.what() << "\n";
         return ERROR_FILE;
     }
     return SUCCESS;
@@ -159,7 +168,7 @@ ErrorCode saveYaml(std::string Path) {
     try {
         yout << outputDatabase;
     } catch (const std::exception &e) {
-        llvm::errs() << "YAML serialization error: " << e.what() << "\n";
+        std::cerr << "YAML serialization error: " << e.what() << "\n";
         return ERROR_FILE;
     }
     return SUCCESS;

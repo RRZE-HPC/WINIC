@@ -2,6 +2,8 @@
 #include <ErrorCode.h>
 #include <Globals.h>
 #include <LLVMBench.h>
+#include <llvm/ADT/StringRef.h>
+#include <optional>
 #include <string>
 
 // serializable structs for yaml output
@@ -10,24 +12,25 @@ struct IOOperand {
     std::optional<std::string> name;
     std::optional<std::string> imd;
 };
-using StringUnsigedMap = std::map<std::string, unsigned>;
-using IOLatType = std::map<std::string, StringUnsigedMap>;
+using StringOptionalDoubleMap = std::map<std::string, std::optional<double>>;
+// map useOperand -> defOperand -> latency
+using IOLatMap = std::map<std::string, StringOptionalDoubleMap>;
 
 struct IOInstruction {
     std::string llvmName;
     std::string name;
     std::vector<IOOperand> operands;
-    unsigned latency;
-    IOLatType operandLatencies;
-    double throughput;
-    double throughputMin;
-    double throughputMax;
+    std::optional<double> latency;
+    IOLatMap operandLatencies;
+    std::optional<double> throughput;
+    std::optional<double> throughputMin;
+    std::optional<double> throughputMax;
 };
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOOperand)
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOInstruction)
-LLVM_YAML_IS_STRING_MAP(unsigned)
-LLVM_YAML_IS_STRING_MAP(StringUnsigedMap)
+LLVM_YAML_IS_STRING_MAP(std::optional<double>)
+LLVM_YAML_IS_STRING_MAP(StringOptionalDoubleMap)
 
 namespace llvm {
 namespace yaml {
@@ -53,6 +56,29 @@ template <> struct MappingTraits<IOInstruction> {
     }
 };
 
+template <> struct ScalarTraits<std::optional<double>> {
+    static void output(const std::optional<double> &Val, void *, raw_ostream &Out) {
+        if (Val)
+            ScalarTraits<double>::output(*Val, nullptr, Out);
+        else
+            Out << "null";
+    }
+    static StringRef input(StringRef Scalar, void *, std::optional<double> &Val) {
+        if (Scalar == "null" || Scalar == "~" || Scalar.empty()) {
+            Val.reset();
+            return {};
+        }
+        double tmp;
+        auto Err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
+        if (Err.empty()) Val = tmp;
+        return Err;
+    }
+    static QuotingType mustQuote(StringRef S) {
+        if (S == "null" || S == "~" || S.empty()) return QuotingType::None;
+        return ScalarTraits<double>::mustQuote(S);
+    }
+};
+
 } // namespace yaml
 } // namespace llvm
 
@@ -71,6 +97,9 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement Measurement);
 
 ErrorCode updateDatabaseEntryLAT(LatMeasurement Measurement);
 
+// load a database into outputDatabase to add further measurements. Currently it is not supported to
+// load the values back into the working databases! Therefore existing values cannot be used as
+// helpers and all required helpers have to be measured in one run!
 ErrorCode loadYaml(std::string Path);
 
 ErrorCode saveYaml(std::string Path);
