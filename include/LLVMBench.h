@@ -37,9 +37,12 @@ static std::unordered_map<unsigned, TPMeasurement> throughputDatabase;
 static std::list<unsigned> priorityTPHelper;
 static std::list<std::tuple<unsigned, std::set<MCRegister>, std::set<MCRegister>>>
     helperInstructions; // opcode, read/write register
+static std::map<unsigned, std::string> throughputOutputMessage;
 
-static std::map<DependencyType, LatMeasurement> helperInstructionsLat;
 static std::vector<LatMeasurement> latencyDatabase;
+static std::map<DependencyType, LatMeasurement> helperInstructionsLat;
+// append messages to be printed to the report file
+static std::map<unsigned, std::string> latencyOutputMessage;
 
 static bool dbgToFile = true;
 extern LLVMEnvironment env;

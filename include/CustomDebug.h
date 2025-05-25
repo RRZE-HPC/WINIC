@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <stddef.h>
 #include <string>
 #include <utility>
@@ -39,6 +40,14 @@ template <typename... Args> static void dbg(const char *Func, Args &&...Argument
 
 template <typename... Args> static void out(std::ostream &Osteam, Args &&...Arguments) {
     (Osteam << ... << Arguments) << "\n" << std::flush;
+}
+
+// concatenate all arguments into a newline terminated string
+template <typename... Args> static std::string str(Args &&...Arguments) {
+    std::ostringstream oss;
+    oss.precision(3);
+    (oss << ... << Arguments) << "\n" << std::flush;
+    return oss.str();
 }
 
 #endif // CUSTOM_DEBUG_H

@@ -100,7 +100,7 @@ void displayProgress(size_t Progress, size_t Total) {
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
-    dbg(__func__, "loopCount: ", N);
+    dbg(__func__, "N: ", N, " Runs: ", Runs);
     std::string clangPath = CLANG_PATH;
     if (clangPath == "usr/bin/clang") {
         std::cerr << "CLANG_PATH not set, using default" << std::endl;
@@ -125,7 +125,6 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         debugFile << Assembly.generateAssembly();
         debugFile.close();
     }
-    dbg(__func__, "assembling benchmark");
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2>
     // gcc_out";
@@ -170,7 +169,6 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
             return {ERROR_ASSEMBLY, {}};
         }
     }
-    dbg(__func__, "assembly complete, loading shared library");
 
     // from ibench
     void *handle = nullptr;
@@ -198,7 +196,6 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         benchFunctionMap[functionName] = functionPtr;
     }
     // may have results from prior runs
-    dbg(__func__, "starting benchmarks");
     struct timeval start, end;
     std::unordered_map<std::string, std::list<double>> benchtimes;
 
@@ -217,7 +214,6 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
                         (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
         }
     }
-    dbg(__func__, "benchmarks complete");
 
     dlclose(handle);
     return {SUCCESS, benchtimes};
@@ -305,6 +301,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
 
 std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
 getTPHelperInstruction(unsigned Opcode) {
+    dbg(__func__, "Opcode: ", Opcode);
     // first check if this instruction needs a helper
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
@@ -391,12 +388,12 @@ getTPHelperInstruction(unsigned Opcode) {
 }
 
 std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency) {
+    dbg(__func__, "Opcode: ", Opcode, " Frequency: ", Frequency);
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     // TODO do this much earlier
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     if (isValid(desc) != SUCCESS) return {isValid(desc), -1, -1};
-    out(*ios, "-----", getEnv().MCII->getName(Opcode).data(), "-----");
     unsigned numInst = 12;
     unsigned n = 1000000; // loop count
     AssemblyFile assembly;
@@ -412,7 +409,6 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     std::tie(ec, assembly) =
         genTPBenchmark(Opcode, &numInst, 1, usedRegs, helperConstraints, helperOpcode);
     if (ec != SUCCESS) return {ec, -1, -1};
-    dbg(__func__, "calling run");
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
     if (ec != SUCCESS) return {ec, -1, -1};
 
@@ -424,27 +420,31 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     if (helperOpcode != MAX_UNSIGNED) {
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
-        dbg(__func__, "correcting ", correctedTP, " with ",
-            getEnv().MCII->getName(helperOpcode).data(), " ",
-            throughputDatabase[helperOpcode].lowerTP);
-        out(*ios, "Helper: ", getEnv().MCII->getName(helperOpcode).data(), " ",
-            throughputDatabase[helperOpcode].lowerTP);
+        throughputOutputMessage[Opcode] +=
+            str("\tHelper: ", getEnv().MCII->getName(helperOpcode).data(), " ",
+                throughputDatabase[helperOpcode].lowerTP);
+        throughputOutputMessage[Opcode] += str("\tCombined result: ", correctedTP);
+
         double tpSamePorts = correctedTP - throughputDatabase[helperOpcode].lowerTP;
         if (tpSamePorts < 1 / 4) {
-            out(*ios, "Assuming instruction and helper use different ports, otherwise TP would be ",
-                tpSamePorts);
+            throughputOutputMessage[Opcode] +=
+                str("\tAssuming instruction and helper use different ports, otherwise TP would be ",
+                    tpSamePorts);
             return {SUCCESS, correctedTP, correctedTP};
         }
-        out(*ios, "No hints if instruction and helper use same ports, TP can be in range ",
-            tpSamePorts, " - ", correctedTP);
+        throughputOutputMessage[Opcode] +=
+            str("\tNo hints if instruction and helper use same ports, TP can be in range ",
+                tpSamePorts, " - ", correctedTP);
         return {SUCCESS, tpSamePorts, correctedTP};
     }
-
     return {SUCCESS, correctedTP, correctedTP};
 }
 
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
                                             unsigned LoopCount, double Frequency) {
+    dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
+        " Frequency: ", Frequency);
+
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst1 = 12;
@@ -491,9 +491,11 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
     ErrorCode *sharedEC = static_cast<ErrorCode *>(
         mmap(NULL, sizeof(ErrorCode), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+    char *sharedMessage = static_cast<char *>(
+        mmap(NULL, 300, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
 
     if (sharedUpperBound == MAP_FAILED || sharedLowerBound == MAP_FAILED ||
-        sharedEC == MAP_FAILED) {
+        sharedEC == MAP_FAILED || sharedMessage == MAP_FAILED) {
         perror("mmap");
         return {ERROR_MMAP, -1, -1};
     }
@@ -505,12 +507,13 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         ErrorCode ec;
         double lower;
         double upper;
-
         std::tie(ec, lower, upper) = measureThroughput(Opcode, Frequency);
 
         *sharedLowerBound = lower;
         *sharedUpperBound = upper;
         *sharedEC = ec;
+        strncpy(sharedMessage, throughputOutputMessage[Opcode].data(), 299);
+        sharedMessage[299] = '\0';
         exit(EXIT_SUCCESS);
     } else { // Parent process
         int status;
@@ -518,9 +521,10 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         dbg(__func__, "child exited on status ", status);
 
         if (WIFSIGNALED(status)) {
+            munmap(sharedEC, sizeof(ErrorCode));
             munmap(sharedLowerBound, sizeof(double));
             munmap(sharedUpperBound, sizeof(double));
-            munmap(sharedEC, sizeof(ErrorCode));
+            munmap(sharedMessage, 300);
             if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1, -1};
             if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1, -1};
             return {ERROR_SIGNAL, -1, -1};
@@ -531,9 +535,11 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         ErrorCode ec = *sharedEC;
         double lower = *sharedLowerBound;
         double upper = *sharedUpperBound;
+        throughputOutputMessage[Opcode] = std::string(sharedMessage);
+        munmap(sharedEC, sizeof(ErrorCode));
         munmap(sharedLowerBound, sizeof(double));
         munmap(sharedUpperBound, sizeof(double));
-        munmap(sharedEC, sizeof(ErrorCode));
+        munmap(sharedMessage, 300);
         return {ec, lower, upper};
     }
 }
@@ -584,6 +590,7 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
         return {ec, res};
     }
 }
+
 std::pair<ErrorCode, std::vector<double>>
 measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
                     double Frequency, std::string FunctionName, std::string InitName) {
@@ -669,20 +676,14 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
     }
     // print results
     for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-        std::string name = getEnv().MCII->getName(opcode).data();
-        name.resize(27, ' ');
+        out(*ios, "-----", getEnv().MCII->getName(opcode).data(), "-----");
+        out(*ios, throughputOutputMessage[opcode]); // flawed, gets filled in subprocess
 
         TPMeasurement res = throughputDatabase[opcode];
-        if (res.ec == SUCCESS) {
-            // select lower bound for print except it is close or equal to 0
-            double selected = res.lowerTP;
-            if (selected < 0.2) selected = res.upperTP;
-            std::printf("%s: %.3f-%.3f selected: %.3f (clock cycles)\n", name.data(), res.lowerTP,
-                        res.upperTP, res.lowerTP);
-            fflush(stdout);
+        if (isError(res.ec)) {
+            out(*ios, "\tfailed for reason: ", ecToString(res.ec));
         } else {
-            outs() << name << ": " << "skipped for reason\t " << ecToString(res.ec) << "\n";
-            outs().flush();
+            out(*ios, "\tlowerTP: ", res.lowerTP, " upperTP: ", res.upperTP);
         }
     }
     return 0;
@@ -723,7 +724,8 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
 }
 
 void buildLatDatabase(double Frequency) {
-    out(*ios, "number of measurements: ", latencyDatabase.size());
+    dbg(__func__, "Frequency: ", Frequency);
+    out(*ios, "Number of measurements: ", latencyDatabase.size());
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
     std::set<DependencyType> completedTypes;
@@ -740,15 +742,34 @@ void buildLatDatabase(double Frequency) {
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
             if (EC == WARNING_MULTIPLE_DEPENDENCIES)
-                out(*ios, "---", measurement, "---\n",
-                    "WARNING generated instructions have multiple dependencies between each "
+                latencyOutputMessage[measurement.opcode] += str(
+                    "\t", measurement,
+                    "\n\t\tWARNING generated instructions have multiple dependencies between each "
                     "other. If they have different latencys the lower one will be shadowed");
             classifiedMeasurements[measurement.type].emplace_back(&measurement);
             completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
-            if (EC == ILLEGAL_INSTRUCTION) opcodeBlacklist.emplace(measurement.opcode);
-        } else if (canMeasure(measurement, Frequency) == SUCCESS)
-            // needs helper to be measured, classify but dont measure yet
-            classifiedMeasurements[measurement.type].emplace_back(&measurement);
+            if (EC == ILLEGAL_INSTRUCTION) {
+                latencyOutputMessage[measurement.opcode] +=
+                    str("\t", measurement,
+                        "\n\t\tILLEGAL_INSTRUCTION, this instruction cannot be measured on this "
+                        "platform");
+                opcodeBlacklist.emplace(measurement.opcode);
+            }
+        } else {
+            // run quick test to see if this instruction can be measured
+            // this is done here because later instructions get measured in pairs and it is not
+            // clear which caused the problem
+            ErrorCode EC = canMeasure(measurement, Frequency);
+            if (EC == SUCCESS)
+                // needs helper to be measured, classify but dont measure yet
+                classifiedMeasurements[measurement.type].emplace_back(&measurement);
+            else {
+                measurement.ec = EC;
+                latencyOutputMessage[measurement.opcode] +=
+                    str("\t", measurement, "\n\t\t", ecToString(EC),
+                        ", this instruction cannot be measured on this platform");
+            }
+        }
     }
 
     // now iterate over all pairs A, B of dependencyTypes where A.reversed() == B and do the
@@ -756,6 +777,7 @@ void buildLatDatabase(double Frequency) {
     // e.g. if A is GR16 -> EFLAGS, B is EFLAGS -> GR16 and we can measure combinations of
     // instructions in A and B
     errs() << "\nphase2: measurements with helpers\n";
+    out(*ios, "\n\nReport on finding helpers for dependency types:");
     progress = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
         displayProgress(progress++, classifiedMeasurements.size());
@@ -799,6 +821,7 @@ void buildLatDatabase(double Frequency) {
             out(*ios, "no measurement of type ", dTypeA, " can be executed successfully");
             continue;
         }
+        out(*ios, "selecting helper instructions for this type combination");
 
         // find smallest B
         LatMeasurement *smallestB = measurementsB[0];
@@ -809,17 +832,19 @@ void buildLatDatabase(double Frequency) {
             auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, 1e6, Frequency);
             if (EC != SUCCESS) {
                 if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
-                    out(*ios, "Detected multiple dependencys between the MANd instructions. "
-                              "This will not be considered for finding helpers");
+                    out(*ios, "Detected multiple dependencys between ", *smallestA, " and ", *mB,
+                        "so result of their combination will not be considered for finding "
+                        "helpers");
                 } else {
                     out(*ios, "measuring ", *smallestA, " and ", *mB,
                         " was unsuccessful, EC: ", ecToString(EC),
-                        " this is unusual because both were executed individually before");
+                        ". this is unusual because both were executed individually before");
                 }
                 continue;
             }
             if (isUnusualLat(lat)) {
-                out(*ios, "unusual ", lat, " from ", *mB, " and ", *smallestA);
+                out(*ios, "unusual ", lat, " from ", *mB, " and ", *smallestA,
+                    "discarding this result");
                 continue;
             }
             if (lat < minCombinedLat) {
@@ -843,8 +868,9 @@ void buildLatDatabase(double Frequency) {
             auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, 1e6, Frequency);
             if (EC != SUCCESS) {
                 if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
-                    out(*ios, "Detected multiple dependencys between the MANd instructions. "
-                              "This will not be considered for finding helpers");
+                    out(*ios, "Detected multiple dependencys between ", *mA, " and ", *smallestB,
+                        "so result of their combination will not be considered for finding "
+                        "helpers");
                 } else {
                     out(*ios, "measuring ", *mA, " and ", *smallestB,
                         " was unsuccessful, EC: ", ecToString(EC),
@@ -853,7 +879,8 @@ void buildLatDatabase(double Frequency) {
                 continue;
             }
             if (isUnusualLat(lat)) {
-                out(*ios, "unusual ", lat, " from ", *mA, " and ", *smallestB);
+                out(*ios, "unusual ", lat, " from ", *mA, " and ", *smallestB,
+                    "discarding this result");
                 continue;
             }
             if (lat < minCombinedLat) {
@@ -872,6 +899,8 @@ void buildLatDatabase(double Frequency) {
         smallestA->upperBound = minCombinedLat - 1;
         smallestB->lowerBound = 1;
         smallestB->upperBound = minCombinedLat - 1;
+        out(*ios, "found helper instructions ", *smallestA, " and ", *smallestB,
+            " with combined latency ", minCombinedLat);
         // we now have the two measurements with the lowest combined latency
         // use them to measure everything else
         for (LatMeasurement *mA : measurementsA) {
@@ -882,9 +911,10 @@ void buildLatDatabase(double Frequency) {
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
             if (EC == SUCCESS) {
-                out(*ios, "---", *mA, "---");
-                out(*ios, "\tDependencies: ", *smallestA, ", ", *smallestB);
-                out(*ios, "\tCombined: ", lat, " cycles");
+                latencyOutputMessage[mA->opcode] += str("\t", *mA, ":");
+                latencyOutputMessage[mA->opcode] +=
+                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB);
+                latencyOutputMessage[mA->opcode] += str("\t\tCombined result: ", lat, " cycles");
             }
         }
         for (LatMeasurement *mB : measurementsB) {
@@ -895,32 +925,19 @@ void buildLatDatabase(double Frequency) {
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
             if (EC == SUCCESS) {
-                out(*ios, "---", *mB, "---");
-                out(*ios, "\tDependencies: ", *smallestA, ", ", *smallestB);
-                out(*ios, "\tCombined: ", lat, " cycles");
+                latencyOutputMessage[mB->opcode] += str("\t", *mB, ":");
+                latencyOutputMessage[mB->opcode] +=
+                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB);
+                latencyOutputMessage[mB->opcode] += str("\t\tCombined result: ", lat, " cycles");
             }
         }
     }
 
+    out(*ios, "\n\nReport on individual measurements:");
     // print results
-    for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
-        for (LatMeasurement *measurement : measurementsA) {
-            // re-add to database
-            // latencyDatabase[measurement.opcode] = measurement;
-            std::string name = getEnv().MCII->getName(measurement->opcode).data();
-            name.resize(27, ' ');
-
-            std::ostringstream ss;
-            ss << *measurement;
-            if (!isError(measurement->ec)) {
-                std::printf("%s\n", ss.str().data());
-                fflush(stdout);
-            } else {
-                outs() << ss.str().data() << " " << "skipped for reason\t "
-                       << ecToString(measurement->ec) << "\n";
-                outs().flush();
-            }
-        }
+    for (auto entry : latencyOutputMessage) {
+        out(*ios, "-----", getEnv().MCII->getName(entry.first).data(), "-----");
+        out(*ios, entry.second);
     }
 }
 
@@ -1039,13 +1056,11 @@ int main(int argc, char **argv) {
                 auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
                 throughputDatabase[opcode] = {opcode, EC, lower, upper};
                 if (EC != SUCCESS) {
-                    outs() << getEnv().MCII->getName(opcode)
-                           << " failed for reason: " << ecToString(EC) << "\n";
-                    outs().flush();
+                    std::cout << getEnv().MCII->getName(opcode).data()
+                              << " failed for reason: " << ecToString(EC) << "\n";
                 } else {
-                    std::printf("%s: %.3f (clock cycles)\n", getEnv().MCII->getName(opcode).data(),
-                                lower);
-                    fflush(stdout);
+                    std::cout << getEnv().MCII->getName(opcode).data() << " " << lower
+                              << " (clock cycles)";
                 }
             }
         }
@@ -1082,7 +1097,6 @@ int main(int argc, char **argv) {
         // update database with new values
         for (LatMeasurement result : latencyDatabase) {
             // if (!isError(result.ec)) {
-            dbg(__func__, "updating ", result);
             ErrorCode EC = updateDatabaseEntryLAT(result);
             if (EC != SUCCESS) {
                 std::cerr << "failed to update database entry: " << ecToString(EC) << "\n";
@@ -1093,7 +1107,6 @@ int main(int argc, char **argv) {
 
         // save database
         if (databasePath.empty()) databasePath = generateTimestampedFilename("db", ".yaml");
-
         ErrorCode EC = saveYaml(databasePath);
         if (EC != SUCCESS) return 1;
     } else if (*man) {
@@ -1112,7 +1125,7 @@ int main(int argc, char **argv) {
 
         // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
         double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
-        std::printf("%.3f (clock cycles)\n", cyclesPerInstruction);
+        std::cout << cyclesPerInstruction << " (clock cycles)\n";
     }
 
     gettimeofday(&end, NULL);

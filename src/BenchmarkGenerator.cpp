@@ -44,6 +44,8 @@ std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemp
 
 std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
                                                std::unordered_set<unsigned> OpcodeBlacklist) {
+    dbg(__func__, "MinOpcode: ", MinOpcode, " MaxOpcode: ", MaxOpcode,
+        " OpcodeBlacklist.size(): ", OpcodeBlacklist.size());
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
     // generate a function for each read write dependency combination possible
 
@@ -121,7 +123,8 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
                                                    std::set<MCRegister> UsedRegisters) {
-    dbg(__func__, "generating latency benchmark");
+    dbg(__func__, "Measurements.size(): ", Measurements.size(),
+        " TargetInstrCount: ", *TargetInstrCount, " UsedRegisters.size(): ", UsedRegisters.size());
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
     for (unsigned i = 0; i < getEnv().MRI->getNumRegs(); i++) {
@@ -180,8 +183,6 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
         }
     }
 
-    dbg(__func__, "printing");
-
     std::string loopCode;
     llvm::raw_string_ostream lco(loopCode);
     for (unsigned i = 0; i < *TargetInstrCount; ++i) {
@@ -190,7 +191,6 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
             lco << "\n";
         }
     }
-    dbg(__func__, "inti code");
     std::string initCode;
     llvm::raw_string_ostream ico(initCode);
     ico << saveRegs << "\n";
@@ -207,12 +207,10 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
     }
     ico << restoreRegs << "\n";
 
-    dbg(__func__, "assembly file");
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("lat", saveRegs, loopCode, restoreRegs, "init");
     assemblyFile.addBenchFunction("lat2", saveRegs, loopCode + loopCode, restoreRegs, "init");
-    dbg(__func__, "checking deps");
 
     // check if each instruction of the sequence has exactly one dependency to the next one.
     // otherwise return a warning
@@ -231,20 +229,18 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
                                                   unsigned HelperOpcode) {
-    // TODO change to list of opcodes
-    dbg(__func__, "getting template");
+    dbg(__func__, "Opcode: ", Opcode, " TargetInstrCount: ", *TargetInstrCount,
+        " UnrollCount: ", UnrollCount, " UsedRegisters.size(): ", UsedRegisters.size(),
+        " HelperConstraints.size(): ", HelperConstraints.size(), " HelperOpcode: ", HelperOpcode);
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
     // TODO optimize
-    dbg(__func__, "getting usedRegs");
     for (unsigned i = 0; i < getEnv().MRI->getNumRegs(); i++) {
         MCRegister reg = MCRegister::from(i);
         if (benchTemplate.usedRegisters.find(getEnv().TRI->getRegAsmName(reg).lower().data()) !=
             benchTemplate.usedRegisters.end())
             UsedRegisters.insert(reg);
     }
-
-    dbg(__func__, "call gen inner loop");
 
     // this is the hepler instruciton if needed.
     std::list<MCInst> instructions;
@@ -265,8 +261,6 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
         *TargetInstrCount = UnrollCount * instructions.size();
     }
 
-    dbg(__func__, "inner loop generated");
-
     // save registers used (genTPInnerLoop updates usedRegisters)
     std::string saveRegs;
     std::string restoreRegs;
@@ -283,8 +277,6 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
             restoreRegs.insert(0, restore);
         }
     }
-
-    dbg(__func__, "starting to build benchmark code");
 
     std::string singleLoopCode;
     llvm::raw_string_ostream slo(singleLoopCode);

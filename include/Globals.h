@@ -71,11 +71,11 @@ struct Operand {
 
 inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
     if (Op.isRegClass())
-        return OS << "Class("
+        return OS << "Class<"
                   << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
-                  << ")";
+                  << ">";
 
-    return OS << getEnv().MRI->getName(Op.getRegister()) << "(" << Op.getRegister() << ")";
+    return OS << getEnv().MRI->getName(Op.getRegister()) << "<" << Op.getRegister() << ">";
 }
 
 struct DependencyType {
@@ -143,12 +143,12 @@ inline std::ostream &operator<<(std::ostream &OS, const LatMeasurement &Op) {
     if (Op.defIndex == 999) defIndexString = "impl";
 
     if (!isError(Op.ec))
-        return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "->"
-                  << defIndexString << ") " << Op.type << " [" << Op.lowerBound << ";"
-                  << Op.upperBound << "]";
+        return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "("
+                  << Op.type.useOp << ")" << " -> " << defIndexString << "(" << Op.type.defOp << ")) "
+                  << " [" << Op.lowerBound << ";" << Op.upperBound << "]";
 
-    return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "->"
-              << defIndexString << ") " << Op.type;
+    return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "("
+              << Op.type.useOp << ")" << " -> " << defIndexString << "(" << Op.type.defOp << "))";
 }
 
 #endif // GLOBALS_H
