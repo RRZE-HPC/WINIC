@@ -805,8 +805,8 @@ void buildLatDatabase(double Frequency) {
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             if (mB->opcode == smallestA->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({smallestA, mB}, 1e6, Frequency);
-            dbg(__func__, "measured ", lat, " from ", *mB, " and ", *smallestA);
+            out(*ios, "Measuring ", *smallestA, " and ", *mB);
+            auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, 1e6, Frequency);
             if (EC != SUCCESS) {
                 if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
                     out(*ios, "Detected multiple dependencys between the MANd instructions. "
@@ -840,8 +840,7 @@ void buildLatDatabase(double Frequency) {
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             if (mA->opcode == smallestB->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({mA, smallestB}, 1e6, Frequency);
-            dbg(__func__, "measured ", lat, " from ", mA, " and ", smallestB);
+            auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, 1e6, Frequency);
             if (EC != SUCCESS) {
                 if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
                     out(*ios, "Detected multiple dependencys between the MANd instructions. "
@@ -878,7 +877,7 @@ void buildLatDatabase(double Frequency) {
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             if (mA->opcode == smallestB->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({mA, smallestB}, 1e6, Frequency);
+            auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, 1e6, Frequency);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
@@ -891,7 +890,7 @@ void buildLatDatabase(double Frequency) {
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             if (mB->opcode == smallestA->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({smallestA, mB}, 1e6, Frequency);
+            auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, 1e6, Frequency);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
