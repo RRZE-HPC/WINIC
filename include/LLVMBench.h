@@ -47,6 +47,15 @@ static std::map<unsigned, std::string> latencyOutputMessage;
 static bool dbgToFile = true;
 extern LLVMEnvironment env;
 
+inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
+inline bool smallerEqWithTolerance(double A, double B) { return A < B || equalWithTolerance(A, B); }
+// usual latencies are close to an integer >= 1
+inline bool isUnusualLat(double A) {
+    if (A < 1) return true;
+    if (A > 600) return true;
+    return !equalWithTolerance(std::round(A), A);
+}
+
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
 
@@ -54,6 +63,10 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
                                                     unsigned NumInst, int LoopCount,
                                                     double Frequency, std::string FunctionName,
                                                     std::string InitName = "");
+
+std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
+                                             unsigned NumInst, unsigned LoopCount, double Frequency,
+                                             bool Throughput);
 
 // if a helper is needed and one can be found returns {SUCCESS, helperOpcode, helperConstraints}
 // if no helper is needed returns {SUCCESS, MAX_UNSIGNED, {}}
@@ -65,10 +78,6 @@ getTPHelperInstruction(unsigned Opcode);
 // overhead of loop instructions. This may segfault e.g. on privileged instructions like CLGI.
 // returns a lower and an upper bound for the TP.
 std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency);
-
-std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount, double Frequency,
-                                             bool Throughput);
 
 // runs two benchmarks to correct eventual interference with loop instructions
 // this may segfault e.g. on privileged instructions like CLGI
@@ -90,26 +99,15 @@ std::pair<ErrorCode, std::vector<double>>
 measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
                     double Frequency, std::string FunctionName, std::string InitName = "");
 
-// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-void buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0,
-                    std::unordered_set<unsigned> OpcodeBlacklist = {});
-
-inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
-inline bool smallerEqWithTolerance(double A, double B) { return A < B || equalWithTolerance(A, B); }
-// usual latencies are close to an integer >= 1
-inline bool isUnusualLat(double A) {
-    if (A < 1) return true;
-    if (A > 600) return true;
-    return !equalWithTolerance(std::round(A), A);
-}
-
-std::string pairVectorToString(std::vector<std::pair<unsigned, unsigned>> Values);
-
 // check if a and b are the same instruction with different operands
 bool isVariant(unsigned A, unsigned B);
 
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
 ErrorCode canMeasure(LatMeasurement Measurement, double Frequency);
+
+// measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
+void buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0,
+                     std::unordered_set<unsigned> OpcodeBlacklist = {});
 
 void buildLatDatabase(double Frequency);
 

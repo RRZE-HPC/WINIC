@@ -645,6 +645,40 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
     }
 }
 
+bool isVariant(unsigned A, unsigned B) {
+
+    std::string nameA = getEnv().MCII->getName(A).data();
+    std::string nameB = getEnv().MCII->getName(B).data();
+    if (nameA == nameB) return true;
+    // llvm names for the same instruction normally match until the first occurrence of a number
+    // e.g. ADD8ri_EVEX ADD8ri_ND ADD8ri_NF ADD8ri_NF_ND
+    auto getPrefixWithFirstNumber = [](const std::string &Name) -> std::string {
+        size_t i = 0;
+        // Find the start of the first number
+        while (i < Name.size() && !isdigit(Name[i]))
+            ++i;
+
+        // include the whole number
+        size_t j = i;
+        while (j < Name.size() && isdigit(Name[j]))
+            ++j;
+
+        return Name.substr(0, j);
+    };
+
+    std::string namePrefixA = getPrefixWithFirstNumber(nameA);
+    std::string namePrefixB = getPrefixWithFirstNumber(nameB);
+    if (namePrefixA == namePrefixB) dbg(__func__, "found variant: ", nameA, " ", nameB);
+    return namePrefixA == namePrefixB;
+}
+
+// run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
+ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
+    auto [EC, lat] = measureInSubprocess({Measurement}, 2, Frequency);
+    if (!isError(EC)) return SUCCESS;
+    return EC;
+}
+
 void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
                     std::unordered_set<unsigned> OpcodeBlacklist) {
     // skip instructions which take long and are irrelevant
@@ -687,40 +721,6 @@ void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
             out(*ios, "\tlowerTP: ", res.lowerTP, " upperTP: ", res.upperTP);
         }
     }
-}
-
-bool isVariant(unsigned A, unsigned B) {
-
-    std::string nameA = getEnv().MCII->getName(A).data();
-    std::string nameB = getEnv().MCII->getName(B).data();
-    if (nameA == nameB) return true;
-    // llvm names for the same instruction normally match until the first occurrence of a number
-    // e.g. ADD8ri_EVEX ADD8ri_ND ADD8ri_NF ADD8ri_NF_ND
-    auto getPrefixWithFirstNumber = [](const std::string &Name) -> std::string {
-        size_t i = 0;
-        // Find the start of the first number
-        while (i < Name.size() && !isdigit(Name[i]))
-            ++i;
-
-        // include the whole number
-        size_t j = i;
-        while (j < Name.size() && isdigit(Name[j]))
-            ++j;
-
-        return Name.substr(0, j);
-    };
-
-    std::string namePrefixA = getPrefixWithFirstNumber(nameA);
-    std::string namePrefixB = getPrefixWithFirstNumber(nameB);
-    if (namePrefixA == namePrefixB) dbg(__func__, "found variant: ", nameA, " ", nameB);
-    return namePrefixA == namePrefixB;
-}
-
-// run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
-ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
-    auto [EC, lat] = measureInSubprocess({Measurement}, 2, Frequency);
-    if (!isError(EC)) return SUCCESS;
-    return EC;
 }
 
 void buildLatDatabase(double Frequency) {
