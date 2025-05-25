@@ -73,7 +73,6 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
                                                   Operand::fromRegClass(useOperand.RegClass)),
                                    i, j);
                 measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
             }
             // implUse -> normal def
             auto implUses = desc.implicit_uses();
@@ -85,7 +84,6 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
                                                   Operand::fromRegister(useReg)),
                                    i, 999);
                 measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
             }
         }
         auto implDefs = desc.implicit_defs();
@@ -101,7 +99,6 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
                                         999, j);
 
                 measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
             }
             // implUse -> implDef
             auto implUses = desc.implicit_uses();
@@ -113,7 +110,6 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
                     999, 999);
 
                 measurements.emplace_back(m);
-                dbg(__func__, "adding ", m);
             }
         }
     }
@@ -348,10 +344,8 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
                     return {SUCCESS, i};
     } else if (Type == "def") {
         if (desc.hasImplicitDefOfPhysReg(RequiredRegister)) {
-            dbg(__func__, "has def");
             return {SUCCESS, -1};
         }
-        dbg(__func__, "doestn have def");
         for (unsigned i = 0; i < desc.getNumDefs(); i++)
             if (desc.operands()[i].OperandType == MCOI::OPERAND_REGISTER)
                 if (getEnv().regInRegClass(RequiredRegister, desc.operands()[i].RegClass))

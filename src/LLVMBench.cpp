@@ -329,15 +329,12 @@ getTPHelperInstruction(unsigned Opcode) {
     // even if they write not to the register itself but a superregister
     // on Zen4 there is a partial write penalty when writing to just a part of a GPR
     // priorityTPHelper can be used to prevent this from happening
-    dbg(__func__, "checking size ", priorityTPHelper.size());
     for (unsigned possibleHelper : priorityTPHelper) {
         TPMeasurement tpRes = throughputDatabase[possibleHelper];
-        dbg(__func__, "checking possible ", tpRes.ec, " ", tpRes.lowerTP);
         if (tpRes.ec != SUCCESS) continue;  // no value
         if (tpRes.lowerTP < 0.25) continue; // we dont trust values this low
         for (MCRegister possibleWriteReg : getEnv().getPossibleWriteRegs(possibleHelper)) {
             if (getEnv().TRI->isSuperRegisterEq(useReg, possibleWriteReg)) {
-                dbg(__func__, "found reg ", possibleHelper);
                 useReg = possibleWriteReg;
                 auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
                 // we checked the instruction is able to define the register
@@ -519,7 +516,6 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
     } else { // Parent process
         int status;
         waitpid(pid, &status, 0);
-        dbg(__func__, "child exited on status ", status);
 
         if (WIFSIGNALED(status)) {
             munmap(sharedEC, sizeof(ErrorCode));
@@ -572,7 +568,6 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     } else { // Parent process
         int status;
         waitpid(pid, &status, 0);
-        dbg(__func__, "child exited on status ", status);
 
         if (WIFSIGNALED(status)) {
             munmap(sharedResult, sizeof(double));
@@ -646,7 +641,6 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
 }
 
 bool isVariant(unsigned A, unsigned B) {
-
     std::string nameA = getEnv().MCII->getName(A).data();
     std::string nameB = getEnv().MCII->getName(B).data();
     if (nameA == nameB) return true;
@@ -668,7 +662,6 @@ bool isVariant(unsigned A, unsigned B) {
 
     std::string namePrefixA = getPrefixWithFirstNumber(nameA);
     std::string namePrefixB = getPrefixWithFirstNumber(nameB);
-    if (namePrefixA == namePrefixB) dbg(__func__, "found variant: ", nameA, " ", nameB);
     return namePrefixA == namePrefixB;
 }
 
