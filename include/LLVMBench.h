@@ -91,7 +91,7 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
                     double Frequency, std::string FunctionName, std::string InitName = "");
 
 // measure the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied
-int buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0,
+void buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0,
                     std::unordered_set<unsigned> OpcodeBlacklist = {});
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }

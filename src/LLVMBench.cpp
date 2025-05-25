@@ -173,7 +173,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     // from ibench
     void *handle = nullptr;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        fprintf(stderr, "dlopen: failed to open .so file\n");
+        std::cerr << "dlopen: failed to open .so file\n";
         return {ERROR_FILE, {}};
     }
     // get handles to function in the assembly file
@@ -182,7 +182,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     for (std::string functionName : Assembly.getInitFunctionNames()) {
         auto functionPtr = (double (*)())dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
-            fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
+            std::cerr << "dlsym: couldn't find function %s\n", functionName.data();
             return {ERROR_GENERIC, {}};
         }
         initFunctionMap[functionName] = functionPtr;
@@ -190,7 +190,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     for (std::string functionName : Assembly.getBenchFunctionNames()) {
         auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
-            fprintf(stderr, "dlsym: couldn't find function %s\n", functionName.data());
+            std::cerr << "dlsym: couldn't find function %s\n", functionName.data();
             return {ERROR_GENERIC, {}};
         }
         benchFunctionMap[functionName] = functionPtr;
@@ -237,7 +237,7 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
     double (*function)(int);
     double (*init)() = nullptr;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        fprintf(stderr, "dlopen: failed to open .so file\n");
+        std::cerr << "dlopen: failed to open .so file\n";
         fflush(stdout);
         return {ERROR_ASSEMBLY, {}};
     }
@@ -468,15 +468,16 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     double cycles;
     std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency, false);
     if (ec != SUCCESS) {
+
         std::string chainString = "";
         for (auto m : Measurements) {
             chainString += getEnv().MCII->getName(m.opcode).data();
             chainString += " -> ";
         }
-        std::printf("   anomaly detected during measurement of %s:\n", chainString.data());
         for (auto time : benchResults["lat2"]) {
-            std::printf("   %.3f ", time);
+            chainString += std::to_string(time) + " ";
         }
+        dbg(__func__, "anomaly detected during measurement: ", chainString.data());
         return {ERROR_GENERIC, -1};
     }
     if (warning != NO_ERROR_CODE) return {warning, cycles};
@@ -644,7 +645,7 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
     }
 }
 
-int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
+void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
                     std::unordered_set<unsigned> OpcodeBlacklist) {
     // skip instructions which take long and are irrelevant
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
@@ -686,7 +687,6 @@ int buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
             out(*ios, "\tlowerTP: ", res.lowerTP, " upperTP: ", res.upperTP);
         }
     }
-    return 0;
 }
 
 bool isVariant(unsigned A, unsigned B) {
