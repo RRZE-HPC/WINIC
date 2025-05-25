@@ -4,6 +4,7 @@
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include <CustomDebug.h>
+#include <ErrorCode.h>
 #include <Globals.h>
 #include <algorithm>
 #include <cmath>
@@ -49,7 +50,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     opInst.name = s;
     opInst.operands = operands;
     opInst.operandLatencies = {};
-    opInst.latency = 0;
+    opInst.latency = std::nullopt;
     opInst.throughput = std::nullopt;
     opInst.throughputMin = std::nullopt;
     opInst.throughputMax = std::nullopt;
@@ -118,7 +119,6 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     auto it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
                            [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
     if (it == outputDatabase.end()) {
-        dbg(__func__, "insert ", name);
         // Not found, create first
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
@@ -126,11 +126,10 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     }
     it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
                       [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    dbg(__func__, "found ", name);
     // Found entry, update it:
-    if (isError(M.ec))
+    if (isError(M.ec)) 
         it->operandLatencies[useIndexString][defIndexString] = std::nullopt;
-    else {
+     else {
         it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
         // take any latency value for now to ensure OSACA compatibility, remove once OSACA is
         // updated to use operandLatencies
