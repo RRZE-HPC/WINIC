@@ -173,7 +173,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     // from ibench
     void *handle = nullptr;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        std::cerr << "dlopen: failed to open .so file\n";
+        std::cerr << "dlopen: failed to open .so file" << std::endl;
         return {ERROR_FILE, {}};
     }
     // get handles to function in the assembly file
@@ -182,7 +182,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     for (std::string functionName : Assembly.getInitFunctionNames()) {
         auto functionPtr = (double (*)())dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function %s\n", functionName.data();
+            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
             return {ERROR_GENERIC, {}};
         }
         initFunctionMap[functionName] = functionPtr;
@@ -190,7 +190,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     for (std::string functionName : Assembly.getBenchFunctionNames()) {
         auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function %s\n", functionName.data();
+            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
             return {ERROR_GENERIC, {}};
         }
         benchFunctionMap[functionName] = functionPtr;
@@ -237,8 +237,7 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
     double (*function)(int);
     double (*init)() = nullptr;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        std::cerr << "dlopen: failed to open .so file\n";
-        fflush(stdout);
+        std::cerr << "dlopen: failed to open .so file" << std::endl;
         return {ERROR_ASSEMBLY, {}};
     }
     if (!InitName.empty()) {
@@ -673,7 +672,7 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
 }
 
 void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
-                    std::unordered_set<unsigned> OpcodeBlacklist) {
+                     std::unordered_set<unsigned> OpcodeBlacklist) {
     // skip instructions which take long and are irrelevant
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
     // mark instructions to measure
@@ -944,6 +943,7 @@ int main(int argc, char **argv) {
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
     app.add_flag("-s,--silent", silent, "Dont generate report file");
+    app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
 
     std::vector<std::string> instrNames;
     std::vector<unsigned> opcodes;
@@ -985,14 +985,13 @@ int main(int argc, char **argv) {
     }
 
     out(*ios, "Frequency: ", frequency, " GHz");
-    debug = false;
     dbgToFile = false;
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
     ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {
-        std::cerr << "failed to set up environment: " << ecToString(ec) << "\n";
+        std::cerr << "failed to set up environment: " << ecToString(ec) << std::endl;
         return 1;
     }
     out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
@@ -1001,7 +1000,7 @@ int main(int argc, char **argv) {
     for (auto instrName : instrNames) {
         unsigned opcode = getEnv().getOpcode(instrName.data());
         if (opcode == std::numeric_limits<unsigned>::max()) {
-            std::cerr << "No instruction with name \"" << instrName << "\"\n";
+            std::cerr << "No instruction with name \"" << instrName << "\"" << std::endl;
             exit(1);
         }
         opcodes.emplace_back(opcode);
@@ -1044,7 +1043,6 @@ int main(int argc, char **argv) {
             buildTPDatabase(frequency, minOpcode, maxOpcode, opcodeBlacklist);
         } else {
             dbgToFile = true;
-            debug = true;
             for (unsigned opcode : opcodes) {
                 auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
                 throughputDatabase[opcode] = {opcode, EC, lower, upper};
@@ -1079,7 +1077,6 @@ int main(int argc, char **argv) {
             buildLatDatabase(frequency);
         } else {
             dbgToFile = true;
-            debug = true;
             for (auto opcode : opcodes) {
                 auto measurements = genLatMeasurements(opcode, opcode + 1, {});
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
@@ -1089,13 +1086,11 @@ int main(int argc, char **argv) {
         }
         // update database with new values
         for (LatMeasurement result : latencyDatabase) {
-            // if (!isError(result.ec)) {
             ErrorCode EC = updateDatabaseEntryLAT(result);
             if (EC != SUCCESS) {
-                std::cerr << "failed to update database entry: " << ecToString(EC) << "\n";
+                std::cerr << "failed to update database entry: " << ecToString(EC) << std::endl;
                 return 1;
             }
-            // }
         }
 
         // save database
@@ -1103,7 +1098,6 @@ int main(int argc, char **argv) {
         ErrorCode EC = saveYaml(databasePath);
         if (EC != SUCCESS) return 1;
     } else if (*man) {
-        debug = true;
         auto [EC, times] =
             measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
         if (EC != SUCCESS) {
@@ -1124,7 +1118,7 @@ int main(int argc, char **argv) {
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
     out(*ios, "total runtime: ", totalRuntime, " (s)");
-    std::cerr << " done\n";
+    std::cerr << " done" << std::endl;
 
     return 0;
 }

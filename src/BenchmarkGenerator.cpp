@@ -227,7 +227,9 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   unsigned HelperOpcode) {
     dbg(__func__, "Opcode: ", Opcode, " TargetInstrCount: ", *TargetInstrCount,
         " UnrollCount: ", UnrollCount, " UsedRegisters.size(): ", UsedRegisters.size(),
-        " HelperConstraints.size(): ", HelperConstraints.size(), " HelperOpcode: ", HelperOpcode);
+        " HelperConstraints.size(): ", HelperConstraints.size());
+    if (HelperOpcode != MAX_UNSIGNED)
+        dbg(__func__, "Helper", getEnv().MCII->getName(HelperOpcode).data());
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
     // TODO optimize
