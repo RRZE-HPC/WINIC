@@ -249,7 +249,7 @@ functionName:
     li      t0, 0               # i = 0
     mv      t1, a0
 
-    blez    t1, done_tp
+    blez    t1, done_functionName
 
 )",
     R"(
