@@ -1007,12 +1007,16 @@ int main(int argc, char **argv) {
     }
 
     // skip instructions which take long and are irrelevant
-    std::set<std::string> skipInstructions = {
-        "SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r", "RDRAND64r", "RDSEED16r",
-        "RDSEED32r", "RDSEED64r", "RDTSC",     "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",
-        "SMSW32r",   "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",     "VERWr"};
-
+    std::set<std::string> skipInstructions;
     std::unordered_set<unsigned> opcodeBlacklist;
+
+    if (getEnv().Arch == Triple::ArchType::x86_64) {
+        skipInstructions = {"SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r",
+                            "RDRAND64r", "RDSEED16r", "RDSEED32r", "RDSEED64r", "RDTSC",
+                            "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",   "SMSW32r",
+                            "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",
+                            "VERWr"};
+    }
     for (auto name : skipInstructions)
         opcodeBlacklist.insert(getEnv().getOpcode(name));
 
