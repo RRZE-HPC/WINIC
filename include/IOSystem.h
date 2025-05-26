@@ -7,24 +7,35 @@
 #include <string>
 
 // serializable structs for yaml output
+
+/**
+ * \brief Represents an operand for YAML serialization.
+ */
 struct IOOperand {
-    std::string opClass;
-    std::optional<std::string> name;
-    std::optional<std::string> imd;
+    std::string opClass;             ///< Operand class (e.g., "register", "immediate")
+    std::optional<std::string> name; ///< Optional operand name
+    std::optional<std::string> imd;  ///< Optional immediate value type
 };
+
 using StringOptionalDoubleMap = std::map<std::string, std::optional<double>>;
-// map useOperand -> defOperand -> latency
+
+/**
+ * \brief Map from use operand to def operand to latency value.
+ */
 using IOLatMap = std::map<std::string, StringOptionalDoubleMap>;
 
+/**
+ * \brief Represents an instruction for YAML serialization.
+ */
 struct IOInstruction {
-    std::string llvmName;
-    std::string name;
-    std::vector<IOOperand> operands;
-    std::optional<double> latency;
-    IOLatMap operandLatencies;
-    std::optional<double> throughput;
-    std::optional<double> throughputMin;
-    std::optional<double> throughputMax;
+    std::string llvmName;                ///< LLVM instruction name
+    std::string name;                    ///< Assembly mnemonic
+    std::vector<IOOperand> operands;     ///< List of operands
+    std::optional<double> latency;       ///< Overall instruction latency
+    IOLatMap operandLatencies;           ///< Operand-level latencies
+    std::optional<double> throughput;    ///< Throughput value
+    std::optional<double> throughputMin; ///< Minimum throughput
+    std::optional<double> throughputMax; ///< Maximum throughput
 };
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOOperand)
@@ -84,22 +95,56 @@ template <> struct ScalarTraits<std::optional<double>> {
 
 static std::vector<IOInstruction> outputDatabase;
 
-// converts an llvm-style operand number to a asm-style operand number
-// llvm operand layout looks like this:
-// operands: [op0: reg(w), op1: reg(r), op2: imm(r)], numDefs: 1, constraints: [op0 == op1]
-// which corresponds to asm-style operand layout:
-// operands: [op0: reg(rw), op1: imm(r)]
+/**
+ * \brief Converts an LLVM-style operand number to an asm-style operand number.
+ *
+ * LLVM operand layout looks like this:
+ *   operands: [op0: reg(w), op1: reg(r), op2: imm(r)], numDefs: 1, constraints: [op0 == op1]
+ * which corresponds to asm-style operand layout:
+ *   operands: [op0: reg(rw), op1: imm(r)]
+ *
+ * \param OpNum The LLVM operand number.
+ * \param Desc The instruction descriptor.
+ * \return The corresponding asm-style operand number.
+ */
 unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc);
 
+/**
+ * \brief Creates an IOInstruction from an opcode.
+ * \param Opcode The instruction opcode.
+ * \return Pair of ErrorCode and IOInstruction.
+ */
 std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode);
 
+/**
+ * \brief Updates the output database entry for throughput measurement.
+ * \param Measurement The throughput measurement.
+ * \return ErrorCode indicating success or failure.
+ */
 ErrorCode updateDatabaseEntryTP(TPMeasurement Measurement);
 
+/**
+ * \brief Updates the output database entry for latency measurement.
+ * \param Measurement The latency measurement.
+ * \return ErrorCode indicating success or failure.
+ */
 ErrorCode updateDatabaseEntryLAT(LatMeasurement Measurement);
 
-// load a database into outputDatabase to add further measurements. Currently it is not supported to
-// load the values back into the working databases! Therefore existing values cannot be used as
-// helpers and all required helpers have to be measured in one run!
+/**
+ * \brief Loads a database from a YAML file into outputDatabase.
+ *
+ * Note: Currently it is not supported to load the values back into the working databases!
+ * Therefore existing values cannot be used as helpers and all required helpers have to be measured
+ * in one run!
+ *
+ * \param Path Path to the YAML file.
+ * \return ErrorCode indicating success or failure.
+ */
 ErrorCode loadYaml(std::string Path);
 
+/**
+ * \brief Saves the outputDatabase to a YAML file.
+ * \param Path Path to the YAML file.
+ * \return ErrorCode indicating success or failure.
+ */
 ErrorCode saveYaml(std::string Path);
