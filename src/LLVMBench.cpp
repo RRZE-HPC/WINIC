@@ -704,8 +704,7 @@ void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
-        std::cerr << "\n";
-        std::cerr.flush();
+        std::cerr << std::endl;
     }
     // print results
     for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
@@ -944,14 +943,17 @@ void buildLatDatabase(double Frequency) {
 int main(int argc, char **argv) {
     double frequency;
     bool silent = false;
+    bool createDB = true;
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"LLVMBench"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
+    app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
+    app.add_flag("--noReport", silent, "Dont generate report file");
+    app.add_flag("--noDB", createDB, "Disable Database Output")->default_val(true);
+    // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
-    app.add_flag("-s,--silent", silent, "Dont generate report file");
-    app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
 
     std::vector<std::string> instrNames;
     std::vector<unsigned> opcodes;
@@ -1075,8 +1077,10 @@ int main(int argc, char **argv) {
         if (databasePath.empty()) {
             databasePath = generateTimestampedFilename("db", ".yaml");
         }
-        ErrorCode EC = saveYaml(databasePath);
-        if (EC != SUCCESS) return 1;
+        if (createDB) {
+            ErrorCode EC = saveYaml(databasePath);
+            if (EC != SUCCESS) return 1;
+        }
     } else if (*lat) {
         out(*ios, "Mode: Latency");
 
@@ -1107,8 +1111,10 @@ int main(int argc, char **argv) {
 
         // save database
         if (databasePath.empty()) databasePath = generateTimestampedFilename("db", ".yaml");
-        ErrorCode EC = saveYaml(databasePath);
-        if (EC != SUCCESS) return 1;
+        if (createDB) {
+            ErrorCode EC = saveYaml(databasePath);
+            if (EC != SUCCESS) return 1;
+        }
     } else if (*man) {
         auto [EC, times] =
             measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
