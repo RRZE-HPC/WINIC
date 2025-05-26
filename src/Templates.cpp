@@ -193,8 +193,35 @@ Template RISCVTemplate = {
 .globl functionName
 .type functionName, @function
 functionName:
+    # push callee-save registers onto stack
+    addi    sp, sp, -12*8         # Make space for 12 registers (s0–s11), 8 bytes each
+    sd      s0,  0(sp)
+    sd      s1,  8(sp)
+    sd      s2, 16(sp)
+    sd      s3, 24(sp)
+    sd      s4, 32(sp)
+    sd      s5, 40(sp)
+    sd      s6, 48(sp)
+    sd      s7, 56(sp)
+    sd      s8, 64(sp)
+    sd      s9, 72(sp)
+    sd      s10, 80(sp)
+    sd      s11, 88(sp)
 )",
     R"(
+    ld      s0,  0(sp)
+    ld      s1,  8(sp)
+    ld      s2, 16(sp)
+    ld      s3, 24(sp)
+    ld      s4, 32(sp)
+    ld      s5, 40(sp)
+    ld      s6, 48(sp)
+    ld      s7, 56(sp)
+    ld      s8, 64(sp)
+    ld      s9, 72(sp)
+    ld      s10, 80(sp)
+    ld      s11, 88(sp)
+    addi    sp, sp, 12*8         # Restore stack pointer
     ret
 .size functionName, .-functionName
 )",
@@ -205,7 +232,7 @@ functionName:
 .type functionName, @function
 functionName:
     # push callee-save registers onto stack
-    addi    sp, sp, -12*8         # Make space for 11 registers (s0–s11), 8 bytes each
+    addi    sp, sp, -12*8         # Make space for 12 registers (s0–s11), 8 bytes each
     sd      s0,  0(sp)
     sd      s1,  8(sp)
     sd      s2, 16(sp)
@@ -235,8 +262,8 @@ loop_functionName:
 done_functionName:
 )",
     R"(
-        # pop callee-save registers from stack
-        ld      s0,  0(sp)
+    # pop callee-save registers from stack
+    ld      s0,  0(sp)
     ld      s1,  8(sp)
     ld      s2, 16(sp)
     ld      s3, 24(sp)
@@ -248,7 +275,7 @@ done_functionName:
     ld      s9, 72(sp)
     ld      s10, 80(sp)
     ld      s11, 88(sp)
-    addi    sp, sp, 11*8         # Restore stack pointer
+    addi    sp, sp, 12*8         # Restore stack pointer
     ret
 
 .size functionName, .-functionName
