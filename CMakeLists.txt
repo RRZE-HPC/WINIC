@@ -28,7 +28,7 @@ endif()
 
 # Locate pre-built LLVM and Clang
 find_package(LLVM REQUIRED CONFIG PATHS "${LLVM_BINARY_DIR}/lib/cmake/llvm")
-find_package(Clang REQUIRED CONFIG PATHS "${LLVM_BINARY_DIR}/lib/cmake/clang")
+find_package(Clang REQUIRED CONFIG NO_DEFAULT_PATH HINTS "${LLVM_BINARY_DIR}/lib/cmake/clang")
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Found Clang ${Clang_PACKAGE_VERSION}")
