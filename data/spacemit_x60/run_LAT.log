@@ -1,0 +1,3030 @@
+Frequency: 1.6 GHz
+Arch: generic-rv64
+Using existing database: db.yaml
+Mode: Latency
+No instructions specified, measuring all instructions from opcode 0 to 13779
+Number of measurements: 2466
+
+
+Report on finding helpers for dependency types:
+-----Class<GPRNoX0> -> Class<GPRX0> and Class<GPRX0> -> Class<GPRNoX0>-----
+2 measurements of first Type
+no measurements of type Class<GPRX0> -> Class<GPRNoX0> so Class<GPRNoX0> -> Class<GPRX0> can also not be measured
+
+
+Report on individual measurements:
+-----CM_MVA01S-----
+	CM_MVA01S(0(Class<SR07>) -> impl(X10<53>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	CM_MVA01S(1(Class<SR07>) -> impl(X10<53>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	CM_MVA01S(0(Class<SR07>) -> impl(X11<54>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	CM_MVA01S(1(Class<SR07>) -> impl(X11<54>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----CM_MVSA01-----
+	CM_MVSA01(impl(X10<53>) -> 0(Class<SR07>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	CM_MVSA01(impl(X11<54>) -> 0(Class<SR07>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	CM_MVSA01(impl(X10<53>) -> 1(Class<SR07>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	CM_MVSA01(impl(X11<54>) -> 1(Class<SR07>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FCLASS_D-----
+	FCLASS_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FCLASS_D_IN32X-----
+	FCLASS_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FCLASS_H-----
+	FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FCLASS_H_INX-----
+	FCLASS_H_INX(1(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FCLASS_S-----
+	FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FCLASS_S_INX-----
+	FCLASS_S_INX(1(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FEQ_D-----
+	FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FEQ_D(2(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FEQ_D_IN32X-----
+	FEQ_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FEQ_D_IN32X(2(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FEQ_H-----
+	FEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FEQ_H(2(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FEQ_H_INX-----
+	FEQ_H_INX(1(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FEQ_H_INX(2(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FEQ_S-----
+	FEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FEQ_S(2(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FEQ_S_INX-----
+	FEQ_S_INX(1(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FEQ_S_INX(2(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLEQ_D-----
+	FLEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLEQ_D(2(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLEQ_H-----
+	FLEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLEQ_H(2(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLEQ_S-----
+	FLEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLEQ_S(2(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLE_D-----
+	FLE_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLE_D(2(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLE_D_IN32X-----
+	FLE_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLE_D_IN32X(2(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLE_H-----
+	FLE_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLE_H(2(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLE_H_INX-----
+	FLE_H_INX(1(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLE_H_INX(2(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLE_S-----
+	FLE_S(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLE_S(2(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLE_S_INX-----
+	FLE_S_INX(1(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLE_S_INX(2(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLTQ_D-----
+	FLTQ_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLTQ_D(2(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLTQ_H-----
+	FLTQ_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLTQ_H(2(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLTQ_S-----
+	FLTQ_S(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLTQ_S(2(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLT_D-----
+	FLT_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLT_D(2(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLT_D_IN32X-----
+	FLT_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLT_D_IN32X(2(Class<GPRPair>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLT_H-----
+	FLT_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLT_H(2(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLT_H_INX-----
+	FLT_H_INX(1(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLT_H_INX(2(Class<GPRF16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLT_S-----
+	FLT_S(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLT_S(2(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FLT_S_INX-----
+	FLT_S_INX(1(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FLT_S_INX(2(Class<GPRF32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMVH_X_D-----
+	FMVH_X_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMVP_D_X-----
+	FMVP_D_X(1(Class<GPR>) -> 0(Class<FPR64>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	FMVP_D_X(2(Class<GPR>) -> 0(Class<FPR64>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_D_X-----
+	FMV_D_X(1(Class<GPR>) -> 0(Class<FPR64>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_H_X-----
+	FMV_H_X(1(Class<GPR>) -> 0(Class<FPR16>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_W_X-----
+	FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_X_D-----
+	FMV_X_D(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_X_H-----
+	FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_X_W-----
+	FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----FMV_X_W_FPR64-----
+	FMV_X_W_FPR64(1(Class<FPR64>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----QC_CSRRWR-----
+	QC_CSRRWR(2(Class<GPRNoX0>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----QC_WRAP-----
+	QC_WRAP(1(Class<GPR>) -> 0(Class<GPRNoX0>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----SSRDP-----
+	SSRDP(impl(SSP<4>) -> 0(Class<GPRNoX0>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQASU_VV-----
+	THVdotVMAQASU_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQASU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQASU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQASU_VX-----
+	THVdotVMAQASU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQASU_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQASU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQASU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQAUS_VX-----
+	THVdotVMAQAUS_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAUS_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAUS_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAUS_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQAU_VV-----
+	THVdotVMAQAU_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQAU_VX-----
+	THVdotVMAQAU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAU_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQAU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQA_VV-----
+	THVdotVMAQA_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQA_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQA_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----THVdotVMAQA_VX-----
+	THVdotVMAQA_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQA_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQA_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	THVdotVMAQA_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAADDU_VV-----
+	VAADDU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADDU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADDU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAADDU_VX-----
+	VAADDU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADDU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADDU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADDU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAADD_VV-----
+	VAADD_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADD_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADD_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAADD_VX-----
+	VAADD_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADD_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADD_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAADD_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VADC_VVM-----
+	VADC_VVM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADC_VVM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADC_VVM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VADC_VXM-----
+	VADC_VXM(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADC_VXM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADC_VXM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADC_VXM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VADD_VV-----
+	VADD_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADD_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADD_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VADD_VX-----
+	VADD_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADD_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADD_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VADD_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESDF_VS-----
+	VAESDF_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESDF_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESDF_VV-----
+	VAESDF_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESDF_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESDM_VS-----
+	VAESDM_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESDM_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESDM_VV-----
+	VAESDM_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESDM_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESEF_VS-----
+	VAESEF_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESEF_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESEF_VV-----
+	VAESEF_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESEF_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESEM_VS-----
+	VAESEM_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESEM_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESEM_VV-----
+	VAESEM_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESEM_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAESZ_VS-----
+	VAESZ_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAESZ_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VANDN_VV-----
+	VANDN_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VANDN_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VANDN_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VANDN_VX-----
+	VANDN_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VANDN_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VANDN_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VANDN_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAND_VV-----
+	VAND_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAND_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAND_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VAND_VX-----
+	VAND_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAND_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAND_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VAND_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VASUBU_VV-----
+	VASUBU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUBU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUBU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VASUBU_VX-----
+	VASUBU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUBU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUBU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUBU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VASUB_VV-----
+	VASUB_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUB_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUB_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VASUB_VX-----
+	VASUB_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUB_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUB_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VASUB_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VBREV8_V-----
+	VBREV8_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VBREV8_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VBREV8_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VBREV_V-----
+	VBREV_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VBREV_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VBREV_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCLMULH_VV-----
+	VCLMULH_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMULH_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMULH_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCLMULH_VX-----
+	VCLMULH_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMULH_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMULH_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMULH_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCLMUL_VV-----
+	VCLMUL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMUL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMUL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCLMUL_VX-----
+	VCLMUL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMUL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMUL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLMUL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCLZ_V-----
+	VCLZ_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLZ_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCLZ_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCOMPRESS_VM-----
+	VCOMPRESS_VM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCOMPRESS_VM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCPOP_M-----
+	VCPOP_M(1(Class<VR>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCPOP_M(2(Class<VMV0>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCPOP_M(impl(VTYPE<7>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCPOP_M(impl(VL<5>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCPOP_V-----
+	VCPOP_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCPOP_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCPOP_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VCTZ_V-----
+	VCTZ_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCTZ_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VCTZ_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VDIVU_VV-----
+	VDIVU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIVU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIVU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VDIVU_VX-----
+	VDIVU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIVU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIVU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIVU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VDIV_VV-----
+	VDIV_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIV_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIV_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VDIV_VX-----
+	VDIV_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIV_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIV_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VDIV_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFADD_VF-----
+	VFADD_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFADD_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFADD_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFADD_VV-----
+	VFADD_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFADD_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCLASS_V-----
+	VFCLASS_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCLASS_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCLASS_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCVT_F_XU_V-----
+	VFCVT_F_XU_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_F_XU_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCVT_F_X_V-----
+	VFCVT_F_X_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_F_X_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCVT_RTZ_XU_F_V-----
+	VFCVT_RTZ_XU_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_RTZ_XU_F_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_RTZ_XU_F_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCVT_RTZ_X_F_V-----
+	VFCVT_RTZ_X_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_RTZ_X_F_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_RTZ_X_F_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCVT_XU_F_V-----
+	VFCVT_XU_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_XU_F_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFCVT_X_F_V-----
+	VFCVT_X_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFCVT_X_F_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFDIV_VF-----
+	VFDIV_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFDIV_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFDIV_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFDIV_VV-----
+	VFDIV_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFDIV_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFIRST_M-----
+	VFIRST_M(1(Class<VR>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFIRST_M(2(Class<VMV0>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFIRST_M(impl(VTYPE<7>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFIRST_M(impl(VL<5>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMACC_VF-----
+	VFMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMACC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMACC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMACC_VV-----
+	VFMACC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMACC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMADD_VF-----
+	VFMADD_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMADD_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMADD_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMADD_VV-----
+	VFMADD_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMADD_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMAX_VF-----
+	VFMAX_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMAX_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMAX_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMAX_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMAX_VV-----
+	VFMAX_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMAX_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMAX_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMERGE_VFM-----
+	VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMERGE_VFM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMERGE_VFM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMERGE_VFM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMIN_VF-----
+	VFMIN_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMIN_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMIN_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMIN_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMIN_VV-----
+	VFMIN_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMIN_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMIN_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMSAC_VF-----
+	VFMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMSAC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMSAC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMSAC_VV-----
+	VFMSAC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMSAC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMSUB_VF-----
+	VFMSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMSUB_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMSUB_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMSUB_VV-----
+	VFMSUB_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMSUB_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMUL_VF-----
+	VFMUL_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMUL_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMUL_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMUL_VV-----
+	VFMUL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMUL_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMV_F_S-----
+	VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMV_F_S(impl(VTYPE<7>) -> 0(Class<FPR32>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMV_F_S(impl(VL<5>) -> 0(Class<FPR32>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMV_S_F-----
+	VFMV_S_F(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMV_S_F(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMV_S_F(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFMV_V_F-----
+	VFMV_V_F(1(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMV_V_F(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFMV_V_F(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVTBF16_F_F_W-----
+	VFNCVTBF16_F_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVTBF16_F_F_W(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_F_F_W-----
+	VFNCVT_F_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_F_F_W(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_F_XU_W-----
+	VFNCVT_F_XU_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_F_XU_W(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_F_X_W-----
+	VFNCVT_F_X_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_F_X_W(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_ROD_F_F_W-----
+	VFNCVT_ROD_F_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_ROD_F_F_W(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_ROD_F_F_W(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_RTZ_XU_F_W-----
+	VFNCVT_RTZ_XU_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_RTZ_XU_F_W(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_RTZ_XU_F_W(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_RTZ_X_F_W-----
+	VFNCVT_RTZ_X_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_RTZ_X_F_W(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_RTZ_X_F_W(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_XU_F_W-----
+	VFNCVT_XU_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_XU_F_W(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNCVT_X_F_W-----
+	VFNCVT_X_F_W(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNCVT_X_F_W(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMACC_VF-----
+	VFNMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMACC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMACC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMACC_VV-----
+	VFNMACC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMACC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMADD_VF-----
+	VFNMADD_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMADD_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMADD_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMADD_VV-----
+	VFNMADD_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMADD_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMSAC_VF-----
+	VFNMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMSAC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMSAC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMSAC_VV-----
+	VFNMSAC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMSAC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMSUB_VF-----
+	VFNMSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMSUB_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMSUB_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNMSUB_VV-----
+	VFNMSUB_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNMSUB_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNRCLIP_XU_F_QF-----
+	VFNRCLIP_XU_F_QF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNRCLIP_XU_F_QF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNRCLIP_XU_F_QF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFNRCLIP_X_F_QF-----
+	VFNRCLIP_X_F_QF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNRCLIP_X_F_QF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFNRCLIP_X_F_QF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFRDIV_VF-----
+	VFRDIV_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFRDIV_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFRDIV_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFREC7_V-----
+	VFREC7_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREC7_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFREDMAX_VS-----
+	VFREDMAX_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREDMAX_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREDMAX_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFREDMIN_VS-----
+	VFREDMIN_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREDMIN_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREDMIN_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFREDOSUM_VS-----
+	VFREDOSUM_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREDOSUM_VS(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFREDUSUM_VS-----
+	VFREDUSUM_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFREDUSUM_VS(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFRSQRT7_V-----
+	VFRSQRT7_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFRSQRT7_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFRSQRT7_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFRSUB_VF-----
+	VFRSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFRSUB_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFRSUB_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSGNJN_VF-----
+	VFSGNJN_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJN_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJN_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJN_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSGNJN_VV-----
+	VFSGNJN_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJN_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJN_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSGNJX_VF-----
+	VFSGNJX_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJX_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJX_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJX_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSGNJX_VV-----
+	VFSGNJX_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJX_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJX_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSGNJ_VF-----
+	VFSGNJ_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJ_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJ_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJ_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSGNJ_VV-----
+	VFSGNJ_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJ_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSGNJ_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSLIDE1DOWN_VF-----
+	VFSLIDE1DOWN_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSLIDE1DOWN_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSLIDE1DOWN_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSLIDE1DOWN_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSLIDE1UP_VF-----
+	VFSLIDE1UP_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSLIDE1UP_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSLIDE1UP_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSLIDE1UP_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSQRT_V-----
+	VFSQRT_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSQRT_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSUB_VF-----
+	VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSUB_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSUB_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFSUB_VV-----
+	VFSUB_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFSUB_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWADD_VF-----
+	VFWADD_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWADD_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWADD_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWADD_VV-----
+	VFWADD_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWADD_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWADD_WF-----
+	VFWADD_WF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWADD_WF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWADD_WF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWADD_WV-----
+	VFWADD_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWADD_WV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVTBF16_F_F_V-----
+	VFWCVTBF16_F_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVTBF16_F_F_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVTBF16_F_F_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_F_F_V-----
+	VFWCVT_F_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_F_F_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_F_F_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_F_XU_V-----
+	VFWCVT_F_XU_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_F_XU_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_F_XU_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_F_X_V-----
+	VFWCVT_F_X_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_F_X_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_F_X_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_RTZ_XU_F_V-----
+	VFWCVT_RTZ_XU_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_RTZ_XU_F_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_RTZ_XU_F_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_RTZ_X_F_V-----
+	VFWCVT_RTZ_X_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_RTZ_X_F_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_RTZ_X_F_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_XU_F_V-----
+	VFWCVT_XU_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_XU_F_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWCVT_X_F_V-----
+	VFWCVT_X_F_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWCVT_X_F_V(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMACCBF16_VF-----
+	VFWMACCBF16_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACCBF16_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACCBF16_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMACCBF16_VV-----
+	VFWMACCBF16_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACCBF16_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMACC_4x4x4-----
+	VFWMACC_4x4x4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACC_4x4x4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMACC_VF-----
+	VFWMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMACC_VV-----
+	VFWMACC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMACC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMSAC_VF-----
+	VFWMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMSAC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMSAC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMSAC_VV-----
+	VFWMSAC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMSAC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMUL_VF-----
+	VFWMUL_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMUL_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMUL_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWMUL_VV-----
+	VFWMUL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWMUL_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWNMACC_VF-----
+	VFWNMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWNMACC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWNMACC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWNMACC_VV-----
+	VFWNMACC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWNMACC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWNMSAC_VF-----
+	VFWNMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWNMSAC_VF(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWNMSAC_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWNMSAC_VV-----
+	VFWNMSAC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWNMSAC_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWREDOSUM_VS-----
+	VFWREDOSUM_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWREDOSUM_VS(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWREDUSUM_VS-----
+	VFWREDUSUM_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWREDUSUM_VS(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWSUB_VF-----
+	VFWSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWSUB_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWSUB_VF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWSUB_VV-----
+	VFWSUB_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWSUB_VV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWSUB_WF-----
+	VFWSUB_WF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWSUB_WF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWSUB_WF(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VFWSUB_WV-----
+	VFWSUB_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VFWSUB_WV(impl(FRM<2>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VGHSH_VS-----
+	VGHSH_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VGHSH_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VGHSH_VV-----
+	VGHSH_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VGHSH_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VGMUL_VS-----
+	VGMUL_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VGMUL_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VGMUL_VV-----
+	VGMUL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VGMUL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VID_V-----
+	VID_V(1(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VID_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VID_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VIOTA_M-----
+	VIOTA_M(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VIOTA_M(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VIOTA_M(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMACC_VV-----
+	VMACC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMACC_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMACC_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMACC_VX-----
+	VMACC_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMACC_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMACC_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMACC_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMADC_VV-----
+	VMADC_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMADC_VVM-----
+	VMADC_VVM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VVM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VVM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMADC_VX-----
+	VMADC_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMADC_VXM-----
+	VMADC_VXM(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VXM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VXM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADC_VXM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMADD_VV-----
+	VMADD_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADD_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADD_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMADD_VX-----
+	VMADD_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADD_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADD_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMADD_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMANDN_MM-----
+	VMANDN_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMANDN_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMAND_MM-----
+	VMAND_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAND_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMAXU_VV-----
+	VMAXU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAXU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAXU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMAXU_VX-----
+	VMAXU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAXU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAXU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAXU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMAX_VV-----
+	VMAX_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAX_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAX_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMAX_VX-----
+	VMAX_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAX_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAX_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMAX_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMERGE_VVM-----
+	VMERGE_VVM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMERGE_VVM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMERGE_VVM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMERGE_VXM-----
+	VMERGE_VXM(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMERGE_VXM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMERGE_VXM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMERGE_VXM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFEQ_VF-----
+	VMFEQ_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFEQ_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFEQ_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFEQ_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFEQ_VV-----
+	VMFEQ_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFEQ_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFEQ_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFGE_VF-----
+	VMFGE_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFGE_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFGE_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFGE_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFGT_VF-----
+	VMFGT_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFGT_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFGT_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFGT_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFLE_VF-----
+	VMFLE_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLE_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLE_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLE_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFLE_VV-----
+	VMFLE_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLE_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLE_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFLT_VF-----
+	VMFLT_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLT_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLT_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLT_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFLT_VV-----
+	VMFLT_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLT_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFLT_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFNE_VF-----
+	VMFNE_VF(2(Class<FPR32>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFNE_VF(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFNE_VF(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFNE_VF(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMFNE_VV-----
+	VMFNE_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFNE_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMFNE_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMINU_VV-----
+	VMINU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMINU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMINU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMINU_VX-----
+	VMINU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMINU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMINU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMINU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMIN_VV-----
+	VMIN_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMIN_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMIN_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMIN_VX-----
+	VMIN_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMIN_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMIN_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMIN_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMNAND_MM-----
+	VMNAND_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMNAND_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMNOR_MM-----
+	VMNOR_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMNOR_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMORN_MM-----
+	VMORN_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMORN_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMOR_MM-----
+	VMOR_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMOR_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSBC_VV-----
+	VMSBC_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSBC_VVM-----
+	VMSBC_VVM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VVM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VVM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSBC_VX-----
+	VMSBC_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSBC_VXM-----
+	VMSBC_VXM(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VXM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VXM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBC_VXM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSBF_M-----
+	VMSBF_M(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBF_M(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSBF_M(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSEQ_VV-----
+	VMSEQ_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSEQ_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSEQ_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSEQ_VX-----
+	VMSEQ_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSEQ_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSEQ_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSEQ_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSGTU_VX-----
+	VMSGTU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSGTU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSGTU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSGTU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSGT_VX-----
+	VMSGT_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSGT_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSGT_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSGT_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSIF_M-----
+	VMSIF_M(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSIF_M(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSIF_M(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLEU_VV-----
+	VMSLEU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLEU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLEU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLEU_VX-----
+	VMSLEU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLEU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLEU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLEU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLE_VV-----
+	VMSLE_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLE_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLE_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLE_VX-----
+	VMSLE_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLE_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLE_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLE_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLTU_VV-----
+	VMSLTU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLTU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLTU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLTU_VX-----
+	VMSLTU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLTU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLTU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLTU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLT_VV-----
+	VMSLT_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLT_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLT_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSLT_VX-----
+	VMSLT_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLT_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLT_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSLT_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSNE_VV-----
+	VMSNE_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSNE_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSNE_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSNE_VX-----
+	VMSNE_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSNE_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSNE_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSNE_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMSOF_M-----
+	VMSOF_M(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSOF_M(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMSOF_M(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMULHSU_VV-----
+	VMULHSU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHSU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHSU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMULHSU_VX-----
+	VMULHSU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHSU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHSU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHSU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMULHU_VV-----
+	VMULHU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMULHU_VX-----
+	VMULHU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULHU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMULH_VV-----
+	VMULH_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULH_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULH_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMULH_VX-----
+	VMULH_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULH_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULH_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMULH_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMUL_VV-----
+	VMUL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMUL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMUL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMUL_VX-----
+	VMUL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMUL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMUL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMUL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV1R_V-----
+	VMV1R_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV2R_V-----
+	VMV2R_V(impl(VTYPE<7>) -> 0(Class<VRM2>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV4R_V-----
+	VMV4R_V(impl(VTYPE<7>) -> 0(Class<VRM4>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV8R_V-----
+	VMV8R_V(impl(VTYPE<7>) -> 0(Class<VRM8>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV_S_X-----
+	VMV_S_X(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_S_X(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_S_X(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV_V_V-----
+	VMV_V_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_V_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV_V_X-----
+	VMV_V_X(1(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_V_X(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_V_X(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMV_X_S-----
+	VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_X_S(impl(VTYPE<7>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMV_X_S(impl(VL<5>) -> 0(Class<GPR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMXNOR_MM-----
+	VMXNOR_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMXNOR_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VMXOR_MM-----
+	VMXOR_MM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VMXOR_MM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNCLIPU_WV-----
+	VNCLIPU_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIPU_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIPU_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNCLIPU_WX-----
+	VNCLIPU_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIPU_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIPU_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIPU_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNCLIP_WV-----
+	VNCLIP_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIP_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIP_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNCLIP_WX-----
+	VNCLIP_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIP_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIP_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNCLIP_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNMSAC_VV-----
+	VNMSAC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSAC_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSAC_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNMSAC_VX-----
+	VNMSAC_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSAC_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSAC_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSAC_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNMSUB_VV-----
+	VNMSUB_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSUB_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSUB_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNMSUB_VX-----
+	VNMSUB_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSUB_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSUB_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNMSUB_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNSRA_WV-----
+	VNSRA_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRA_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRA_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNSRA_WX-----
+	VNSRA_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRA_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRA_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRA_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNSRL_WV-----
+	VNSRL_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRL_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRL_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VNSRL_WX-----
+	VNSRL_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRL_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRL_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VNSRL_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VOR_VV-----
+	VOR_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VOR_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VOR_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VOR_VX-----
+	VOR_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VOR_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VOR_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VOR_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACCSU_2x8x2-----
+	VQMACCSU_2x8x2(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACCSU_2x8x2(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACCSU_4x8x4-----
+	VQMACCSU_4x8x4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACCSU_4x8x4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACCUS_2x8x2-----
+	VQMACCUS_2x8x2(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACCUS_2x8x2(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACCUS_4x8x4-----
+	VQMACCUS_4x8x4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACCUS_4x8x4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACCU_2x8x2-----
+	VQMACCU_2x8x2(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACCU_2x8x2(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACCU_4x8x4-----
+	VQMACCU_4x8x4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACCU_4x8x4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACC_2x8x2-----
+	VQMACC_2x8x2(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACC_2x8x2(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VQMACC_4x8x4-----
+	VQMACC_4x8x4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VQMACC_4x8x4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDAND_VS-----
+	VREDAND_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDAND_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDAND_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDMAXU_VS-----
+	VREDMAXU_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMAXU_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMAXU_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDMAX_VS-----
+	VREDMAX_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMAX_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMAX_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDMINU_VS-----
+	VREDMINU_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMINU_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMINU_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDMIN_VS-----
+	VREDMIN_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMIN_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDMIN_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDOR_VS-----
+	VREDOR_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDOR_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDOR_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDSUM_VS-----
+	VREDSUM_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDSUM_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDSUM_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREDXOR_VS-----
+	VREDXOR_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDXOR_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREDXOR_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREMU_VV-----
+	VREMU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREMU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREMU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREMU_VX-----
+	VREMU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREMU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREMU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREMU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREM_VV-----
+	VREM_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREM_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREM_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREM_VX-----
+	VREM_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREM_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREM_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREM_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VREV8_V-----
+	VREV8_V(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREV8_V(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VREV8_V(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VRGATHEREI16_VV-----
+	VRGATHEREI16_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHEREI16_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHEREI16_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VRGATHER_VV-----
+	VRGATHER_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHER_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHER_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VRGATHER_VX-----
+	VRGATHER_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHER_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHER_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRGATHER_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VROL_VV-----
+	VROL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VROL_VX-----
+	VROL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VROR_VV-----
+	VROR_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROR_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROR_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VROR_VX-----
+	VROR_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROR_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROR_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VROR_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VRSUB_VX-----
+	VRSUB_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRSUB_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRSUB_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VRSUB_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSADDU_VV-----
+	VSADDU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADDU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADDU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSADDU_VX-----
+	VSADDU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADDU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADDU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADDU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSADD_VV-----
+	VSADD_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADD_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADD_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSADD_VX-----
+	VSADD_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADD_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADD_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSADD_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSBC_VVM-----
+	VSBC_VVM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSBC_VVM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSBC_VVM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSBC_VXM-----
+	VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSBC_VXM(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSBC_VXM(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSBC_VXM(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSETVL-----
+	VSETVL(1(Class<GPR>) -> impl(VTYPE<7>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSETVL(2(Class<GPR>) -> impl(VTYPE<7>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSETVL(1(Class<GPR>) -> impl(VL<5>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSETVL(2(Class<GPR>) -> impl(VL<5>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSEXT_VF2-----
+	VSEXT_VF2(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSEXT_VF2(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSEXT_VF2(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSEXT_VF4-----
+	VSEXT_VF4(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSEXT_VF4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSEXT_VF4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSEXT_VF8-----
+	VSEXT_VF8(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSEXT_VF8(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSEXT_VF8(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSHA2CH_VV-----
+	VSHA2CH_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSHA2CH_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSHA2CL_VV-----
+	VSHA2CL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSHA2CL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSHA2MS_VV-----
+	VSHA2MS_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSHA2MS_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSLIDE1DOWN_VX-----
+	VSLIDE1DOWN_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDE1DOWN_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDE1DOWN_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDE1DOWN_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSLIDE1UP_VX-----
+	VSLIDE1UP_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDE1UP_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDE1UP_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDE1UP_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSLIDEDOWN_VX-----
+	VSLIDEDOWN_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDEDOWN_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDEDOWN_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDEDOWN_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSLIDEUP_VX-----
+	VSLIDEUP_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDEUP_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDEUP_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLIDEUP_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSLL_VV-----
+	VSLL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSLL_VX-----
+	VSLL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSLL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSM3ME_VV-----
+	VSM3ME_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSM3ME_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSM4R_VS-----
+	VSM4R_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSM4R_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSM4R_VV-----
+	VSM4R_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSM4R_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSMUL_VV-----
+	VSMUL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSMUL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSMUL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSMUL_VX-----
+	VSMUL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSMUL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSMUL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSMUL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSRA_VV-----
+	VSRA_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRA_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRA_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSRA_VX-----
+	VSRA_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRA_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRA_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRA_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSRL_VV-----
+	VSRL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSRL_VX-----
+	VSRL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSRL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSRA_VV-----
+	VSSRA_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRA_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRA_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSRA_VX-----
+	VSSRA_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRA_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRA_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRA_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSRL_VV-----
+	VSSRL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSRL_VX-----
+	VSSRL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSRL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSUBU_VV-----
+	VSSUBU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUBU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUBU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSUBU_VX-----
+	VSSUBU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUBU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUBU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUBU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSUB_VV-----
+	VSSUB_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUB_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUB_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSSUB_VX-----
+	VSSUB_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUB_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUB_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSSUB_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSUB_VV-----
+	VSUB_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSUB_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSUB_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VSUB_VX-----
+	VSUB_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSUB_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSUB_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VSUB_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADDU_VV-----
+	VWADDU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADDU_VX-----
+	VWADDU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADDU_WV-----
+	VWADDU_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADDU_WX-----
+	VWADDU_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADDU_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADD_VV-----
+	VWADD_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADD_VX-----
+	VWADD_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADD_WV-----
+	VWADD_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWADD_WX-----
+	VWADD_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWADD_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACCSU_VV-----
+	VWMACCSU_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCSU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCSU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACCSU_VX-----
+	VWMACCSU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCSU_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCSU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCSU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACCUS_VX-----
+	VWMACCUS_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCUS_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCUS_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCUS_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACCU_VV-----
+	VWMACCU_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACCU_VX-----
+	VWMACCU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCU_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACCU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACC_VV-----
+	VWMACC_VV(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACC_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACC_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMACC_VX-----
+	VWMACC_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACC_VX(4(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACC_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMACC_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMULSU_VV-----
+	VWMULSU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULSU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULSU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMULSU_VX-----
+	VWMULSU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULSU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULSU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULSU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMULU_VV-----
+	VWMULU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMULU_VX-----
+	VWMULU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMULU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMUL_VV-----
+	VWMUL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMUL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMUL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWMUL_VX-----
+	VWMUL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMUL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMUL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWMUL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWREDSUMU_VS-----
+	VWREDSUMU_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWREDSUMU_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWREDSUMU_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWREDSUM_VS-----
+	VWREDSUM_VS(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWREDSUM_VS(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWREDSUM_VS(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSLL_VV-----
+	VWSLL_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSLL_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSLL_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSLL_VX-----
+	VWSLL_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSLL_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSLL_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSLL_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUBU_VV-----
+	VWSUBU_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUBU_VX-----
+	VWSUBU_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUBU_WV-----
+	VWSUBU_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUBU_WX-----
+	VWSUBU_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUBU_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUB_VV-----
+	VWSUB_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUB_VX-----
+	VWSUB_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUB_WV-----
+	VWSUB_WV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_WV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_WV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VWSUB_WX-----
+	VWSUB_WX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_WX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_WX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VWSUB_WX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VXOR_VV-----
+	VXOR_VV(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VXOR_VV(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VXOR_VV(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VXOR_VX-----
+	VXOR_VX(2(Class<GPR>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VXOR_VX(3(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VXOR_VX(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VXOR_VX(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VZEXT_VF2-----
+	VZEXT_VF2(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VZEXT_VF2(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VZEXT_VF2(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VZEXT_VF4-----
+	VZEXT_VF4(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VZEXT_VF4(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VZEXT_VF4(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+-----VZEXT_VF8-----
+	VZEXT_VF8(2(Class<VMV0>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VZEXT_VF8(impl(VTYPE<7>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+	VZEXT_VF8(impl(VL<5>) -> 0(Class<VR>))
+		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
+
+total runtime: 624 (s)
