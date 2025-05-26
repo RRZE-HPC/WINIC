@@ -389,9 +389,6 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     dbg(__func__, "Opcode: ", Opcode, " Frequency: ", Frequency);
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
-    // TODO do this much earlier
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    if (isValid(desc) != SUCCESS) return {isValid(desc), -1, -1};
     unsigned numInst = 12;
     unsigned n = 1000000; // loop count
     AssemblyFile assembly;
@@ -685,23 +682,30 @@ void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
     while (gotNewMeasurement) {
         gotNewMeasurement = false;
         for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
+            displayProgress(opcode, MaxOpcode);
+            // check if this opcode is blacklisted
             if (OpcodeBlacklist.find(opcode) != OpcodeBlacklist.end()) {
                 throughputDatabase[opcode].ec = SKIP_MANUALLY;
                 continue;
             }
-            // first check if this was already measured
+            // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != ERROR_NO_HELPER &&
                     throughputDatabase[opcode].ec != NO_ERROR_CODE)
                     continue;
-            displayProgress(opcode, MaxOpcode);
-
+            // check if this opcode can be measured
+            const MCInstrDesc &desc = getEnv().MCII->get(opcode);
+            ErrorCode ec = isValid(desc);
+            if (isValid(desc) != SUCCESS) {
+                throughputDatabase[opcode] = {opcode, ec, -1, -1};
+                continue;
+            }
             auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency);
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
-        errs() << "\n";
-        errs().flush();
+        std::cerr << "\n";
+        std::cerr.flush();
     }
     // print results
     for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
@@ -725,7 +729,7 @@ void buildLatDatabase(double Frequency) {
     std::set<DependencyType> completedTypes;
 
     // classify measurements by operand combination, measure if trivial
-    errs() << "phase1: trivial measurements\n";
+    std::cerr << "phase1: trivial measurements\n";
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
@@ -772,7 +776,7 @@ void buildLatDatabase(double Frequency) {
     // measurements of those types
     // e.g. if A is GR16 -> EFLAGS, B is EFLAGS -> GR16 and we can measure combinations of
     // instructions in A and B
-    errs() << "\nphase2: measurements with helpers\n";
+    std::cerr << "\nphase2: measurements with helpers\n";
     out(*ios, "\n\nReport on finding helpers for dependency types:");
     progress = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
