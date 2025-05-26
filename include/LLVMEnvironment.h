@@ -69,14 +69,12 @@ class LLVMEnvironment {
     /**
      * get all registers which can be read by an instruction including implicit uses
      */
-    std::set<MCRegister> getPossibleReadRegs(unsigned Opcode);
+    std::set<MCRegister> getPossibleUses(unsigned Opcode);
 
     /**
      * get all registers which can be written by an instruction including implicit defs
      */
-    std::set<MCRegister> getPossibleWriteRegs(unsigned Opcode);
-
-    std::pair<ErrorCode, MCRegisterClass> getBaseClass(MCRegister Reg);
+    std::set<MCRegister> getPossibleDefs(unsigned Opcode);
 
     std::set<MCRegister> regIntersect(std::set<MCRegister> A, std::set<MCRegister> B);
 

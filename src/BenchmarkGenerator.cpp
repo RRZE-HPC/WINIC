@@ -235,9 +235,13 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     // TODO optimize
     for (unsigned i = 0; i < getEnv().MRI->getNumRegs(); i++) {
         MCRegister reg = MCRegister::from(i);
+        dbg(__func__, "Checking register: ", getEnv().TRI->getRegAsmName(reg).lower().data());
         if (benchTemplate.usedRegisters.find(getEnv().TRI->getRegAsmName(reg).lower().data()) !=
-            benchTemplate.usedRegisters.end())
+            benchTemplate.usedRegisters.end()) {
             UsedRegisters.insert(reg);
+            dbg(__func__, "Register ", getEnv().TRI->getRegAsmName(reg).lower().data(),
+                " is used by the template");
+        }
     }
 
     // this is the hepler instruciton if needed.

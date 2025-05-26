@@ -156,7 +156,7 @@ unsigned LLVMEnvironment::getOpcode(std::string InstructionName) {
     return std::numeric_limits<unsigned>::max();
 }
 
-std::set<MCRegister> LLVMEnvironment::getPossibleReadRegs(unsigned Opcode) {
+std::set<MCRegister> LLVMEnvironment::getPossibleUses(unsigned Opcode) {
     std::set<MCRegister> reads;
     const MCInstrDesc &desc = MCII->get(Opcode);
     for (unsigned i = desc.getNumDefs(); i < desc.getNumOperands(); i++) {
@@ -172,7 +172,7 @@ std::set<MCRegister> LLVMEnvironment::getPossibleReadRegs(unsigned Opcode) {
     return reads;
 }
 
-std::set<MCRegister> LLVMEnvironment::getPossibleWriteRegs(unsigned Opcode) {
+std::set<MCRegister> LLVMEnvironment::getPossibleDefs(unsigned Opcode) {
     std::set<MCRegister> writes;
     const MCInstrDesc &desc = MCII->get(Opcode);
     for (unsigned i = 0; i < desc.getNumDefs(); i++) {

@@ -269,8 +269,10 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
                                              unsigned NumInst, unsigned LoopCount, double Frequency,
                                              bool Throughput) {
-    // correct the result using one measurement with NumInst and one with 2*NumInst. This removes
-    // overhead of e.g. the loop instructions themselves see README for explanation TODO
+    dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime, "NumInst: ", NumInst,
+        "LoopCount", LoopCount);
+    // correct the result using one measurement with NumInst and one with 2*NumInst. This
+    // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
     // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
     double cyclesPerInstruction = (instRuntime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
@@ -332,7 +334,7 @@ getTPHelperInstruction(unsigned Opcode) {
         TPMeasurement tpRes = throughputDatabase[possibleHelper];
         if (tpRes.ec != SUCCESS) continue;  // no value
         if (tpRes.lowerTP < 0.25) continue; // we dont trust values this low
-        for (MCRegister possibleWriteReg : getEnv().getPossibleWriteRegs(possibleHelper)) {
+        for (MCRegister possibleWriteReg : getEnv().getPossibleDefs(possibleHelper)) {
             if (getEnv().TRI->isSuperRegisterEq(useReg, possibleWriteReg)) {
                 useReg = possibleWriteReg;
                 auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
@@ -365,7 +367,7 @@ getTPHelperInstruction(unsigned Opcode) {
     for (auto [possibleHelper, res] : throughputDatabase) {
         if (res.ec != SUCCESS) continue;
         if (res.lowerTP < 0.25) continue;
-        std::set<MCRegister> possibleWrites = getEnv().getPossibleWriteRegs(possibleHelper);
+        std::set<MCRegister> possibleWrites = getEnv().getPossibleDefs(possibleHelper);
         if (possibleWrites.find(useReg) != possibleWrites.end()) {
             auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
             if (EC != SUCCESS) return {ERROR_UNREACHABLE, MAX_UNSIGNED, {}};
@@ -733,18 +735,20 @@ void buildLatDatabase(double Frequency) {
             measurement.ec = EC;
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
-            if (EC == WARNING_MULTIPLE_DEPENDENCIES)
+            classifiedMeasurements[measurement.type].emplace_back(&measurement);
+            completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
+            if (EC == SUCCESS) {
+                latencyOutputMessage[measurement.opcode] +=
+                    str("\t", measurement, "\n\t\t successful, latency: ", lat);
+            } else if (EC == WARNING_MULTIPLE_DEPENDENCIES)
                 latencyOutputMessage[measurement.opcode] += str(
                     "\t", measurement,
                     "\n\t\tWARNING generated instructions have multiple dependencies between each "
                     "other. If they have different latencys the lower one will be shadowed");
-            classifiedMeasurements[measurement.type].emplace_back(&measurement);
-            completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
-            if (EC == ILLEGAL_INSTRUCTION) {
+            else if (isError(EC)) {
                 latencyOutputMessage[measurement.opcode] +=
-                    str("\t", measurement,
-                        "\n\t\tILLEGAL_INSTRUCTION, this instruction cannot be measured on this "
-                        "platform");
+                    str("\t", measurement, "\n\t\t", ecToString(EC),
+                        ", this instruction cannot be measured");
                 opcodeBlacklist.emplace(measurement.opcode);
             }
         } else {
@@ -1052,10 +1056,10 @@ int main(int argc, char **argv) {
                 throughputDatabase[opcode] = {opcode, EC, lower, upper};
                 if (EC != SUCCESS) {
                     std::cout << getEnv().MCII->getName(opcode).data()
-                              << " failed for reason: " << ecToString(EC) << "\n";
+                              << " failed for reason: " << ecToString(EC) << std::endl;
                 } else {
                     std::cout << getEnv().MCII->getName(opcode).data() << " " << lower
-                              << " (clock cycles)";
+                              << " (clock cycles)" << std::endl;
                 }
             }
         }
