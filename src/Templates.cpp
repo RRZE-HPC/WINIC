@@ -245,7 +245,6 @@ functionName:
     sd      s9, 72(sp)
     sd      s10, 80(sp)
     sd      s11, 88(sp)
-    mv      s0, sp             # Set new frame pointer
 
     li      t0, 0               # i = 0
     mv      t1, a0
@@ -291,7 +290,7 @@ done_functionName:
         {"f", "li reg, imm"},
         {"v", "li t2, imm\nvsetvli a0, zero, e32\nvmv.v.x reg, t2"},
         {"default", "li reg, imm"}},
-    {"t0", "t1", "t2", "a0"}};
+    {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (cant use abi names here)
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
