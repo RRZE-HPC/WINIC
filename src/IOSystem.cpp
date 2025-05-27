@@ -40,7 +40,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     MCInst inst;
     inst.setOpcode(Opcode);
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
-    if (!iName) return {ERROR_GENERIC, {}};
+    if (!iName) return {E_GENERIC, {}};
 
     std::string s = iName;
     // remove trailing spaces
@@ -143,14 +143,14 @@ ErrorCode loadYaml(std::string Path) {
     auto buffer = llvm::MemoryBuffer::getFile(Path);
     if (!buffer) {
         std::cerr << "Failed to open file: " << Path << std::endl;
-        return ERROR_FILE;
+        return E_FILE;
     }
     llvm::yaml::Input yin(buffer->get()->getBuffer());
     try {
         yin >> outputDatabase;
     } catch (const std::exception &e) {
         std::cerr << "YAML serialization error: " << e.what() << "\n";
-        return ERROR_FILE;
+        return E_FILE;
     }
     return SUCCESS;
 }
@@ -160,7 +160,7 @@ ErrorCode saveYaml(std::string Path) {
     llvm::raw_fd_ostream fout(Path, ec);
     if (ec) {
         std::cerr << "Failed to open file: " << Path << std::endl;
-        return ERROR_FILE;
+        return E_FILE;
     }
     llvm::yaml::Output yout(fout);
     dbg(__func__, "writing ", outputDatabase.size(), " entries to ", Path);
@@ -168,7 +168,7 @@ ErrorCode saveYaml(std::string Path) {
         yout << outputDatabase;
     } catch (const std::exception &e) {
         std::cerr << "YAML serialization error: " << e.what() << "\n";
-        return ERROR_FILE;
+        return E_FILE;
     }
     return SUCCESS;
 }

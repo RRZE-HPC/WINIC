@@ -1,4 +1,3 @@
-
 #include "BenchmarkGenerator.h"
 
 #include "AssemblyFile.h"
@@ -212,10 +211,10 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
     // otherwise return a warning
     for (size_t i = 0; i < instructions.size() - 1; i++)
         if (getDependencies(instructions[i], instructions[i + 1]).size() != 1)
-            return {WARNING_MULTIPLE_DEPENDENCIES, assemblyFile};
+            return {W_MULTIPLE_DEPENDENCIES, assemblyFile};
 
     if (getDependencies(instructions[instructions.size() - 1], instructions[0]).size() != 1)
-        return {WARNING_MULTIPLE_DEPENDENCIES, assemblyFile};
+        return {W_MULTIPLE_DEPENDENCIES, assemblyFile};
 
     return {SUCCESS, assemblyFile};
 }
@@ -330,7 +329,7 @@ genTPInnerLoop(std::vector<unsigned> Opcodes,
         std::list<MCInst> tempInstructions;
         for (unsigned j = 0; j < Opcodes.size(); j++) {
             auto [EC, inst] = genInst(Opcodes[j], ConstraintsVector[j], UsedRegisters);
-            if (EC == ERROR_NO_REGISTERS) return {SUCCESS, instructions}; // shorter loops are ok
+            if (EC == E_NO_REGISTERS) return {SUCCESS, instructions}; // shorter loops are ok
             if (EC != SUCCESS) return {EC, {instructions}};
             tempInstructions.push_back(inst);
         }
@@ -358,9 +357,9 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
                     return {SUCCESS, i};
     } else {
         errs() << "choose between use and def\n";
-        return {ERROR_UNREACHABLE, 0};
+        return {E_UNREACHABLE, 0};
     }
-    return {ERROR_GENERIC, 0};
+    return {E_GENERIC, 0};
 }
 
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
@@ -409,13 +408,13 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                         // RIP register (58) is included in GR64 class which is a bug
                         // see X86RegisterInfo.td:586
                         continue;
-                    // dont use this if sub- or superregisters are in usedRegisters
+                    // don't use this if sub- or superregisters are in usedRegisters
                     if (std::any_of(
                             UsedRegisters.begin(), UsedRegisters.end(),
                             [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
                         continue;
 
-                    // dont reuse any registers
+                    // don't reuse any registers
                     if (std::any_of(
                             localUsedRegisters.begin(), localUsedRegisters.end(),
                             [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
@@ -426,7 +425,7 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                     foundRegister = true;
                     break;
                 }
-                if (!foundRegister) return {ERROR_NO_REGISTERS, {}};
+                if (!foundRegister) return {E_NO_REGISTERS, {}};
 
                 break;
             }
@@ -434,11 +433,11 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                 inst.addOperand(MCOperand::createImm(7));
                 break;
             case MCOI::OPERAND_MEMORY:
-                return {MEMORY_OPERAND, {}};
+                return {S_MEMORY_OPERAND, {}};
             case MCOI::OPERAND_PCREL:
-                return {PCREL_OPERAND, {}};
+                return {S_PCREL_OPERAND, {}};
             default:
-                return {UNKNOWN_OPERAND, {}};
+                return {S_UNKNOWN_OPERAND, {}};
             }
         }
     }
@@ -452,14 +451,14 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
         if (getEnv().TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
         Reg = *getEnv().TRI->superregs(Reg).begin(); // take first superreg
     }
-    return {ERROR_UNREACHABLE, NULL};
+    return {E_UNREACHABLE, NULL};
 }
 
 std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &RegClass,
                                                         std::set<MCRegister> UsedRegisters) {
     for (auto reg : RegClass)
         if (UsedRegisters.find(reg) == UsedRegisters.end()) return {SUCCESS, reg};
-    return {ERROR_NO_REGISTERS, MAX_UNSIGNED};
+    return {E_NO_REGISTERS, MAX_UNSIGNED};
 }
 
 std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
@@ -520,7 +519,7 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
     case llvm::Triple::riscv64:
         return {SUCCESS, ""}; // all registers saved in template
     default:
-        return {ERROR_UNSUPPORTED_ARCH, ""};
+        return {E_UNSUPPORTED_ARCH, ""};
     }
 
     return {SUCCESS, result};
@@ -548,21 +547,21 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     case llvm::Triple::riscv64:
         return {SUCCESS, ""}; // all registers restored in template
     default:
-        return {ERROR_UNSUPPORTED_ARCH, ""};
+        return {E_UNSUPPORTED_ARCH, ""};
     }
     return {SUCCESS, result};
 }
 
 ErrorCode isValid(const MCInstrDesc &Desc) {
-    if (Desc.isPseudo()) return PSEUDO_INSTRUCTION;
-    if (Desc.mayLoad()) return MAY_LOAD;
-    if (Desc.mayStore()) return MAY_STORE;
-    if (Desc.isCall()) return IS_CALL;
-    if (Desc.isMetaInstruction()) return IS_META_INSTRUCTION;
-    if (Desc.isReturn()) return IS_RETURN;
-    if (Desc.isBranch()) return IS_BRANCH; // TODO uops has TP, how?
+    if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
+    if (Desc.mayLoad()) return S_MAY_LOAD;
+    if (Desc.mayStore()) return S_MAY_STORE;
+    if (Desc.isCall()) return S_IS_CALL;
+    if (Desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
+    if (Desc.isReturn()) return S_IS_RETURN;
+    if (Desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?
     if (getEnv().Arch == Triple::ArchType::x86_64 && Desc.hasImplicitDefOfPhysReg(X86::FPSW))
-        return IS_X87FP;
+        return S_IS_X87FP;
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
     // Two more checks which only work after generating an instruction TODO find other way
     std::set<MCRegister> emptySet;
@@ -573,9 +572,9 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, tso);
     // this is very ugly, these # instructions have isCodeGenOnly flag, how to
     // check it?
-    if (temp.find("#") != std::string::npos) return IS_CODE_GEN_ONLY;
+    if (temp.find("#") != std::string::npos) return S_IS_CODE_GEN_ONLY;
 
     // some pseudo instructions are not marked as pseudo (ABS_Fp32)
-    if (temp.find_first_not_of('\t') == std::string::npos) return DOES_NOT_EMIT_INST;
+    if (temp.find_first_not_of('\t') == std::string::npos) return S_DOES_NOT_EMIT_INST;
     return SUCCESS;
 }

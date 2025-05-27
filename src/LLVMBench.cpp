@@ -110,7 +110,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     std::ofstream asmFile(sPath);
     if (!asmFile) {
         std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {ERROR_FILE, {}};
+        return {E_FILE, {}};
     }
     asmFile << Assembly.generateAssembly();
     asmFile.close();
@@ -120,7 +120,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         std::ofstream debugFile(debugPath);
         if (!debugFile) {
             std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
-            return {ERROR_FILE, {}};
+            return {E_FILE, {}};
         }
         debugFile << Assembly.generateAssembly();
         debugFile.close();
@@ -165,8 +165,8 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         int status;
         waitpid(pid, &status, 0);
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            if (WEXITSTATUS(status) == 127) return {ERROR_EXEC, {}};
-            return {ERROR_ASSEMBLY, {}};
+            if (WEXITSTATUS(status) == 127) return {E_EXEC, {}};
+            return {E_ASSEMBLY, {}};
         }
     }
 
@@ -174,7 +174,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     void *handle = nullptr;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         std::cerr << "dlopen: failed to open .so file" << std::endl;
-        return {ERROR_FILE, {}};
+        return {E_FILE, {}};
     }
     // get handles to function in the assembly file
     std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
@@ -183,7 +183,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         auto functionPtr = (double (*)())dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
             std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
-            return {ERROR_GENERIC, {}};
+            return {E_GENERIC, {}};
         }
         initFunctionMap[functionName] = functionPtr;
     }
@@ -191,7 +191,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
             std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
-            return {ERROR_GENERIC, {}};
+            return {E_GENERIC, {}};
         }
         benchFunctionMap[functionName] = functionPtr;
     }
@@ -230,7 +230,7 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
     std::string oPath = "/dev/shm/temp.so";
     std::string command = clangPath + " -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
                           " 2> assembler_out.log";
-    if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {}};
+    if (system(command.data()) != 0) return {E_ASSEMBLY, {}};
 
     // from ibench
     void *handle;
@@ -238,17 +238,17 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
     double (*init)() = nullptr;
     if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
         std::cerr << "dlopen: failed to open .so file" << std::endl;
-        return {ERROR_ASSEMBLY, {}};
+        return {E_ASSEMBLY, {}};
     }
     if (!InitName.empty()) {
         if ((init = (double (*)())dlsym(handle, InitName.data())) == NULL) {
             std::cerr << "dlsym: couldn't find function" << InitName << std::endl;
-            return {ERROR_GENERIC, {}};
+            return {E_GENERIC, {}};
         }
     }
     if ((function = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
         std::cerr << "dlsym: couldn't find function" << FunctionName << std::endl;
-        return {ERROR_GENERIC, {}};
+        return {E_GENERIC, {}};
     }
     struct timeval start, end;
     std::vector<double> benchtimes;
@@ -282,7 +282,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
             "Execution time increases overproportional when unrolling, which should not happen. "
             "Runtime: ",
             Runtime, " UnrolledRuntime: ", UnrolledRuntime);
-        return {ERROR_GENERIC, -1};
+        return {E_GENERIC, -1};
     }
     // Something strange is happening when measuring latencies. For some chains, e.g. Zen4
     // adc	al, 7
@@ -314,7 +314,7 @@ getTPHelperInstruction(unsigned Opcode) {
         dbg(__func__, "multiple dependencies");
         // this instruction has multiple dependencies on itself, this
         // is currently not supported
-        return {ERROR_NO_HELPER, MAX_UNSIGNED, {}};
+        return {E_NO_HELPER, MAX_UNSIGNED, {}};
     }
     // this instruction will always have one dependency on itself. We have to break this by
     // interleaving another instruction. The other instruction has to:
@@ -339,17 +339,17 @@ getTPHelperInstruction(unsigned Opcode) {
                 useReg = possibleWriteReg;
                 auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
                 // we checked the instruction is able to define the register
-                if (EC != SUCCESS) return {ERROR_UNREACHABLE, MAX_UNSIGNED, {}};
+                if (EC != SUCCESS) return {E_UNREACHABLE, MAX_UNSIGNED, {}};
                 if (opIndex != -1)
                     helperConstraints.insert({(unsigned)opIndex, useReg});
                 else {
-                    // whichOperandCanUse returned -1 so the requred register is defined
-                    // implicitly and we dont need to constrain the helper instruction
+                    // whichOperandCanUse returned -1 so the required register is defined
+                    // implicitly and we don't need to constrain the helper instruction
                 }
-                // check 3. generate a pair of instructions to check for unwanted dependencys
-                // this will catch implicit dependencys e.g. instruction writes to EFLAGS and
+                // check 3. generate a pair of instructions to check for unwanted dependencies
+                // this will catch implicit dependencies e.g. instruction writes to EFLAGS and
                 // helper reads EFLAGS
-                // explicit dependencys e.g. ADD16ri can define ax but if it does it also uses
+                // explicit dependencies e.g. ADD16ri can define ax but if it does it also uses
                 // ax so it can't be used as helper
                 std::set<MCRegister> tmpUsedRegs;
                 auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs);
@@ -370,7 +370,7 @@ getTPHelperInstruction(unsigned Opcode) {
         std::set<MCRegister> possibleWrites = getEnv().getPossibleDefs(possibleHelper);
         if (possibleWrites.find(useReg) != possibleWrites.end()) {
             auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);
-            if (EC != SUCCESS) return {ERROR_UNREACHABLE, MAX_UNSIGNED, {}};
+            if (EC != SUCCESS) return {E_UNREACHABLE, MAX_UNSIGNED, {}};
             if (opIndex != -1) helperConstraints.insert({(unsigned)opIndex, useReg});
             std::set<MCRegister> tmpUsedRegs;
             auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs);
@@ -381,7 +381,7 @@ getTPHelperInstruction(unsigned Opcode) {
             break;
         }
     }
-    if (helperOpcode == MAX_UNSIGNED) return {ERROR_NO_HELPER, MAX_UNSIGNED, {}};
+    if (helperOpcode == MAX_UNSIGNED) return {E_NO_HELPER, MAX_UNSIGNED, {}};
     return {SUCCESS, helperOpcode, helperConstraints};
 }
 
@@ -451,8 +451,8 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(ec, assembly) = genLatBenchmark(Measurements, &numInst1);
-    if (ec != SUCCESS && ec != WARNING_MULTIPLE_DEPENDENCIES) return {ec, -1};
-    if (ec == WARNING_MULTIPLE_DEPENDENCIES) warning = WARNING_MULTIPLE_DEPENDENCIES;
+    if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
+    if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
     if (ec != SUCCESS) return {ec, -1};
 
@@ -473,7 +473,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
             chainString += std::to_string(time) + " ";
         }
         dbg(__func__, "anomaly detected during measurement: ", chainString.data());
-        return {ERROR_GENERIC, -1};
+        return {E_GENERIC, -1};
     }
     if (warning != NO_ERROR_CODE) return {warning, cycles};
     return {SUCCESS, cycles};
@@ -493,11 +493,11 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
     if (sharedUpperBound == MAP_FAILED || sharedLowerBound == MAP_FAILED ||
         sharedEC == MAP_FAILED || sharedMessage == MAP_FAILED) {
         perror("mmap");
-        return {ERROR_MMAP, -1, -1};
+        return {E_MMAP, -1, -1};
     }
 
     pid_t pid = fork();
-    if (pid == -1) return {ERROR_FORK, -1, -1};
+    if (pid == -1) return {E_FORK, -1, -1};
 
     if (pid == 0) { // Child process
         ErrorCode ec;
@@ -520,12 +520,12 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
             munmap(sharedLowerBound, sizeof(double));
             munmap(sharedUpperBound, sizeof(double));
             munmap(sharedMessage, 300);
-            if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, -1, -1};
-            if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, -1, -1};
-            return {ERROR_SIGNAL, -1, -1};
+            if (WTERMSIG(status) == SIGSEGV) return {E_SIGSEGV, -1, -1};
+            if (WTERMSIG(status) == SIGILL) return {E_ILLEGAL_INSTRUCTION, -1, -1};
+            return {E_SIGNAL, -1, -1};
         }
         if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
-            return {ERROR_UNREACHABLE, -1, -1};
+            return {E_UNREACHABLE, -1, -1};
 
         ErrorCode ec = *sharedEC;
         double lower = *sharedLowerBound;
@@ -549,11 +549,11 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
 
     if (sharedResult == MAP_FAILED || sharedEC == MAP_FAILED) {
         perror("mmap");
-        return {ERROR_MMAP, -1};
+        return {E_MMAP, -1};
     }
 
     pid_t pid = fork();
-    if (pid == -1) return {ERROR_FORK, -1};
+    if (pid == -1) return {E_FORK, -1};
 
     if (pid == 0) { // Child process
         ErrorCode ec;
@@ -570,12 +570,12 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
         if (WIFSIGNALED(status)) {
             munmap(sharedResult, sizeof(double));
             munmap(sharedEC, sizeof(ErrorCode));
-            if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, {}};
-            if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, {}};
-            return {ERROR_SIGNAL, {}};
+            if (WTERMSIG(status) == SIGSEGV) return {E_SIGSEGV, {}};
+            if (WTERMSIG(status) == SIGILL) return {E_ILLEGAL_INSTRUCTION, {}};
+            return {E_SIGNAL, {}};
         }
         if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
-            return {ERROR_UNREACHABLE, {}};
+            return {E_UNREACHABLE, {}};
 
         ErrorCode ec = *sharedEC;
         double res = *sharedResult;
@@ -596,11 +596,11 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
 
     if (sharedResults == MAP_FAILED || sharedEC == MAP_FAILED) {
         perror("mmap");
-        return {ERROR_MMAP, {}};
+        return {E_MMAP, {}};
     }
 
     pid_t pid = fork();
-    if (pid == -1) return {ERROR_FORK, {}};
+    if (pid == -1) return {E_FORK, {}};
 
     if (pid == 0) { // Child process
         ErrorCode EC;
@@ -620,12 +620,12 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
         if (WIFSIGNALED(status)) {
             munmap(sharedResults, Runs * sizeof(double));
             munmap(sharedEC, sizeof(ErrorCode));
-            if (WTERMSIG(status) == SIGSEGV) return {ERROR_SIGSEGV, {}};
-            if (WTERMSIG(status) == SIGILL) return {ILLEGAL_INSTRUCTION, {}};
-            return {ERROR_SIGNAL, {}};
+            if (WTERMSIG(status) == SIGSEGV) return {E_SIGSEGV, {}};
+            if (WTERMSIG(status) == SIGILL) return {E_ILLEGAL_INSTRUCTION, {}};
+            return {E_SIGNAL, {}};
         }
         if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
-            return {ERROR_UNREACHABLE, {}};
+            return {E_UNREACHABLE, {}};
 
         ErrorCode EC = *sharedEC;
         std::vector<double> res;
@@ -685,12 +685,12 @@ void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
             displayProgress(opcode, MaxOpcode);
             // check if this opcode is blacklisted
             if (OpcodeBlacklist.find(opcode) != OpcodeBlacklist.end()) {
-                throughputDatabase[opcode].ec = SKIP_MANUALLY;
+                throughputDatabase[opcode].ec = S_MANUALLY;
                 continue;
             }
             // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
-                if (throughputDatabase[opcode].ec != ERROR_NO_HELPER &&
+                if (throughputDatabase[opcode].ec != E_NO_HELPER &&
                     throughputDatabase[opcode].ec != NO_ERROR_CODE)
                     continue;
             // check if this opcode can be measured
@@ -734,6 +734,8 @@ void buildLatDatabase(double Frequency) {
     for (auto &measurement : latencyDatabase) {
         displayProgress(progress++, latencyDatabase.size());
         if (measurement.type.isSymmetric()) {
+            // symmetric means the operand read and written to are of the same type.
+            // e.g. GR16 -> GR16. Those can build a latency chain on their own
             auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency);
             measurement.ec = EC;
             measurement.lowerBound = lat;
@@ -743,21 +745,23 @@ void buildLatDatabase(double Frequency) {
             if (EC == SUCCESS) {
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement, "\n\t\t successful, latency: ", lat);
-            } else if (EC == WARNING_MULTIPLE_DEPENDENCIES)
+            } else if (EC == W_MULTIPLE_DEPENDENCIES)
                 latencyOutputMessage[measurement.opcode] += str(
                     "\t", measurement,
                     "\n\t\tWARNING generated instructions have multiple dependencies between each "
-                    "other. If they have different latencys the lower one will be shadowed");
+                    "other. If they have different latencies the lower one will be shadowed");
             else if (isError(EC)) {
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement, "\n\t\t", ecToString(EC),
-                        ", this instruction cannot be measured");
+                        ", this instruction cannot be measured on this platform");
                 opcodeBlacklist.emplace(measurement.opcode);
             }
         } else {
-            // run quick test to see if this instruction can be measured
-            // this is done here because later instructions get measured in pairs and it is not
-            // clear which caused the problem
+            // This is not symmetric, it can only be measured in pair with another instruction
+            // which has the same dependencyType but reversed. e.g. GR16 -> EFLAGS and EFLAGS ->
+            // GR16 Run quick test to see if this instruction can be measured this is done here
+            // because later instructions get measured in pairs and it is not clear which one caused
+            // the problem
             ErrorCode EC = canMeasure(measurement, Frequency);
             if (EC == SUCCESS)
                 // needs helper to be measured, classify but dont measure yet
@@ -787,42 +791,42 @@ void buildLatDatabase(double Frequency) {
         completedTypes.insert(dTypeB);
         out(*ios, "-----", dTypeA, " and ", dTypeB, "-----");
         out(*ios, measurementsA.size(), " measurements of first Type");
-        // check if there are measurements for dTypeB
+        // Check if there are measurements for dTypeB
         if (classifiedMeasurements.find(dTypeB) == classifiedMeasurements.end()) {
             out(*ios, "no measurements of type ", dTypeB, " so ", dTypeA,
                 " can also not be measured");
             for (auto &mA : measurementsA)
-                mA->ec = ERROR_NO_HELPER;
+                mA->ec = E_NO_HELPER;
             continue;
         }
         auto &measurementsB = classifiedMeasurements[dTypeB];
         out(*ios, measurementsB.size(), " measurements of reversed Type");
-        // from now on, if the errorCode doesnt get set by measuring the instructions it is because
+        // From now on, if the errorCode doesnt get set by measuring the instructions, it is because
         // there is no helper. Set all error codes to ERROR_NO_HELPER here to avoid duplicate code
         for (auto &mA : measurementsA)
-            mA->ec = ERROR_NO_HELPER;
+            mA->ec = E_NO_HELPER;
         for (auto &mB : measurementsB)
-            mB->ec = ERROR_NO_HELPER;
+            mB->ec = E_NO_HELPER;
 
-        // find the pair of instructions that has the smallest combined latency. then use those
-        // two
-        // instructions to measure all other. This way the resulting ranges are as small as posible
+        // Find the pair of instructions of the current types that has the smallest combined
+        // latency. Then use those two instructions to measure all other. This way the resulting
+        // ranges are as small as posible
         double minCombinedLat = 1000;
-        // select first A which can be measured
+        // Select first A which can be measured
         LatMeasurement *smallestA = measurementsA[0];
         for (auto &mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             smallestA = mA;
             break;
         }
-        // check if there is any valid A
+        // Check if there is any valid A
         if (opcodeBlacklist.find(smallestA->opcode) != opcodeBlacklist.end()) {
             out(*ios, "no measurement of type ", dTypeA, " can be executed successfully");
             continue;
         }
         out(*ios, "selecting helper instructions for this type combination");
 
-        // find smallest B
+        // Find smallest B
         LatMeasurement *smallestB = measurementsB[0];
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
@@ -830,7 +834,7 @@ void buildLatDatabase(double Frequency) {
             out(*ios, "Measuring ", *smallestA, " and ", *mB);
             auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, 1e6, Frequency);
             if (EC != SUCCESS) {
-                if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
+                if (EC == W_MULTIPLE_DEPENDENCIES) {
                     out(*ios, "Detected multiple dependencys between ", *smallestA, " and ", *mB,
                         "so result of their combination will not be considered for finding "
                         "helpers");
@@ -842,7 +846,7 @@ void buildLatDatabase(double Frequency) {
                 continue;
             }
             if (isUnusualLat(lat)) {
-                out(*ios, "unusual ", lat, " from ", *mB, " and ", *smallestA,
+                out(*ios, "unusual latency: ", lat, " from ", *mB, " and ", *smallestA,
                     "discarding this result");
                 continue;
             }
@@ -853,20 +857,19 @@ void buildLatDatabase(double Frequency) {
             // optimization: there is nothing better than two instructions with latency 1 cy
             if (equalWithTolerance(minCombinedLat, 2)) break;
         }
-        // check if there is any valid B
+        // Check if a valid B was found
         if (opcodeBlacklist.find(smallestB->opcode) != opcodeBlacklist.end()) {
             out(*ios, "no measurement of type ", dTypeB, " can be executed successfully");
             continue;
         }
 
-        // we have the smallest measurement of type B, measure all of type A and keep track of
-        // the one with the smallest latency
+        // Find smallest A
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             if (mA->opcode == smallestB->opcode) continue;
             auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, 1e6, Frequency);
             if (EC != SUCCESS) {
-                if (EC == WARNING_MULTIPLE_DEPENDENCIES) {
+                if (EC == W_MULTIPLE_DEPENDENCIES) {
                     out(*ios, "Detected multiple dependencys between ", *mA, " and ", *smallestB,
                         "so result of their combination will not be considered for finding "
                         "helpers");
@@ -886,7 +889,7 @@ void buildLatDatabase(double Frequency) {
                 smallestA = mA;
                 minCombinedLat = lat;
             }
-            // optimization: there is nothing better than two instructions with latency 1 cy
+            // Optimization: there is nothing better than two instructions with latency 1 cy
             if (equalWithTolerance(minCombinedLat, 2)) break;
         }
         if (isUnusualLat(minCombinedLat) || minCombinedLat < 2) {
@@ -900,8 +903,8 @@ void buildLatDatabase(double Frequency) {
         smallestB->upperBound = minCombinedLat - 1;
         out(*ios, "found helper instructions ", *smallestA, " and ", *smallestB,
             " with combined latency ", minCombinedLat);
-        // we now have the two measurements with the lowest combined latency
-        // use them to measure everything else
+        // smallestA and smallestB now are the measurements with the lowest combined latency
+        // Use them to measure everything else
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             if (mA->opcode == smallestB->opcode) continue;
@@ -932,8 +935,8 @@ void buildLatDatabase(double Frequency) {
         }
     }
 
+    // Print report strings collected
     out(*ios, "\n\nReport on individual measurements:");
-    // print results
     for (auto entry : latencyOutputMessage) {
         out(*ios, "-----", getEnv().MCII->getName(entry.first).data(), "-----");
         out(*ios, entry.second);
@@ -1047,7 +1050,7 @@ int main(int argc, char **argv) {
 
             unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
             auto [EC2, lowerTP1, upperTP1] = measureInSubprocess(opcodeMov, frequency);
-            throughputDatabase[opcodeMov] = {opcodeMov, EC, lowerTP1, upperTP1};
+            throughputDatabase[opcodeMov] = {opcodeMov, EC2, lowerTP1, upperTP1};
             priorityTPHelper.emplace_back(opcodeMov);
         }
         if (opcodes.empty()) {
