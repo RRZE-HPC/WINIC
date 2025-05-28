@@ -45,6 +45,7 @@ static std::map<DependencyType, LatMeasurement> helperInstructionsLat;
 static std::map<unsigned, std::string> latencyOutputMessage;
 
 static bool dbgToFile = true;
+static bool showProgress = true;
 extern LLVMEnvironment env;
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
@@ -193,13 +194,10 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency);
 /**
  * \brief Measures the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied.
  *
+ * \param Opcodes List of opcodes to measure.
  * \param Frequency CPU frequency in GHz.
- * \param MinOpcode Minimum opcode to measure.
- * \param MaxOpcode Maximum opcode to measure.
- * \param OpcodeBlacklist Set of opcodes to skip.
  */
-void buildTPDatabase(double Frequency, unsigned MinOpcode = 0, unsigned MaxOpcode = 0,
-                     std::unordered_set<unsigned> OpcodeBlacklist = {});
+void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency);
 
 /**
  * \brief Builds the latency database by measuring all relevant instructions.

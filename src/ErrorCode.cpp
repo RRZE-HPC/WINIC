@@ -74,6 +74,8 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_SIGFPE";
     case E_EXEC:
         return "ERROR_EXEC";
+    case E_UNROLL_ANOMALY:
+        return "ERROR_UNROLL_ANOMALY";
     case E_GENERIC:
         return "ERROR_GENERIC";
     }

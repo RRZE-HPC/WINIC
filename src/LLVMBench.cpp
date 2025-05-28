@@ -14,13 +14,13 @@
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSubtargetInfo.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Triple.h"
 #include <AssemblyFile.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <csignal>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -81,6 +81,7 @@ void setOutputToFile(const std::string &Filename) {
 }
 
 void displayProgress(size_t Progress, size_t Total) {
+    if(!showProgress) return;
     int barWidth = 50;
     float ratio = (float)Progress / (float)Total;
     int pos = barWidth * ratio;
@@ -269,7 +270,7 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
                                              unsigned NumInst, unsigned LoopCount, double Frequency,
                                              bool Throughput) {
-    dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime, "NumInst: ", NumInst,
+    dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime, " NumInst: ", NumInst,
         "LoopCount", LoopCount);
     // correct the result using one measurement with NumInst and one with 2*NumInst. This
     // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
@@ -277,12 +278,10 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
     double cyclesPerInstruction = (instRuntime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
     if (instRuntime * 2 > UnrolledRuntime * 1.1) {
-        // this is unlikely to be a good measurement
-        out(*ios,
-            "Execution time increases overproportional when unrolling, which should not happen. "
-            "Runtime: ",
-            Runtime, " UnrolledRuntime: ", UnrolledRuntime);
-        return {E_GENERIC, -1};
+        // Execution time increases overproportional when unrolling, which should not happen.
+        // This is unlikely to be a good measurement, report an error and let the user measure it
+        // manually.
+        return {E_UNROLL_ANOMALY, -1};
     }
     // Something strange is happening when measuring latencies. For some chains, e.g. Zen4
     // adc	al, 7
@@ -574,8 +573,7 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
             if (WTERMSIG(status) == SIGILL) return {E_ILLEGAL_INSTRUCTION, {}};
             return {E_SIGNAL, {}};
         }
-        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
-            return {E_UNREACHABLE, {}};
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {E_UNREACHABLE, {}};
 
         ErrorCode ec = *sharedEC;
         double res = *sharedResult;
@@ -624,8 +622,7 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
             if (WTERMSIG(status) == SIGILL) return {E_ILLEGAL_INSTRUCTION, {}};
             return {E_SIGNAL, {}};
         }
-        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
-            return {E_UNREACHABLE, {}};
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {E_UNREACHABLE, {}};
 
         ErrorCode EC = *sharedEC;
         std::vector<double> res;
@@ -670,24 +667,17 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
     return EC;
 }
 
-void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
-                     std::unordered_set<unsigned> OpcodeBlacklist) {
-    // skip instructions which take long and are irrelevant
-    if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
-    // mark instructions to measure
-    for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++)
+void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency) {
+    // mark instructions to be measured
+    for (unsigned opcode : Opcodes)
         throughputDatabase[opcode].ec = NO_ERROR_CODE;
 
     bool gotNewMeasurement = true;
     while (gotNewMeasurement) {
         gotNewMeasurement = false;
-        for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
-            displayProgress(opcode, MaxOpcode);
-            // check if this opcode is blacklisted
-            if (OpcodeBlacklist.find(opcode) != OpcodeBlacklist.end()) {
-                throughputDatabase[opcode].ec = S_MANUALLY;
-                continue;
-            }
+        size_t progress = 0;
+        for (unsigned opcode : Opcodes) {
+            displayProgress(progress++, Opcodes.size());
             // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != E_NO_HELPER &&
@@ -702,21 +692,19 @@ void buildTPDatabase(double Frequency, unsigned MinOpcode, unsigned MaxOpcode,
             }
             auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency);
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
+            if (isError(EC)) {
+                throughputOutputMessage[opcode] += str("\tfailed for reason: ", ecToString(EC));
+            } else {
+                throughputOutputMessage[opcode] +=
+                    str("\tlowerTP: ", lowerTP, " upperTP: ", upperTP);
+            }
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
         std::cerr << std::endl;
     }
-    // print results
-    for (unsigned opcode = 0; opcode < MaxOpcode; opcode++) {
-        out(*ios, "-----", getEnv().MCII->getName(opcode).data(), "-----");
-        out(*ios, throughputOutputMessage[opcode]); // flawed, gets filled in subprocess
-
-        TPMeasurement res = throughputDatabase[opcode];
-        if (isError(res.ec)) {
-            out(*ios, "\tfailed for reason: ", ecToString(res.ec));
-        } else {
-            out(*ios, "\tlowerTP: ", res.lowerTP, " upperTP: ", res.upperTP);
-        }
+    for (auto entry : throughputOutputMessage) {
+        out(*ios, "-----", getEnv().MCII->getName(entry.first).data(), "-----");
+        out(*ios, entry.second);
     }
 }
 
@@ -945,15 +933,15 @@ void buildLatDatabase(double Frequency) {
 
 int main(int argc, char **argv) {
     double frequency;
-    bool silent = false;
-    bool createDB = true;
+    bool noReport = false;
+    bool noDB = false;
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"LLVMBench"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
-    app.add_flag("--noReport", silent, "Dont generate report file");
-    app.add_flag("--noDB", createDB, "Disable Database Output")->default_val(true);
+    app.add_flag("--noReport", noReport, "Dont generate report file")->default_val(false);
+    app.add_flag("--noDB", noDB, "Dont generate database file")->default_val(false);
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
@@ -988,9 +976,8 @@ int main(int argc, char **argv) {
 
     // configure output
     std::string filename = generateTimestampedFilename("run", ".log");
-
     std::cout.precision(3);
-    if (silent) {
+    if (noReport) {
         setOutputToFile("/dev/null");
     } else {
         setOutputToFile(filename);
@@ -1056,23 +1043,22 @@ int main(int argc, char **argv) {
         if (opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
-
-            buildTPDatabase(frequency, minOpcode, maxOpcode, opcodeBlacklist);
-        } else {
-            dbgToFile = true;
-            for (unsigned opcode : opcodes) {
-                auto [EC, lower, upper] = measureInSubprocess(opcode, frequency);
-                throughputDatabase[opcode] = {opcode, EC, lower, upper};
-                if (EC != SUCCESS) {
-                    std::cout << getEnv().MCII->getName(opcode).data()
-                              << " failed for reason: " << ecToString(EC) << std::endl;
-                } else {
-                    std::cout << getEnv().MCII->getName(opcode).data() << " " << lower
-                              << " (clock cycles)" << std::endl;
+            for (unsigned opcode = minOpcode; opcode < maxOpcode; opcode++) {
+                // skip instructions which are not supported on this platform
+                if (opcodeBlacklist.find(opcode) != opcodeBlacklist.end()) {
+                    throughputDatabase[opcode].ec = S_MANUALLY;
+                    continue;
                 }
+                opcodes.emplace_back(opcode);
             }
+
+            buildTPDatabase(opcodes, frequency);
+        } else {
+            showProgress = false;
+            dbgToFile = true;
+            buildTPDatabase(opcodes, frequency);
         }
-        // update database with new values
+        // update output database with new values
         for (auto &[opcode, result] : throughputDatabase)
             if (result.ec == SUCCESS) updateDatabaseEntryTP(result);
 
@@ -1080,7 +1066,7 @@ int main(int argc, char **argv) {
         if (databasePath.empty()) {
             databasePath = generateTimestampedFilename("db", ".yaml");
         }
-        if (createDB) {
+        if (!noDB) {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
@@ -1095,6 +1081,7 @@ int main(int argc, char **argv) {
             latencyDatabase = genLatMeasurements(minOpcode, maxOpcode, opcodeBlacklist);
             buildLatDatabase(frequency);
         } else {
+            showProgress = false;
             dbgToFile = true;
             for (auto opcode : opcodes) {
                 auto measurements = genLatMeasurements(opcode, opcode + 1, {});
@@ -1114,7 +1101,7 @@ int main(int argc, char **argv) {
 
         // save database
         if (databasePath.empty()) databasePath = generateTimestampedFilename("db", ".yaml");
-        if (createDB) {
+        if (!noDB) {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
