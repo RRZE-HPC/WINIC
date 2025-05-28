@@ -295,8 +295,6 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("tp", saveRegs, loopCode, restoreRegs, "init");
     assemblyFile.addBenchFunction("tp2", saveRegs, loopCode + loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("tp4", saveRegs, loopCode + loopCode + loopCode + loopCode,
-                                  restoreRegs, "init");
     return {SUCCESS, assemblyFile};
 }
 
