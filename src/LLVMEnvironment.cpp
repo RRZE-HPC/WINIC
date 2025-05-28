@@ -71,7 +71,7 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     } else {
         if (TargetTriple.getArch() != llvm::Triple::UnknownArch)
             errs() << "unsupported architecture: " << TargetTriple.getArchName() << "\n";
-        return E_TARGET_DETECT;
+        return E_UNSUPPORTED_ARCH;
     }
     // copied from InstrRefLDVTest.cpp
     Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"

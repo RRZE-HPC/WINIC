@@ -54,8 +54,6 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_SIGSEGV";
     case E_SIGNAL:
         return "ERROR_SIGNAL";
-    case E_TARGET_DETECT:
-        return "ERROR_TARGET_DETECT";
     case E_ILLEGAL_INSTRUCTION:
         return "ERROR_ILLEGAL_INSTRUCTION";
     case E_CPU_DETECT:
@@ -66,12 +64,8 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_UNREACHABLE";
     case E_NO_REGISTERS:
         return "ERROR_NO_REGISTERS";
-    case E_GEN_REQUIREMENT:
-        return "ERROR_GEN_REQUIREMENT";
     case E_UNSUPPORTED_ARCH:
         return "ERROR_UNSUPPORTED_ARCH";
-    case E_SIGFPE:
-        return "ERROR_SIGFPE";
     case E_EXEC:
         return "ERROR_EXEC";
     case E_UNROLL_ANOMALY:
