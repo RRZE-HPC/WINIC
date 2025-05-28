@@ -81,7 +81,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
  * \return Pair of ErrorCode and list of generated MCInst instructions.
  */
 std::pair<ErrorCode, std::list<MCInst>>
-genTPInnerLoop(std::vector<unsigned> Opcodes,
+genTPLoop(std::vector<unsigned> Opcodes,
                std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
                unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters);
 

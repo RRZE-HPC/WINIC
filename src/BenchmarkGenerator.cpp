@@ -228,18 +228,15 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
         " UnrollCount: ", UnrollCount, " UsedRegisters.size(): ", UsedRegisters.size(),
         " HelperConstraints.size(): ", HelperConstraints.size());
     if (HelperOpcode != MAX_UNSIGNED)
-        dbg(__func__, "Helper", getEnv().MCII->getName(HelperOpcode).data());
+        dbg(__func__, "Helper: ", getEnv().MCII->getName(HelperOpcode).data());
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
     // TODO optimize
     for (unsigned i = 0; i < getEnv().MRI->getNumRegs(); i++) {
         MCRegister reg = MCRegister::from(i);
-        dbg(__func__, "Checking register: ", getEnv().TRI->getRegAsmName(reg).lower().data());
         if (benchTemplate.usedRegisters.find(getEnv().TRI->getRegAsmName(reg).lower().data()) !=
             benchTemplate.usedRegisters.end()) {
             UsedRegisters.insert(reg);
-            dbg(__func__, "Register ", getEnv().TRI->getRegAsmName(reg).lower().data(),
-                " is used by the template");
         }
     }
 
@@ -247,7 +244,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     std::list<MCInst> instructions;
     ErrorCode EC;
     if (HelperOpcode != MAX_UNSIGNED) {
-        std::tie(EC, instructions) = genTPInnerLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
+        std::tie(EC, instructions) = genTPLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
                                                     *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated, dont include
@@ -256,7 +253,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     } else {
         // ho helper
         std::tie(EC, instructions) =
-            genTPInnerLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters);
+            genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = UnrollCount * instructions.size();
@@ -299,7 +296,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
 }
 
 std::pair<ErrorCode, std::list<MCInst>>
-genTPInnerLoop(std::vector<unsigned> Opcodes,
+genTPLoop(std::vector<unsigned> Opcodes,
                std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
                unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters) {
     std::list<MCInst> instructions;
