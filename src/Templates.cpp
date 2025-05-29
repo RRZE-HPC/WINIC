@@ -207,6 +207,8 @@ functionName:
     sd      s9, 72(sp)
     sd      s10, 80(sp)
     sd      s11, 88(sp)
+    li a1, 4                      # Set number of elements (VL=4)
+    vsetvli t0, a1, e32, m1, ta, ma  # Configure vector length (VL=4), 32-bit element size, LMUL=1
 )",
     R"(
     ld      s0,  0(sp)
@@ -245,6 +247,8 @@ functionName:
     sd      s9, 72(sp)
     sd      s10, 80(sp)
     sd      s11, 88(sp)
+    li a1, 4                      # Set number of elements (VL=4)
+    vsetvli t0, a1, e32, m1, ta, ma  # Configure vector length (VL=4), 32-bit element size, LMUL=1
 
     li      t0, 0               # i = 0
     mv      t1, a0

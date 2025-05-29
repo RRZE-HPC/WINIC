@@ -81,7 +81,7 @@ void setOutputToFile(const std::string &Filename) {
 }
 
 void displayProgress(size_t Progress, size_t Total) {
-    if(!showProgress) return;
+    if (!showProgress) return;
     int barWidth = 50;
     float ratio = (float)Progress / (float)Total;
     int pos = barWidth * ratio;
@@ -159,8 +159,11 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         }
         dup2(fd, STDOUT_FILENO);
         dup2(fd, STDERR_FILENO);
-        execl(CLANG_PATH, "clang", "-x", "assembler-with-cpp", "-shared", sPath.data(), "-o",
-              oPath.data(), nullptr);
+        std::string extraOptions = "";
+        if (getEnv().Arch == llvm::Triple::riscv64) extraOptions += "-march=rv64gcv";
+
+        execl(CLANG_PATH, "clang", extraOptions.data(), "-x", "assembler-with-cpp", "-shared",
+              sPath.data(), "-o", oPath.data(), nullptr);
         _exit(127);       // execl failed
     } else if (pid > 0) { // Parent
         int status;
@@ -229,7 +232,10 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
         " InitName: ", InitName);
     std::string clangPath = CLANG_PATH;
     std::string oPath = "/dev/shm/temp.so";
-    std::string command = clangPath + " -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
+    std::string extraOptions = "";
+    if (getEnv().Arch == llvm::Triple::riscv64) extraOptions += "-march=rv64gcv";
+    std::string command = clangPath + " " + extraOptions.data() +
+                          " -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
                           " 2> assembler_out.log";
     if (system(command.data()) != 0) return {E_ASSEMBLY, {}};
 
@@ -270,8 +276,8 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
                                              unsigned NumInst, unsigned LoopCount, double Frequency,
                                              bool Throughput) {
-    dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime, " NumInst: ", NumInst,
-        "LoopCount", LoopCount);
+    dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime,
+        " NumInst: ", NumInst, "LoopCount", LoopCount);
     // correct the result using one measurement with NumInst and one with 2*NumInst. This
     // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
@@ -605,11 +611,10 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
         std::vector<double> res;
         std::tie(EC, res) =
             runManual(SPath, Runs, NumInst, LoopCount, Frequency, FunctionName, InitName);
-        for (unsigned i = 0; i < Runs; i++) {
-            sharedResults[i] = res[i];
-        }
-
         *sharedEC = EC;
+        for (unsigned i = 0; i < res.size() && i < Runs; i++)
+            sharedResults[i] = res[i];
+
         exit(EXIT_SUCCESS);
     } else { // Parent process
         int status;
@@ -1057,6 +1062,18 @@ int main(int argc, char **argv) {
             showProgress = false;
             dbgToFile = true;
             buildTPDatabase(opcodes, frequency);
+            for (auto opcode : opcodes) {
+                if (throughputDatabase.find(opcode) == throughputDatabase.end()) {
+                    // should not happen
+                    continue;
+                }
+                auto res = throughputDatabase[opcode];
+                if (isError(res.ec)) {
+                    std::cout << str("failed for reason: ", ecToString(res.ec));
+                } else {
+                    std::cout << str("lowerTP: ", res.lowerTP, " upperTP: ", res.upperTP);
+                }
+            }
         }
         // update output database with new values
         for (auto &[opcode, result] : throughputDatabase)
