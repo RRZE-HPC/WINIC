@@ -292,7 +292,7 @@ done_functionName:
         // "imm" will be replaced by the immediate value to initialize it with
         {"x", "li reg, imm"},
         {"f", "li reg, imm"},
-        {"v", "li t2, imm\nvsetvli a0, zero, e32\nvmv.v.x reg, t2"},
+        {"v", "li t2, imm\nvmv.v.x reg, t2"},
         {"default", "li reg, imm"}},
     {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (cant use abi names here)
 
