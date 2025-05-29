@@ -42,11 +42,11 @@ template <typename... Args> static void out(std::ostream &Osteam, Args &&...Argu
     (Osteam << ... << Arguments) << "\n" << std::flush;
 }
 
-// concatenate all arguments into a newline terminated string
+// concatenate all arguments into a string
 template <typename... Args> static std::string str(Args &&...Arguments) {
     std::ostringstream oss;
     oss.precision(3);
-    (oss << ... << Arguments) << "\n" << std::flush;
+    (oss << ... << Arguments) << std::flush;
     return oss.str();
 }
 

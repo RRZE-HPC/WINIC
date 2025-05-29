@@ -7,6 +7,7 @@
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include <CustomDebug.h>
 #include <assert.h>
 #include <fstream>
 #include <limits>
@@ -183,15 +184,33 @@ inline std::ostream &operator<<(std::ostream &OS, const LatMeasurement &Op) {
     // useIndex == 999 means unused which means implicit
     if (Op.useIndex == 999) useIndexString = "impl";
     if (Op.defIndex == 999) defIndexString = "impl";
+    std::string outputString =
+        str(getEnv().MCII->getName(Op.opcode).str(), "(", useIndexString, "(", Op.type.useOp, ")",
+            " -> ", defIndexString, "(", Op.type.defOp, ")) ");
 
     if (!isError(Op.ec))
-        return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "("
-                  << Op.type.useOp << ")" << " -> " << defIndexString << "(" << Op.type.defOp
-                  << ")) "
-                  << " [" << Op.lowerBound << ";" << Op.upperBound << "]";
+        outputString += str(" [", Op.lowerBound, ";", Op.upperBound, "]");
+    else if (Op.ec != NO_ERROR_CODE)
+        outputString += str(" [", ecToString(Op.ec), "]");
 
-    return OS << getEnv().MCII->getName(Op.opcode).str() << "(" << useIndexString << "("
-              << Op.type.useOp << ")" << " -> " << defIndexString << "(" << Op.type.defOp << "))";
+    return OS << outputString;
+}
+
+struct TPMeasurement {
+    unsigned opcode;
+    ErrorCode ec;
+    double lowerTP;
+    double upperTP;
+};
+
+/**
+ * \brief Stream output operator for LatMeasurement.
+ */
+inline std::ostream &operator<<(std::ostream &OS, const TPMeasurement &Op) {
+    std::string name = getEnv().MCII->getName(Op.opcode).str();
+
+    if (!isError(Op.ec)) return OS << str(name, " [", Op.lowerTP, ";", Op.upperTP, "]");
+    return OS << str(name, " [", ecToString(Op.ec), "]");
 }
 
 #endif // GLOBALS_H

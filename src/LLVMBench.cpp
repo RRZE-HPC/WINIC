@@ -421,20 +421,19 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
         throughputOutputMessage[Opcode] +=
-            str("\tHelper: ", getEnv().MCII->getName(helperOpcode).data(), " ",
-                throughputDatabase[helperOpcode].lowerTP);
-        throughputOutputMessage[Opcode] += str("\tCombined result: ", correctedTP);
+            str("\tHelper: ", throughputDatabase[helperOpcode], "\n");
+        throughputOutputMessage[Opcode] += str("\tCombined result: ", correctedTP, "\n");
 
         double tpSamePorts = correctedTP - throughputDatabase[helperOpcode].lowerTP;
         if (tpSamePorts < 1 / 4) {
             throughputOutputMessage[Opcode] +=
                 str("\tAssuming instruction and helper use different ports, otherwise TP would be ",
-                    tpSamePorts);
+                    tpSamePorts, "\n");
             return {SUCCESS, correctedTP, correctedTP};
         }
         throughputOutputMessage[Opcode] +=
             str("\tNo hints if instruction and helper use same ports, TP can be in range ",
-                tpSamePorts, " - ", correctedTP);
+                tpSamePorts, " - ", correctedTP, "\n");
         return {SUCCESS, tpSamePorts, correctedTP};
     }
     return {SUCCESS, correctedTP, correctedTP};
@@ -697,12 +696,8 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency) {
             }
             auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency);
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
-            if (isError(EC)) {
-                throughputOutputMessage[opcode] += str("\tfailed for reason: ", ecToString(EC));
-            } else {
-                throughputOutputMessage[opcode] +=
-                    str("\tlowerTP: ", lowerTP, " upperTP: ", upperTP);
-            }
+            throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
+
             if (EC == SUCCESS) gotNewMeasurement = true;
         }
         std::cerr << std::endl;
@@ -737,16 +732,16 @@ void buildLatDatabase(double Frequency) {
             completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
             if (EC == SUCCESS) {
                 latencyOutputMessage[measurement.opcode] +=
-                    str("\t", measurement, "\n\t\t successful, latency: ", lat);
+                    str("\t", measurement, "\n\t\t successful, latency: ", lat, "\n");
             } else if (EC == W_MULTIPLE_DEPENDENCIES)
                 latencyOutputMessage[measurement.opcode] += str(
                     "\t", measurement,
                     "\n\t\tWARNING generated instructions have multiple dependencies between each "
-                    "other. If they have different latencies the lower one will be shadowed");
+                    "other. If they have different latencies the lower one will be shadowed\n");
             else if (isError(EC)) {
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement, "\n\t\t", ecToString(EC),
-                        ", this instruction cannot be measured on this platform");
+                        ", this instruction cannot be measured on this platform\n");
                 opcodeBlacklist.emplace(measurement.opcode);
             }
         } else {
@@ -763,7 +758,7 @@ void buildLatDatabase(double Frequency) {
                 measurement.ec = EC;
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement, "\n\t\t", ecToString(EC),
-                        ", this instruction cannot be measured on this platform");
+                        ", this instruction cannot be measured on this platform\n");
             }
         }
     }
@@ -906,10 +901,10 @@ void buildLatDatabase(double Frequency) {
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
             if (EC == SUCCESS) {
-                latencyOutputMessage[mA->opcode] += str("\t", *mA, ":");
+                latencyOutputMessage[mA->opcode] += str("\t", *mA, ":\n");
                 latencyOutputMessage[mA->opcode] +=
-                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB);
-                latencyOutputMessage[mA->opcode] += str("\t\tCombined result: ", lat, " cycles");
+                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB, "\n");
+                latencyOutputMessage[mA->opcode] += str("\t\tCombined result: ", lat, " cycles\n");
             }
         }
         for (LatMeasurement *mB : measurementsB) {
@@ -920,10 +915,10 @@ void buildLatDatabase(double Frequency) {
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
             if (EC == SUCCESS) {
-                latencyOutputMessage[mB->opcode] += str("\t", *mB, ":");
+                latencyOutputMessage[mB->opcode] += str("\t", *mB, ":\n");
                 latencyOutputMessage[mB->opcode] +=
-                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB);
-                latencyOutputMessage[mB->opcode] += str("\t\tCombined result: ", lat, " cycles");
+                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB, "\n");
+                latencyOutputMessage[mB->opcode] += str("\t\tCombined result: ", lat, " cycles\n");
             }
         }
     }
@@ -1063,16 +1058,9 @@ int main(int argc, char **argv) {
             dbgToFile = true;
             buildTPDatabase(opcodes, frequency);
             for (auto opcode : opcodes) {
-                if (throughputDatabase.find(opcode) == throughputDatabase.end()) {
-                    // should not happen
-                    continue;
-                }
-                auto res = throughputDatabase[opcode];
-                if (isError(res.ec)) {
-                    std::cout << str("failed for reason: ", ecToString(res.ec));
-                } else {
-                    std::cout << str("lowerTP: ", res.lowerTP, " upperTP: ", res.upperTP);
-                }
+                if (throughputDatabase.find(opcode) == throughputDatabase.end())
+                    continue; // should not happen
+                std::cout << str(throughputDatabase[opcode]) << std::endl;
             }
         }
         // update output database with new values
@@ -1106,6 +1094,11 @@ int main(int argc, char **argv) {
                                        measurements.end());
             }
             buildLatDatabase(frequency);
+            for (auto m : latencyDatabase) {
+                if (std::find(opcodes.begin(), opcodes.end(), m.opcode) == opcodes.end())
+                    continue; // skip prio helpers
+                std::cout << m << std::endl;
+            }
         }
         // update database with new values
         for (LatMeasurement result : latencyDatabase) {
