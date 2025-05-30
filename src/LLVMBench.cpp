@@ -59,14 +59,14 @@ class MCInstrDesc;
 #endif
 
 namespace {
-std::string generateTimestampedFilename(const std::string &Prefix, const std::string &Extension) {
+std::string generateTimestamp() {
     // Get current time
     auto now = std::chrono::system_clock::now();
     std::time_t nowC = std::chrono::system_clock::to_time_t(now);
 
     // Format time
     std::ostringstream ss;
-    ss << Prefix << std::put_time(std::localtime(&nowC), "_%Y-%m-%d_%H-%M-%S") << Extension;
+    ss << std::put_time(std::localtime(&nowC), "%Y-%m-%d_%H-%M-%S");
     return ss.str();
 }
 
@@ -975,14 +975,26 @@ int main(int argc, char **argv) {
     CLI11_PARSE(app, argc, argv)
 
     // configure output
-    std::string filename = generateTimestampedFilename("run", ".log");
     std::cout.precision(3);
+    ios->precision(3);
+    std::string timestamp = generateTimestamp();
+
     if (noReport) {
         setOutputToFile("/dev/null");
     } else {
-        setOutputToFile(filename);
-        ios->precision(3);
+        if (*tp)
+            setOutputToFile("report_TP_" + timestamp + ".txt");
+        else if (*lat)
+            setOutputToFile("report_LAT_" + timestamp + ".txt");
+        else
+            setOutputToFile("/dev/null");
     }
+    if (!databasePath.empty()) {
+        out(*ios, "Using existing database: ", databasePath);
+        ErrorCode EC = loadYaml(databasePath);
+        if (EC != SUCCESS) return 1;
+    } else
+        databasePath = str("db_", timestamp, ".yaml");
 
     out(*ios, "Frequency: ", frequency, " GHz");
     dbgToFile = false;
@@ -1020,11 +1032,6 @@ int main(int argc, char **argv) {
     for (auto name : skipInstructions)
         opcodeBlacklist.insert(getEnv().getOpcode(name));
 
-    if (!databasePath.empty()) {
-        out(*ios, "Using existing database: ", databasePath);
-        ErrorCode EC = loadYaml(databasePath);
-        if (EC != SUCCESS) return 1;
-    }
     if (*tp) {
         out(*ios, "Mode: Throughput");
         if (getEnv().Arch == Triple::ArchType::x86_64) {
@@ -1068,9 +1075,6 @@ int main(int argc, char **argv) {
             if (result.ec == SUCCESS) updateDatabaseEntryTP(result);
 
         // save database
-        if (databasePath.empty()) {
-            databasePath = generateTimestampedFilename("db", ".yaml");
-        }
         if (!noDB) {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
@@ -1110,7 +1114,6 @@ int main(int argc, char **argv) {
         }
 
         // save database
-        if (databasePath.empty()) databasePath = generateTimestampedFilename("db", ".yaml");
         if (!noDB) {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
