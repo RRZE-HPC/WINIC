@@ -733,8 +733,7 @@ void buildLatDatabase(double Frequency) {
     std::set<DependencyType> completedTypes;
 
     // classify measurements by operand combination, measure if trivial
-    if(showProgress)
-        std::cout << "phase1: trivial measurements\n";
+    if (showProgress) std::cout << "phase1: trivial measurements\n";
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
@@ -750,15 +749,15 @@ void buildLatDatabase(double Frequency) {
             completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
             if (EC == SUCCESS) {
                 latencyOutputMessage[measurement.opcode] +=
-                    str("\t", measurement, "\n\t\t successful, latency: ", lat, "\n");
+                    str("\t", measurement.toStringWithBounds(), "\n\t\t Successful, latency: ", lat, "\n");
             } else if (EC == W_MULTIPLE_DEPENDENCIES)
-                latencyOutputMessage[measurement.opcode] += str(
-                    "\t", measurement,
-                    "\n\t\tWARNING generated instructions have multiple dependencies between each "
-                    "other. If they have different latencies the lower one will be shadowed\n");
+                latencyOutputMessage[measurement.opcode] +=
+                    str("\t", measurement.toStringWithBounds(),
+                        "\n\t\tWARNING generated instructions have multiple dependencies. "
+                        "If they have different latencies the lower one will be shadowed\n");
             else if (isError(EC)) {
                 latencyOutputMessage[measurement.opcode] +=
-                    str("\t", measurement, "\n\t\t", ecToString(EC),
+                    str("\t", measurement.toStringWithBounds(), "\n\t\t", ecToString(EC),
                         ", this instruction cannot be measured on this platform\n");
                 opcodeBlacklist.emplace(measurement.opcode);
             }
@@ -785,8 +784,7 @@ void buildLatDatabase(double Frequency) {
     // measurements of those types
     // e.g. if A is GR16 -> EFLAGS, B is EFLAGS -> GR16 and we can measure combinations of
     // instructions in A and B
-    if(showProgress)
-        std::cout << "\nphase2: measurements with helpers\n";
+    if (showProgress) std::cout << "\nphase2: measurements with helpers\n";
     out(*ios, "\n\nReport on finding helpers for dependency types:");
     progress = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
@@ -831,7 +829,7 @@ void buildLatDatabase(double Frequency) {
             out(*ios, "\tno measurement of type ", dTypeA, " can be executed successfully");
             continue;
         }
-        out(*ios, "\tselecting helper instructions for this type combination");
+        out(*ios, "\tSelecting helper instructions for this type combination");
 
         // Find smallest B
         LatMeasurement *smallestB = measurementsB[0];
@@ -846,14 +844,14 @@ void buildLatDatabase(double Frequency) {
                         "so result of their combination will not be considered for finding "
                         "helpers");
                 } else {
-                    out(*ios, "\tmeasuring ", *smallestA, " and ", *mB,
+                    out(*ios, "\tMeasuring ", *smallestA, " and ", *mB,
                         " was unsuccessful, EC: ", ecToString(EC),
                         ". this is unusual because both were executed individually before");
                 }
                 continue;
             }
             if (isUnusualLat(lat)) {
-                out(*ios, "\tunusual latency: ", lat, " from ", *mB, " and ", *smallestA,
+                out(*ios, "\tUnusual latency: ", lat, " from ", *mB, " and ", *smallestA,
                     "discarding this result");
                 continue;
             }
@@ -866,7 +864,7 @@ void buildLatDatabase(double Frequency) {
         }
         // Check if a valid B was found
         if (opcodeBlacklist.find(smallestB->opcode) != opcodeBlacklist.end()) {
-            out(*ios, "no measurement of type ", dTypeB, " can be executed successfully");
+            out(*ios, "No measurement of type ", dTypeB, " can be executed successfully");
             continue;
         }
 
@@ -881,14 +879,14 @@ void buildLatDatabase(double Frequency) {
                         "so result of their combination will not be considered for finding "
                         "helpers");
                 } else {
-                    out(*ios, "\tmeasuring ", *mA, " and ", *smallestB,
+                    out(*ios, "\tMeasuring ", *mA, " and ", *smallestB,
                         " was unsuccessful, EC: ", ecToString(EC),
                         " this is unusual because both were executed individually before");
                 }
                 continue;
             }
             if (isUnusualLat(lat)) {
-                out(*ios, "\tunusual ", lat, " from ", *mA, " and ", *smallestB,
+                out(*ios, "\tUnusual ", lat, " from ", *mA, " and ", *smallestB,
                     "discarding this result");
                 continue;
             }
@@ -900,7 +898,7 @@ void buildLatDatabase(double Frequency) {
             if (equalWithTolerance(minCombinedLat, 2)) break;
         }
         if (isUnusualLat(minCombinedLat) || minCombinedLat < 2) {
-            out(*ios, "\tcan not find a pair with normal latency for types");
+            out(*ios, "\tCan not find a pair with normal latency for types");
             continue;
         }
 
@@ -908,7 +906,7 @@ void buildLatDatabase(double Frequency) {
         smallestA->upperBound = minCombinedLat - 1;
         smallestB->lowerBound = 1;
         smallestB->upperBound = minCombinedLat - 1;
-        out(*ios, "\tfound helper instructions ", *smallestA, " and ", *smallestB,
+        out(*ios, "\tFound helper instructions ", *smallestA, " and ", *smallestB,
             " with combined latency ", minCombinedLat);
         // smallestA and smallestB now are the measurements with the lowest combined latency
         // Use them to measure everything else
@@ -919,7 +917,7 @@ void buildLatDatabase(double Frequency) {
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
-            latencyOutputMessage[mA->opcode] += str("\t", *mA, ":\n");
+            latencyOutputMessage[mA->opcode] += str("\t", mA->toStringWithBounds(), ":\n");
             if (!isError(EC)) {
                 latencyOutputMessage[mA->opcode] +=
                     str("\t\tDependencies: ", *smallestA, ", ", *smallestB, "\n");
@@ -935,7 +933,7 @@ void buildLatDatabase(double Frequency) {
             mB->upperBound = lat - smallestA->lowerBound;
             if (isUnusualLat(mB->lowerBound)) mB->ec = E_UNUSUAL_LATENCY;
 
-            latencyOutputMessage[mB->opcode] += str("\t", *mB, ":\n");
+            latencyOutputMessage[mB->opcode] += str("\t", mB->toStringWithBounds(), ":\n");
             if (!isError(EC)) {
                 latencyOutputMessage[mB->opcode] +=
                     str("\t\tDependencies: ", *smallestA, ", ", *smallestB, "\n");
@@ -1124,7 +1122,7 @@ int main(int argc, char **argv) {
             for (auto m : latencyDatabase) {
                 if (std::find(opcodes.begin(), opcodes.end(), m.opcode) == opcodes.end())
                     continue; // skip prio helpers
-                std::cout << m << std::endl;
+                std::cout << m.toStringWithBounds() << std::endl;
             }
         }
         // update database with new values
