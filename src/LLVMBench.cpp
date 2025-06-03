@@ -97,6 +97,22 @@ void displayProgress(size_t Progress, size_t Total) {
     }
     std::cerr << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
 }
+
+// create ./asm and clear all existing files
+void prepAsmDir() {
+    namespace fs = std::filesystem;
+
+    std::string asmDir = (fs::current_path() / "asm").string();
+    if (!fs::exists(asmDir)) {
+        if (!fs::create_directories(asmDir)) {
+            std::cerr << "Failed to create directory: " << asmDir << std::endl;
+            return;
+        }
+    }
+    for (const auto &entry : fs::directory_iterator(asmDir)) {
+        fs::remove_all(entry.path());
+    }
+}
 } // namespace
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
@@ -116,15 +132,15 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     asmFile << Assembly.generateAssembly();
     asmFile.close();
     if (dbgToFile) {
-        // TODO make path relative
-        std::string debugPath = std::filesystem::current_path().string() + "/debug.s";
+        std::string debugPath =
+            std::filesystem::current_path().string() + "/asm/" + Assembly.getName() + ".s";
         std::ofstream debugFile(debugPath);
         if (!debugFile) {
             std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
-            return {E_FILE, {}};
+        } else {
+            debugFile << Assembly.generateAssembly();
+            debugFile.close();
         }
-        debugFile << Assembly.generateAssembly();
-        debugFile.close();
     }
     // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
     // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2>
@@ -409,6 +425,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     std::tie(ec, assembly) =
         genTPBenchmark(Opcode, &numInst, 1, usedRegs, helperConstraints, helperOpcode);
     if (ec != SUCCESS) return {ec, -1, -1};
+    assembly.setName(getEnv().MCII->getName(Opcode).str());
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
     if (ec != SUCCESS) return {ec, -1, -1};
 
@@ -457,6 +474,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     std::tie(ec, assembly) = genLatBenchmark(Measurements, &numInst1);
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
+    assembly.setName(Measurements.front().toCompactString());
     std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
     if (ec != SUCCESS) return {ec, -1};
 
@@ -467,7 +485,6 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     double cycles;
     std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency, false);
     if (ec != SUCCESS) {
-
         std::string chainString = "";
         for (auto m : Measurements) {
             chainString += getEnv().MCII->getName(m.opcode).data();
@@ -1065,6 +1082,7 @@ int main(int argc, char **argv) {
         } else {
             showProgress = false;
             dbgToFile = true;
+            prepAsmDir();
             buildTPDatabase(opcodes, frequency);
             for (auto opcode : opcodes) {
                 if (throughputDatabase.find(opcode) == throughputDatabase.end())
@@ -1094,6 +1112,7 @@ int main(int argc, char **argv) {
         } else {
             showProgress = false;
             dbgToFile = true;
+            prepAsmDir();
             for (auto opcode : opcodes) {
                 auto measurements = genLatMeasurements(opcode, opcode + 1, {});
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),

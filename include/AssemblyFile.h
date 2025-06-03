@@ -89,6 +89,10 @@ class AssemblyFile {
      */
     std::string getInitNameFor(std::string BenchName);
 
+    std::string getName() const { return name; }
+
+    void setName(std::string Name) { this->name = Name; }
+
     /**
      * \brief Generates an assembly file containing all functions in the list.
      * \return Assembly code as a string.
@@ -97,7 +101,7 @@ class AssemblyFile {
 
   private:
     llvm::Triple::ArchType arch;
-    // Template benchTemplate;
+    std::string name;
     std::set<BenchFunction> benchFunctions;
     std::set<InitFunction> initFunctions;
 

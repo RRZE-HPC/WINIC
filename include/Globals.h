@@ -91,6 +91,12 @@ struct Operand {
         assert(isRegister());
         return reg;
     }
+
+    std::string toCompactString() const {
+        if (isRegClass())
+            return getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClass));
+        return getEnv().MRI->getName(reg);
+    }
 };
 
 /**
@@ -102,7 +108,7 @@ inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
                   << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
                   << ">";
 
-    return OS << getEnv().MRI->getName(Op.getRegister()) << "<" << Op.getRegister() << ">";
+    return OS << "Reg<" << getEnv().MRI->getName(Op.getRegister()) << ">";
 }
 
 /**
@@ -166,12 +172,12 @@ struct LatMeasurement {
                useIndex == Other.useIndex;
     }
 
-    /**
-     * \brief Returns the result as a string in the form [lower;upper].
-     * \return String representation of the result.
-     */
-    std::string resToString() {
-        return "[" + std::to_string(lowerBound) + ";" + std::to_string(upperBound) + "]";
+    std::string toCompactString() const {
+        std::string useIndexStr = useIndex == 999 ? "i" : std::to_string(useIndex);
+        std::string defIndexStr = defIndex == 999 ? "i" : std::to_string(defIndex);
+        return str(getEnv().MCII->getName(opcode).str(), "_", useIndexStr, "_",
+                   type.useOp.toCompactString(), "_", defIndexStr, "_",
+                   type.defOp.toCompactString());
     }
 };
 
@@ -179,14 +185,12 @@ struct LatMeasurement {
  * \brief Stream output operator for LatMeasurement.
  */
 inline std::ostream &operator<<(std::ostream &OS, const LatMeasurement &Op) {
-    std::string useIndexString = std::to_string(Op.useIndex);
-    std::string defIndexString = std::to_string(Op.defIndex);
-    // useIndex == 999 means unused which means implicit
-    if (Op.useIndex == 999) useIndexString = "impl";
-    if (Op.defIndex == 999) defIndexString = "impl";
+    // useIndex == 999 means implicit
+    std::string useIndexStr = Op.useIndex == 999 ? "impl" : std::to_string(Op.useIndex);
+    std::string defIndexStr = Op.defIndex == 999 ? "impl" : std::to_string(Op.defIndex);
     std::string outputString =
-        str(getEnv().MCII->getName(Op.opcode).str(), "(", useIndexString, "(", Op.type.useOp, ")",
-            " -> ", defIndexString, "(", Op.type.defOp, ")) ");
+        str(getEnv().MCII->getName(Op.opcode).str(), "(", useIndexStr, "(", Op.type.useOp, ")",
+            " -> ", defIndexStr, "(", Op.type.defOp, ")) ");
 
     if (!isError(Op.ec))
         outputString += str(" [", Op.lowerBound, ";", Op.upperBound, "]");
@@ -204,7 +208,7 @@ struct TPMeasurement {
 };
 
 /**
- * \brief Stream output operator for LatMeasurement.
+ * \brief Stream output operator for TPMeasurement.
  */
 inline std::ostream &operator<<(std::ostream &OS, const TPMeasurement &Op) {
     std::string name = getEnv().MCII->getName(Op.opcode).str();
