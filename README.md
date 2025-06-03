@@ -35,12 +35,12 @@ To measure single instructions add one or more `-i <LLVM_INSTRUCTION_NAME>` opti
 
 ### MAN
 In manual mode, NAME can execute arbitrary altered benchmark functions.
-To run a function called "tp" from `debug.s` and calculate the cycles per instruction assuming the loop has 12 instructions do
+To run a function called "tp" from `file.s` and calculate the cycles per instruction assuming the loop has 12 instructions do
 ```bash
-NAME -f <frequency> MAN --path debug.s --funcName tp --nInst 12
+NAME -f <frequency> MAN --path file.s --funcName tp --nInst 12
 ```
 
-There are always cases where NAME doesn't produce correct data. To do a custom benchmark for an instruction, first run NAME in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output an `assembler_out.log` and `debug.s` file generated for the benchmark. The `debug.s` file can then be modified and executed using the MAN-mode.
+There are always cases where NAME doesn't produce correct data. To do a custom benchmark for an instruction, first run NAME in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
 
 ## Updating existing database
 By default TP and LAT mode generate a db_timestamp.yaml file with the results. Use `--updateDatabase <file.yaml>` to update an existing database instead. This works with single instructions aswell as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
