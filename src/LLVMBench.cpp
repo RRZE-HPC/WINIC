@@ -86,16 +86,16 @@ void displayProgress(size_t Progress, size_t Total) {
     float ratio = (float)Progress / (float)Total;
     int pos = barWidth * ratio;
 
-    std::cerr << "\r[";
+    std::cout << "\r[";
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos)
-            std::cerr << "#";
+            std::cout << "#";
         else if (i == pos)
-            std::cerr << ">";
+            std::cout << ">";
         else
-            std::cerr << " ";
+            std::cout << " ";
     }
-    std::cerr << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
+    std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
 }
 
 // create ./asm and clear all existing files
@@ -733,7 +733,8 @@ void buildLatDatabase(double Frequency) {
     std::set<DependencyType> completedTypes;
 
     // classify measurements by operand combination, measure if trivial
-    std::cerr << "phase1: trivial measurements\n";
+    if(showProgress)
+        std::cout << "phase1: trivial measurements\n";
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
@@ -784,7 +785,8 @@ void buildLatDatabase(double Frequency) {
     // measurements of those types
     // e.g. if A is GR16 -> EFLAGS, B is EFLAGS -> GR16 and we can measure combinations of
     // instructions in A and B
-    std::cerr << "\nphase2: measurements with helpers\n";
+    if(showProgress)
+        std::cout << "\nphase2: measurements with helpers\n";
     out(*ios, "\n\nReport on finding helpers for dependency types:");
     progress = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
