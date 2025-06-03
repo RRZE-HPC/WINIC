@@ -37,6 +37,7 @@ enum ErrorCode {
     E_UNSUPPORTED_ARCH,
     E_EXEC,
     E_UNROLL_ANOMALY,
+    E_UNUSUAL_LATENCY,
     E_GENERIC,
 };
 
