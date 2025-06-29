@@ -749,7 +749,8 @@ void buildLatDatabase(double Frequency) {
             completedTypes.insert(measurement.type); // blacklist symmetric for phase 2
             if (EC == SUCCESS) {
                 latencyOutputMessage[measurement.opcode] +=
-                    str("\t", measurement.toStringWithBounds(), "\n\t\t Successful, latency: ", lat, "\n");
+                    str("\t", measurement.toStringWithBounds(), "\n\t\t Successful, latency: ", lat,
+                        "\n");
             } else if (EC == W_MULTIPLE_DEPENDENCIES)
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement.toStringWithBounds(),
@@ -795,17 +796,17 @@ void buildLatDatabase(double Frequency) {
         completedTypes.insert(dTypeA);
         completedTypes.insert(dTypeB);
         out(*ios, "-----", dTypeA, " and ", dTypeB, "-----");
-        out(*ios, measurementsA.size(), " measurements of first Type");
+        out(*ios, "\t", measurementsA.size(), " measurements of first Type");
         // Check if there are measurements for dTypeB
         if (classifiedMeasurements.find(dTypeB) == classifiedMeasurements.end()) {
-            out(*ios, "no measurements of type ", dTypeB, " so ", dTypeA,
+            out(*ios, "\tno measurements of type ", dTypeB, " so ", dTypeA,
                 " can also not be measured");
             for (auto &mA : measurementsA)
                 mA->ec = E_NO_HELPER;
             continue;
         }
         auto &measurementsB = classifiedMeasurements[dTypeB];
-        out(*ios, measurementsB.size(), " measurements of reversed Type");
+        out(*ios, "\t", measurementsB.size(), " measurements of reversed Type");
         // From now on, if the errorCode doesnt get set by measuring the instructions, it is because
         // there is no helper. Set all error codes to ERROR_NO_HELPER here to avoid duplicate code
         for (auto &mA : measurementsA)
@@ -1082,6 +1083,7 @@ int main(int argc, char **argv) {
         } else {
             showProgress = false;
             dbgToFile = true;
+
             prepAsmDir();
             buildTPDatabase(opcodes, frequency);
             for (auto opcode : opcodes) {
@@ -1160,7 +1162,7 @@ int main(int argc, char **argv) {
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
     out(*ios, "total runtime: ", totalRuntime, " (s)");
-    std::cerr << " done" << std::endl;
+    std::cout << " done" << std::endl;
 
     return 0;
 }
