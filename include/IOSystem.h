@@ -1,8 +1,8 @@
+#include <llvm/ADT/StringRef.h>
 #include "llvm/Support/YAMLTraits.h"
 #include <ErrorCode.h>
 #include <Globals.h>
 #include <LLVMBench.h>
-#include <llvm/ADT/StringRef.h>
 #include <optional>
 #include <string>
 
@@ -15,6 +15,8 @@ struct IOOperand {
     std::string opClass;             ///< Operand class (e.g., "register", "immediate")
     std::optional<std::string> name; ///< Optional operand name
     std::optional<std::string> imd;  ///< Optional immediate value type
+    bool read;  ///< Is this operand read?
+    bool write;  ///< Is this operand written?
 };
 
 using StringOptionalDoubleMap = std::map<std::string, std::optional<double>>;
@@ -51,6 +53,8 @@ template <> struct MappingTraits<IOOperand> {
         Io.mapRequired("class", Op.opClass);
         Io.mapOptional("name", Op.name);
         Io.mapOptional("imd", Op.imd);
+        Io.mapRequired("read", Op.read);
+        Io.mapRequired("write", Op.write);
     }
 };
 

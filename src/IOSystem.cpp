@@ -15,24 +15,44 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     // create yaml output
     std::vector<IOOperand> operands;
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    for (auto opInfo : desc.operands()) {
-        IOOperand opOp;
+    // stores def operands which are also used (to set the flag)
+    std::set<unsigned> tiedToOps;
+    // for (auto opInfo : desc.operands()) {
+    for (unsigned i = desc.getNumOperands(); i-- > 0;) {
+        const MCOperandInfo &opInfo = desc.operands()[i];
         if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
             // this operand must be identical to another operand
-            // unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+            // we are going backwards, so uses come first. If the use operand is tied to a def, this
+            // def has to be marked. marked defs get the "read" flag when they are being processed
+            // later
+            tiedToOps.insert(tiedToOp);
+            dbg(__func__, " skipping operand", i, " because tied to: ", tiedToOp);
             continue;
         }
+        dbg(__func__, " adding operand: ", i);
+        IOOperand opOp;
         if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
             opOp.opClass = "register";
             opOp.name = std::make_optional(getEnv().regClassToString(opInfo.RegClass));
+            opOp.write = i < desc.getNumDefs();
+            opOp.read = !opOp.write;
+            // check if this is a use or a def marked as being used
+            if (i >= desc.getNumDefs() || tiedToOps.find(i) != tiedToOps.end()) {
+                opOp.read = true;
+                dbg(__func__, " set read to true, op: ", i);
+            }
+
         } else if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
             opOp.opClass = "immediate";
             opOp.imd = std::make_optional("int");
+            opOp.read = true;
+            opOp.write = false;
         } else if (opInfo.OperandType == MCOI::OPERAND_MEMORY)
             continue; // TODO memory
         else
             continue;
-        operands.emplace_back(opOp);
+        operands.insert(operands.begin(), opOp);
     }
     IOInstruction opInst;
     opInst.llvmName = getEnv().MCII->getName(Opcode).str();
@@ -127,9 +147,9 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
                       [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
     // Found entry, update it:
-    if (isError(M.ec)) 
+    if (isError(M.ec))
         it->operandLatencies[useIndexString][defIndexString] = std::nullopt;
-     else {
+    else {
         it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
         // take any latency value for now to ensure OSACA compatibility, remove once OSACA is
         // updated to use operandLatencies
