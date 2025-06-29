@@ -12,3 +12,6 @@ lb-*
 build*
 llvm-build*
 llvm-project
+analysis/reference-files
+venv
+uops.xml
