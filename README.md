@@ -55,3 +55,7 @@ If an instruction would need a helper but none can be found, NAME will fail and 
 NAME can only use instructions as helper if they were measured in the current run which is a problem when trying to measure single instructions.
 The solution is to first do a full run and look up the dependencies of the instruction in the report, then the measurement can be reproduced by supplying all dependencies alongside the instruction using the `-i <LLVM_INSTRUCTION_NAME>` option. \
 Note that currently `--updateDatabase` does NOT load the values into the internal working databases so the information read from there can NOT be used as helpers.
+
+## Analysis/Reference files
+There are scripts in `analysis` to compare the measurements on x86 with uops.info aswell as to generate useful reference files which contain comprehensive information about instructions, operands, registers etc. from LLVM. For more details refer to the README in `analysis`.
+
