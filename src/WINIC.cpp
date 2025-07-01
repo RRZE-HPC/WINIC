@@ -1,4 +1,4 @@
-#include "LLVMBench.h"
+#include "WINIC.h"
 
 #include "BenchmarkGenerator.h"
 #include "CLI11.hpp"
@@ -957,7 +957,7 @@ int main(int argc, char **argv) {
     bool noDB = false;
     std::string cpu = "";
     std::string march = "";
-    CLI::App app{"LLVMBench"};
+    CLI::App app{"winic"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
     app.add_flag("--noReport", noReport, "Dont generate report file")->default_val(false);

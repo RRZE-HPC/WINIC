@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(LLVMBench LANGUAGES CXX)
+project(winic LANGUAGES CXX)
 
 # Require C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -58,10 +58,10 @@ file(GLOB SRC_FILES
 )
 
 # Define the executable target
-add_executable(LLVMBench ${SRC_FILES})
+add_executable(winic ${SRC_FILES})
 
 # Include LLVM and Clang headers
-include_directories(LLVMBench SYSTEM PRIVATE
+include_directories(winic SYSTEM PRIVATE
   ${LLVM_INCLUDE_DIRS}
   ${Clang_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/include
@@ -69,7 +69,7 @@ include_directories(LLVMBench SYSTEM PRIVATE
 )
 
 # Add backend include paths for target descriptions
-target_include_directories(LLVMBench SYSTEM PRIVATE
+target_include_directories(winic SYSTEM PRIVATE
   ${LLVM_SOURCE_DIR}/lib/Target/X86
   ${LLVM_BINARY_DIR}/lib/Target/X86
   ${LLVM_SOURCE_DIR}/lib/Target/AArch64
@@ -79,16 +79,16 @@ target_include_directories(LLVMBench SYSTEM PRIVATE
 )
 
 # Compiler warning flags
-# target_compile_options(LLVMBench PRIVATE -Wall -Wextra -Wpedantic)
+# target_compile_options(winic PRIVATE -Wall -Wextra -Wpedantic)
 
 # Pass CLANG_PATH macro to the compiler
 # It will be a quoted string literal in the C++ code
-target_compile_definitions(LLVMBench PRIVATE
+target_compile_definitions(winic PRIVATE
   CLANG_PATH="${CLANG_PATH}"
 )
 
 # Link against LLVM and Clang libraries
-target_link_libraries(LLVMBench PRIVATE
+target_link_libraries(winic PRIVATE
   ${LLVM_LIBS}
   ${CLANG_LIBS}
 )

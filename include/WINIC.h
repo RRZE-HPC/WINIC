@@ -200,7 +200,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency);
 void buildLatDatabase(double Frequency);
 
 /**
- * \brief Main entry point for the LLVMBench program.
+ * \brief Main entry point for the WINIC program.
  *
  * \param argc Argument count.
  * \param argv Argument vector.

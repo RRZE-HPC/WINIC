@@ -2,7 +2,7 @@
 #include "llvm/Support/YAMLTraits.h"
 #include <ErrorCode.h>
 #include <Globals.h>
-#include <LLVMBench.h>
+#include <WINIC.h>
 #include <optional>
 #include <string>
 
