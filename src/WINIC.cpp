@@ -960,8 +960,8 @@ int main(int argc, char **argv) {
     CLI::App app{"winic"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
-    app.add_flag("--noReport", noReport, "Dont generate report file")->default_val(false);
-    app.add_flag("--noDB", noDB, "Dont generate database file")->default_val(false);
+    app.add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
+    app.add_flag("--noDB", noDB, "Don't generate database file")->default_val(false);
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
