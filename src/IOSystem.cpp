@@ -27,10 +27,8 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
             // def has to be marked. marked defs get the "read" flag when they are being processed
             // later
             tiedToOps.insert(tiedToOp);
-            dbg(__func__, " skipping operand", i, " because tied to: ", tiedToOp);
             continue;
         }
-        dbg(__func__, " adding operand: ", i);
         IOOperand opOp;
         if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
             opOp.opClass = "register";
@@ -40,7 +38,6 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
             // check if this is a use or a def marked as being used
             if (i >= desc.getNumDefs() || tiedToOps.find(i) != tiedToOps.end()) {
                 opOp.read = true;
-                dbg(__func__, " set read to true, op: ", i);
             }
 
         } else if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
@@ -69,7 +66,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
             s.end());
     opInst.name = s;
     opInst.operands = operands;
-    opInst.operandLatencies = {};
+    opInst.latencies = {};
     opInst.latency = std::nullopt;
     opInst.throughput = std::nullopt;
     opInst.throughputMin = std::nullopt;
@@ -136,24 +133,41 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         useIndexString = getEnv().MRI->getName(M.type.useOp.getRegister());
     if (M.type.defOp.isRegister())
         defIndexString = getEnv().MRI->getName(M.type.defOp.getRegister());
-    auto it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
-                           [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    if (it == outputDatabase.end()) {
+    auto instruction =
+        std::find_if(outputDatabase.begin(), outputDatabase.end(),
+                     [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
+    if (instruction == outputDatabase.end()) {
         // Not found, create first
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
         outputDatabase.push_back(opInst);
     }
-    it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
-                      [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    // Found entry, update it:
-    if (isError(M.ec))
-        it->operandLatencies[useIndexString][defIndexString] = std::nullopt;
-    else {
-        it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
+    instruction = std::find_if(outputDatabase.begin(), outputDatabase.end(),
+                               [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
+    auto latencyEntry = std::find_if(
+        instruction->latencies.begin(), instruction->latencies.end(), [&](const IOLatency &Lat) {
+            return Lat.sourceOperand == useIndexString && Lat.targetOperand == defIndexString;
+        });
+    std::optional<double> min =
+        isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.lowerBound));
+    std::optional<double> max =
+        isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.upperBound));
+    if (latencyEntry != instruction->latencies.end()) {
+        // Found entry, update it:
+        latencyEntry->min = min;
+        latencyEntry->max = max;
+    } else {
+        // no entry with this src target combination, add it
+        IOLatency lat;
+        lat.sourceOperand = useIndexString;
+        lat.targetOperand = defIndexString;
+        lat.min = min;
+        lat.max = max;
+        instruction->latencies.insert(instruction->latencies.end(), lat);
+        // it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
         // take any latency value for now to ensure OSACA compatibility, remove once OSACA is
         // updated to use operandLatencies
-        it->latency = std::round(M.lowerBound);
+        instruction->latency = min;
     }
 
     return SUCCESS;

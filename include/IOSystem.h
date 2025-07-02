@@ -1,8 +1,8 @@
-#include <llvm/ADT/StringRef.h>
 #include "llvm/Support/YAMLTraits.h"
 #include <ErrorCode.h>
 #include <Globals.h>
 #include <WINIC.h>
+#include <llvm/ADT/StringRef.h>
 #include <optional>
 #include <string>
 
@@ -15,8 +15,15 @@ struct IOOperand {
     std::string opClass;             ///< Operand class (e.g., "register", "immediate")
     std::optional<std::string> name; ///< Optional operand name
     std::optional<std::string> imd;  ///< Optional immediate value type
-    bool read;  ///< Is this operand read?
-    bool write;  ///< Is this operand written?
+    bool read;                       ///< Is this operand read?
+    bool write;                      ///< Is this operand written?
+};
+
+struct IOLatency {
+    std::string sourceOperand;
+    std::string targetOperand;
+    std::optional<double> min;
+    std::optional<double> max;
 };
 
 using StringOptionalDoubleMap = std::map<std::string, std::optional<double>>;
@@ -34,7 +41,7 @@ struct IOInstruction {
     std::string name;                    ///< Assembly mnemonic
     std::vector<IOOperand> operands;     ///< List of operands
     std::optional<double> latency;       ///< Overall instruction latency
-    IOLatMap operandLatencies;           ///< Operand-level latencies
+    std::vector<IOLatency> latencies;    ///< Operand-level latencies
     std::optional<double> throughput;    ///< Throughput value
     std::optional<double> throughputMin; ///< Minimum throughput
     std::optional<double> throughputMax; ///< Maximum throughput
@@ -42,6 +49,7 @@ struct IOInstruction {
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOOperand)
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOInstruction)
+LLVM_YAML_IS_SEQUENCE_VECTOR(IOLatency)
 LLVM_YAML_IS_STRING_MAP(std::optional<double>)
 LLVM_YAML_IS_STRING_MAP(StringOptionalDoubleMap)
 
@@ -57,6 +65,14 @@ template <> struct MappingTraits<IOOperand> {
         Io.mapRequired("write", Op.write);
     }
 };
+template <> struct MappingTraits<IOLatency> {
+    static void mapping(IO &Io, IOLatency &Lat) {
+        Io.mapRequired("sourceOperand", Lat.sourceOperand);
+        Io.mapRequired("targetOperand", Lat.targetOperand);
+        Io.mapRequired("latencyMax", Lat.max);
+        Io.mapRequired("latencyMin", Lat.min);
+    }
+};
 
 template <> struct MappingTraits<IOInstruction> {
     static void mapping(IO &Io, IOInstruction &Inst) {
@@ -64,7 +80,7 @@ template <> struct MappingTraits<IOInstruction> {
         Io.mapRequired("name", Inst.name);
         Io.mapRequired("operands", Inst.operands);
         Io.mapRequired("latency", Inst.latency);
-        Io.mapRequired("operandLatencies", Inst.operandLatencies);
+        Io.mapRequired("operandLatencies", Inst.latencies);
         Io.mapRequired("throughput", Inst.throughput);
         Io.mapRequired("throughputMin", Inst.throughputMin);
         Io.mapRequired("throughputMax", Inst.throughputMax);
