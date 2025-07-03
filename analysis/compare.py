@@ -1,14 +1,15 @@
 from dataclasses import dataclass
+from typing import List, Literal
+from pprint import pprint
 import json
 import os
-from pprint import pprint
 import re
 import numpy as np
 import yaml
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
-from typing import List, Literal
 import common_functions as cf
+import matplotlib.cm as cm
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -736,7 +737,9 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
     print(f"{c.noUopsDataC} values were matched but uops has no data")
     total_matching = c.uniqueMatchSameValueC + c.multiMatchSameValueC
     total_non_matching = c.uniqueMatchDiffValueC + c.multiMatchDiffValueC
-    print(f"{(total_matching)/(total_matching+total_non_matching):.2f}% of values are the same (excluding missing matches)")
+    print(
+        f"{(total_matching)/(total_matching+total_non_matching):.2f}% of values are the same (excluding missing matches)"
+    )
     return c
 
 
@@ -858,16 +861,33 @@ def plot_combined(lat: Counters, tp: Counters):
         # "no match",
     ]
 
+    colors = [
+        "#91cf60",  # medium green
+        "#d9ef8b",  # light green
+        "#fee08b",  # yellow
+        "#fc8d59",  # orange
+        "grey",
+        "grey",
+    ]
+
     def no_zero_autopct(pct):
         return f"{pct:.1f}%" if pct > 0 else ""
 
     tab20c = plt.color_sequences["tab20c"]
 
-    outer_colors = [tab20c[i] for i in [8, 4, 17]]
-    inner_colors = [tab20c[i] for i in [9, 11, 7, 5, 17, 1]]
+    # inner_colors = [tab20c[i] for i in [8, 4, 17]]
+    # outer_colors = [tab20c[i] for i in [9, 11, 7, 5, 17, 1]]
+    inner_colors = ["#008000", "#ff0000", "grey"]
+    outer_colors = [
+        "#6fbe59",
+        "#bfffa7",
+        "#ffd8b3",
+        "#ff914d",
+        "grey",
+        "grey",
+    ]
+    # outer_colors = colors
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5))
-    # ax1.set_position([0.25, 0.1, 0.6, 0.8])
-    # ax2.set_position([0.57, 0.1, 0.6, 0.8])
     ax1.set(aspect="equal")  # keep the pie circular
     ax2.set(aspect="equal")  # keep the pie circular
     ax1.set(title="Latency")
@@ -898,7 +918,7 @@ def plot_combined(lat: Counters, tp: Counters):
     acc_wedges, _, _ = ax1.pie(
         lat.sum(axis=1),
         radius=1 - size,
-        colors=outer_colors,
+        colors=inner_colors,
         wedgeprops=dict(width=size, edgecolor="w"),
         autopct=no_zero_autopct,
         pctdistance=0.77,
@@ -906,7 +926,7 @@ def plot_combined(lat: Counters, tp: Counters):
     wedges, _, _ = ax1.pie(
         lat.flatten(),
         radius=1,
-        colors=inner_colors,
+        colors=outer_colors,
         wedgeprops=dict(width=size, edgecolor="w"),
         autopct=no_zero_autopct,
         pctdistance=0.85,
@@ -916,7 +936,7 @@ def plot_combined(lat: Counters, tp: Counters):
     acc_wedges, _, _ = ax2.pie(
         tp.sum(axis=1),
         radius=1 - size,
-        colors=outer_colors,
+        colors=inner_colors,
         wedgeprops=dict(width=size, edgecolor="w"),
         autopct=no_zero_autopct,
         pctdistance=0.77,
@@ -924,7 +944,7 @@ def plot_combined(lat: Counters, tp: Counters):
     wedges, _, _ = ax2.pie(
         tp.flatten(),
         radius=1,
-        colors=inner_colors,
+        colors=outer_colors,
         wedgeprops=dict(width=size, edgecolor="w"),
         autopct=no_zero_autopct,
         pctdistance=0.85,
@@ -961,8 +981,8 @@ def main(database, arch: str):
     plot_combined(lat_res, tp_res)
 
 
-main("data/genoa/genoa.yaml", "ZEN4")
+# main("data/genoa/genoa.yaml", "ZEN4")
 # compare("./ParseInstructions/x86/genoa.yaml", "lat", "ZEN4")
 # compare("./ParseInstructions/x86/genoa.yaml", "tp", "ZEN4")
-# plot_combined([], [])
+plot_combined(None, None)
 # checkSameDev()
