@@ -954,20 +954,17 @@ void buildLatDatabase(double Frequency) {
 int main(int argc, char **argv) {
     double frequency;
     bool noReport = false;
-    bool noDB = false;
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"winic"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
     app.add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
-    app.add_flag("--noDB", noDB, "Don't generate database file")->default_val(false);
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
 
     std::vector<std::string> instrNames;
-    std::vector<unsigned> opcodes;
     unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
     std::string databasePath = "";
@@ -975,13 +972,19 @@ int main(int argc, char **argv) {
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     tp->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(tpInstOpt);
     tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(tpInstOpt);
-    tp->add_option("--updateDatabase", databasePath, "Write new values to existing database");
+    tp->add_option("-o,--output", databasePath,
+                   "Path to the .yaml file to save the results to. If the file already exists new "
+                   "values will be overwritten. If emtpy a timestamped file will be generated. If "
+                   "/dev/null no file will be generated");
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     lat->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
     lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
-    lat->add_option("--updateDatabase", databasePath, "Write new values to existing database");
+    lat->add_option("-o,--output", databasePath,
+                    "Path to the .yaml file to save the results to. If the file already exists new "
+                    "values will be overwritten. If emtpy a timestamped file will be generated. If "
+                    "/dev/null no file will be generated");
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;
@@ -999,23 +1002,28 @@ int main(int argc, char **argv) {
     ios->precision(3);
     std::string timestamp = generateTimestamp();
 
-    if (noReport) {
+    if (noReport || *man)
         setOutputToFile("/dev/null");
-    } else {
-        if (*tp)
-            setOutputToFile("report_TP_" + timestamp + ".txt");
-        else if (*lat)
-            setOutputToFile("report_LAT_" + timestamp + ".txt");
-        else
-            setOutputToFile("/dev/null");
-    }
-    if (!databasePath.empty()) {
-        out(*ios, "Using existing database: ", databasePath);
-        ErrorCode EC = loadYaml(databasePath);
-        if (EC != SUCCESS) return 1;
-    } else
-        databasePath = str("db_", timestamp, ".yaml");
+    else if (*tp)
+        setOutputToFile("report_TP_" + timestamp + ".txt");
+    else if (*lat)
+        setOutputToFile("report_LAT_" + timestamp + ".txt");
 
+    if (databasePath != "/dev/null") {
+        if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
+        if (std::filesystem::exists(databasePath)) {
+            out(*ios, "Using existing database: ", databasePath);
+            ErrorCode EC = loadYaml(databasePath);
+            if (EC != SUCCESS) return -1;
+        } else
+            out(*ios, "Creating new database: ", databasePath);
+    }
+    
+    std::ostringstream ss;
+    for (int i = 0; i < argc; ++i) 
+        ss << argv[i] << " ";
+    
+    out(*ios, "Command: ", ss.str());
     out(*ios, "Frequency: ", frequency, " GHz");
     dbgToFile = false;
 
@@ -1029,6 +1037,7 @@ int main(int argc, char **argv) {
     out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
     if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
 
+    std::vector<unsigned> opcodes;
     for (auto instrName : instrNames) {
         unsigned opcode = getEnv().getOpcode(instrName.data());
         if (opcode == std::numeric_limits<unsigned>::max()) {
@@ -1097,7 +1106,7 @@ int main(int argc, char **argv) {
             if (result.ec == SUCCESS) updateDatabaseEntryTP(result);
 
         // save database
-        if (!noDB) {
+        if (databasePath != "/dev/null") {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
@@ -1137,7 +1146,7 @@ int main(int argc, char **argv) {
         }
 
         // save database
-        if (!noDB) {
+        if (databasePath != "/dev/null") {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
