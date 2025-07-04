@@ -1,5 +1,6 @@
 import os
 import json
+import urllib.request
 import common_functions as cf
 
 
@@ -30,9 +31,16 @@ def build_quick_reference_files(input_file, output_dir):
     # cf.dict_to_file({"superclasses": instr_superclasses}, "superclass")
 
 
+def download_uops_results():
+    url = "https://uops.info/instructions.xml"
+    if not os.path.exists("analysis/reference-files/uops.xml"):
+        urllib.request.urlretrieve(url, "analysis/reference-files/uops.xml")
+
+
 os.makedirs("analysis/reference-files/X86", exist_ok=True)
 os.makedirs("analysis/reference-files/AArch64", exist_ok=True)
 os.makedirs("analysis/reference-files/RISCV", exist_ok=True)
 build_quick_reference_files("analysis/reference-files/X86.json", "analysis/reference-files/X86/")
 build_quick_reference_files("analysis/reference-files/AArch64.json", "analysis/reference-files/AArch64/")
 build_quick_reference_files("analysis/reference-files/RISCV.json", "analysis/reference-files/RISCV/")
+download_uops_results()
