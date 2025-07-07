@@ -8,7 +8,6 @@ import numpy as np
 import yaml
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
-import common_functions as cf
 import matplotlib.cm as cm
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -135,7 +134,8 @@ class Operand:
 class Latency:
     startOpIndex: int
     targetOpIndex: int
-    cycles: int
+    cyclesMin: int
+    cyclesMax: int
 
 
 @dataclass
@@ -185,7 +185,7 @@ def parse_uops_latency(lat: ET.Element) -> Latency:
     except KeyError:
         # happens e.g. on latency values regarding memory
         return None
-    return Latency(startOp, targetOp, cycles)
+    return Latency(startOp, targetOp, cycles, cycles)
 
 
 def parse_uops_instruction(entry: ET.Element, arch: str):
@@ -478,24 +478,28 @@ def parse_WINIC_instruction(dbEntry) -> Instruction:
     instruction.throughput_lower = dbEntry.get("throughputMin", None)
     instruction.throughput_upper = dbEntry.get("throughputMax", None)
     operand_latencies = dbEntry.get("operandLatencies", {})
-    for startOp, targets in operand_latencies.items():
-        for targetOp, cycles in targets.items():
-            if isinstance(startOp, str):
-                # need to find index generated for that operand by parse_LLVM_instruction
-                startIndex = next(
-                    (op.index for op in instruction.operands if len(op.regList) == 1 and op.regList[0] == startOp), None
-                )
-            else:
-                startIndex = startOp + 1  # uops counts from 1, winic from 0
-            if isinstance(targetOp, str):
-                # need to find index generated for that operand by parse_LLVM_instruction
-                targetIndex = next(
-                    (op.index for op in instruction.operands if len(op.regList) == 1 and op.regList[0] == targetOp),
-                    None,
-                )
-            else:
-                targetIndex = targetOp + 1  # uops counts from 1, winic from 0
-            instruction.latencies.append(Latency(startIndex, targetIndex, cycles))
+    for lat in operand_latencies:
+        sourceOp: str = lat["sourceOperand"]
+        # if "ADC16ri" in dbEntry["llvmName"]:
+        #     print(lat)
+        #     print(lat["sourceOperand"])
+        #     exit(1)
+        targetOp = lat["targetOperand"]
+        if sourceOp.isnumeric():
+            sourceIndex = int(sourceOp) + 1  # uops counts from 1, winic from 0
+        else:
+            # need to find index generated for that operand by parse_LLVM_instruction
+            sourceIndex = next(
+                (op.index for op in instruction.operands if len(op.regList) == 1 and op.regList[0] == sourceOp), None
+            )
+        if targetOp.isnumeric():
+            targetIndex = int(targetOp) + 1  # uops counts from 1, winic from 0
+        else:
+            # need to find index generated for that operand by parse_LLVM_instruction
+            targetIndex = next(
+                (op.index for op in instruction.operands if len(op.regList) == 1 and op.regList[0] == targetOp), None
+            )
+        instruction.latencies.append(Latency(sourceIndex, targetIndex, lat["latencyMin"], lat["latencyMax"]))
     return instruction
 
 
@@ -636,7 +640,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
             if len(u_matches) == 0:
                 outputLines.append(f"{llvm_name}: no match, classify: noMatch\n")
                 for lat in m_instr.latencies:
-                    if lat.cycles != None:
+                    if lat.cyclesMin != None:
                         c.noMatchC += 1
                     else:
                         c.dbEmptyValueC += 1
@@ -647,17 +651,19 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
             #     continue
             # one or multiple matches
             for m_lat in m_instr.latencies:
-                if m_lat.cycles == None:
+                if m_lat.cyclesMin == None:
                     c.dbEmptyValueC += 1
                     continue
                 data_match = []
                 for u_instr in u_matches:
                     # find the corresponding latency value in the uops instruction
                     # first get the actual operands
-                    m_src_op = next(op for op in m_instr.operands if op.index == m_lat.startOpIndex)
-                    m_dst_op = next(op for op in m_instr.operands if op.index == m_lat.targetOpIndex)
-                    if m_src_op is None or m_dst_op is None:
+                    try:
+                        m_src_op = next(op for op in m_instr.operands if op.index == m_lat.startOpIndex)
+                        m_dst_op = next(op for op in m_instr.operands if op.index == m_lat.targetOpIndex)
+                    except StopIteration:
                         print("fatal error, latency result references an non-existing operand (unreachable)")
+                        pprint(m_instr)
                         exit(1)
 
                     # get all uops operands that could correspond to the current winic ones
@@ -697,18 +703,16 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
                         )
                     except StopIteration:
                         continue
-                    if u_lat.cycles == m_lat.cycles:
-                        # outputLines.append(f"{llvm_name}:  classify: matchingVal\n")
+                    if m_lat.cyclesMin <= u_lat.cyclesMin and u_lat.cyclesMin <= m_lat.cyclesMax:
                         data_match.append(True)
                         outputLines.append(
-                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cycles}, WINIC: {m_lat.cycles}, classify: sameVal\n"
+                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: sameVal\n"
                         )
                     else:
-                        # outputLines.append(f"{llvm_name}:  classify: diffValue\n")
-                        outputLines.append(
-                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cycles}, WINIC: {m_lat.cycles}, classify: differentVal\n"
-                        )
                         data_match.append(False)
+                        outputLines.append(
+                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: differentVal\n"
+                        )
                 if len(data_match) == 0:
                     c.noUopsDataC += 1
                 elif False in data_match:
@@ -738,7 +742,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
     total_matching = c.uniqueMatchSameValueC + c.multiMatchSameValueC
     total_non_matching = c.uniqueMatchDiffValueC + c.multiMatchDiffValueC
     print(
-        f"{(total_matching)/(total_matching+total_non_matching):.2f}% of values are the same (excluding missing matches)"
+        f"{(total_matching)*100/(total_matching+total_non_matching):.2f}% of values are the same (excluding missing matches)"
     )
     return c
 
@@ -894,8 +898,9 @@ def plot_combined(lat: Counters, tp: Counters):
     ax2.set(title="Throughput")
     size = 0.3
 
+    # reference values are Zen4
     if lat is None:
-        lat = np.array([[5214, 4109], [461, 1073], [437, 0]])
+        lat = np.array([[5740, 4274], [240, 475], [400, 0]])
     else:
         lat = np.array(
             [
@@ -905,7 +910,7 @@ def plot_combined(lat: Counters, tp: Counters):
             ]
         )
     if tp is None:
-        tp = np.array([[3179, 1949], [103, 250], [258, 0]])
+        tp = np.array([[3171, 1953], [99, 258], [258, 0]])
     else:
         tp = np.array(
             [
@@ -982,7 +987,6 @@ def main(database, arch: str):
 
 
 # main("data/genoa/genoa.yaml", "ZEN4")
-# compare("./ParseInstructions/x86/genoa.yaml", "lat", "ZEN4")
-# compare("./ParseInstructions/x86/genoa.yaml", "tp", "ZEN4")
+# compare(os.path.join(script_dir, os.pardir, "data", "genoa", "genoanew.yaml"), "lat", "ZEN4")
+# compare(os.path.join(script_dir, os.pardir, "data", "genoa", "genoanew.yaml"), "tp", "ZEN4")
 plot_combined(None, None)
-# checkSameDev()
