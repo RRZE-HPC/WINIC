@@ -293,7 +293,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
                                              unsigned NumInst, unsigned LoopCount, double Frequency,
                                              bool Throughput) {
     dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime,
-        " NumInst: ", NumInst, "LoopCount", LoopCount);
+        " NumInst: ", NumInst, " LoopCount: ", LoopCount);
     // correct the result using one measurement with NumInst and one with 2*NumInst. This
     // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
@@ -953,13 +953,11 @@ void buildLatDatabase(double Frequency) {
 
 int main(int argc, char **argv) {
     double frequency;
-    bool noReport = false;
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"winic"};
     app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
-    app.add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
@@ -967,11 +965,13 @@ int main(int argc, char **argv) {
     std::vector<std::string> instrNames;
     unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
+    bool noReport = false;
     std::string databasePath = "";
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     tp->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(tpInstOpt);
     tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(tpInstOpt);
+    tp->add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
     tp->add_option("-o,--output", databasePath,
                    "Path to the .yaml file to save the results to. If the file already exists new "
                    "values will be overwritten. If emtpy a timestamped file will be generated. If "
@@ -981,6 +981,7 @@ int main(int argc, char **argv) {
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     lat->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
     lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
+    lat->add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
     lat->add_option("-o,--output", databasePath,
                     "Path to the .yaml file to save the results to. If the file already exists new "
                     "values will be overwritten. If emtpy a timestamped file will be generated. If "
@@ -1018,11 +1019,11 @@ int main(int argc, char **argv) {
         } else
             out(*ios, "Creating new database: ", databasePath);
     }
-    
+
     std::ostringstream ss;
-    for (int i = 0; i < argc; ++i) 
+    for (int i = 0; i < argc; ++i)
         ss << argv[i] << " ";
-    
+
     out(*ios, "Command: ", ss.str());
     out(*ios, "Frequency: ", frequency, " GHz");
     dbgToFile = false;
