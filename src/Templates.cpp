@@ -179,7 +179,7 @@ done_functionName:
         {"d", "movi reg.4s, #imm"},
         {"s", "moiv reg.4s, #imm"},
         {"default", "mov reg, #imm"}},
-    {"w0"}};
+    {"x4"}};
 
 Template RISCVTemplate = {
     R"(
@@ -294,7 +294,7 @@ done_functionName:
         {"f", "li reg, imm"},
         {"v", "li t2, imm\nvmv.v.x reg, t2"},
         {"default", "li reg, imm"}},
-    {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (cant use abi names here)
+    {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (can't use abi names here)
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
