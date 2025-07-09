@@ -26,12 +26,6 @@ struct IOLatency {
     std::optional<double> max;
 };
 
-using StringOptionalDoubleMap = std::map<std::string, std::optional<double>>;
-
-/**
- * \brief Map from use operand to def operand to latency value.
- */
-using IOLatMap = std::map<std::string, StringOptionalDoubleMap>;
 
 /**
  * \brief Represents an instruction for YAML serialization.
@@ -51,7 +45,6 @@ LLVM_YAML_IS_SEQUENCE_VECTOR(IOOperand)
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOInstruction)
 LLVM_YAML_IS_SEQUENCE_VECTOR(IOLatency)
 LLVM_YAML_IS_STRING_MAP(std::optional<double>)
-LLVM_YAML_IS_STRING_MAP(StringOptionalDoubleMap)
 
 namespace llvm {
 namespace yaml {
@@ -69,8 +62,8 @@ template <> struct MappingTraits<IOLatency> {
     static void mapping(IO &Io, IOLatency &Lat) {
         Io.mapRequired("sourceOperand", Lat.sourceOperand);
         Io.mapRequired("targetOperand", Lat.targetOperand);
-        Io.mapRequired("latencyMax", Lat.max);
         Io.mapRequired("latencyMin", Lat.min);
+        Io.mapRequired("latencyMax", Lat.max);
     }
 };
 
