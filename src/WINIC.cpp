@@ -918,10 +918,10 @@ void buildLatDatabase(double Frequency) {
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
-            latencyOutputMessage[mA->opcode] += str("\t", mA->toStringWithBounds(), ":\n");
+            latencyOutputMessage[mA->opcode] += str("\t", mA->toStringWithBounds(), "\n");
             if (!isError(EC)) {
                 latencyOutputMessage[mA->opcode] +=
-                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB, "\n");
+                    str("\t\tDependencies:\n\t\t\t", *smallestA, "\n\t\t\t", *smallestB, "\n");
                 latencyOutputMessage[mA->opcode] += str("\t\tCombined result: ", lat, " cycles\n");
             }
         }
@@ -934,10 +934,10 @@ void buildLatDatabase(double Frequency) {
             mB->upperBound = lat - smallestA->lowerBound;
             if (isUnusualLat(mB->lowerBound)) mB->ec = E_UNUSUAL_LATENCY;
 
-            latencyOutputMessage[mB->opcode] += str("\t", mB->toStringWithBounds(), ":\n");
+            latencyOutputMessage[mB->opcode] += str("\t", mB->toStringWithBounds(), "\n");
             if (!isError(EC)) {
                 latencyOutputMessage[mB->opcode] +=
-                    str("\t\tDependencies: ", *smallestA, ", ", *smallestB, "\n");
+                    str("\t\tDependencies:\n\t\t\t", *smallestA, "\n\t\t\t", *smallestB, "\n");
                 latencyOutputMessage[mB->opcode] += str("\t\tCombined result: ", lat, " cycles\n");
             }
         }

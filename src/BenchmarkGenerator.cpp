@@ -224,7 +224,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
                                                   unsigned HelperOpcode) {
-    dbg(__func__, "Opcode: ", Opcode, " TargetInstrCount: ", *TargetInstrCount,
+    dbg(__func__, "Opcode: ", Opcode, " Name: ",getEnv().MCII->getName(Opcode).str(), " TargetInstrCount: ", *TargetInstrCount,
         " UnrollCount: ", UnrollCount, " UsedRegisters.size(): ", UsedRegisters.size(),
         " HelperConstraints.size(): ", HelperConstraints.size());
     if (HelperOpcode != MAX_UNSIGNED)
