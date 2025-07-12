@@ -15,7 +15,7 @@ while [[ "$#" -gt 0 ]]; do
             qecho "Usage: $0 [--dir buildDirIdentifier]"
             exit 0 
             ;;
-        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+        *) echo "Unknown parameter passed: $1, Usage: $0 [--dir buildDirIdentifier]"; exit 1 ;;
     esac
     shift
 done
