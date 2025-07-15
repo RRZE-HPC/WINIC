@@ -35,6 +35,8 @@ BUILD_DIR="build$BUILD_DIR"
 
 LLVM_BUILD_DIR="./llvm-$BUILD_DIR"
 
+NUM_PROCS=$(nproc)
+
 # Check if build dir exists
 if [ -d "$LLVM_BUILD_DIR" ]; then
     echo "Using existing build dir '$LLVM_BUILD_DIR'."
@@ -48,7 +50,7 @@ else
     -DLLVM_TARGETS_TO_BUILD="X86;AArch64;RISCV" \
     -DCMAKE_BUILD_TYPE=Release
 
-    cmake --build . -- -j 90
+    cmake --build . -- -j "$NUM_PROCS"
 fi
 
 mkdir -p ../$BUILD_DIR && cd ../$BUILD_DIR
