@@ -22,8 +22,10 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/TargetParser/Host.h"
+#include <ErrorCode.h>
 #include <algorithm>
 #include <assert.h>
+#include <cstddef>
 #include <iterator>
 #include <limits>
 #include <optional>
@@ -135,6 +137,13 @@ bool LLVMEnvironment::regInRegClass(MCRegister Reg, MCRegisterClass RegClass) {
 bool LLVMEnvironment::regInRegClass(MCRegister Reg, unsigned RegClassID) {
     const MCRegisterClass &regClass = MRI->getRegClass(RegClassID);
     return regInRegClass(Reg, regClass);
+}
+
+std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getRegClass(MCRegister Reg) {
+    for (unsigned i = 0; i < MRI->getNumRegClasses(); i++)
+        if (regInRegClass(Reg, i)) return {SUCCESS, MRI->getRegClass(i)};
+
+    return {E_GENERIC, {}};
 }
 
 std::string LLVMEnvironment::regToString(MCRegister Reg) { return TRI->getName(Reg); }

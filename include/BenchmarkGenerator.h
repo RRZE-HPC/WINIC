@@ -24,15 +24,6 @@ struct Template;
 using namespace llvm;
 
 /**
- * \brief Generates initialization code for a register.
- * \param Reg The register to initialize.
- * \param InitValue The value to initialize the register with.
- * \param BenchTemplate The template to use for initialization.
- * \return Assembly code string for register initialization.
- */
-std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate);
-
-/**
  * \brief Generates all possible latency measurements for all instructions.
  * \param MinOpcode Minimum opcode to consider.
  * \param MaxOpcode Maximum opcode to consider.
@@ -157,6 +148,14 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
  * \return Pair of ErrorCode and assembly code string.
  */
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
+
+/**
+ * \brief Generates initialization code for a register.
+ * \param Reg The register to initialize.
+ * \param Value The value to initialize the register with, current maximum 15.
+ * \return Assembly code string for register initialization or empty string on error.
+ */
+std::string genSetRegister(MCRegister Reg, unsigned Value);
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.

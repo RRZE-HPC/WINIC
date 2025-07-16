@@ -81,6 +81,14 @@ class LLVMEnvironment {
      */
     bool regInRegClass(MCRegister Reg, unsigned RegClassID);
 
+
+    /**
+     * \brief Get any register class the register belongs to.
+     * \param Reg The register to check.
+     * \return {SUCCESS, Register class} if a class was found, {E_GENERIC} otherwise.
+     */
+    std::pair<ErrorCode, MCRegisterClass> getRegClass(MCRegister Reg);
+
     /**
      * \brief Converts a register to its string representation.
      * \param Reg The register to convert.

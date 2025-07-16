@@ -4,8 +4,6 @@
 #include "llvm/TargetParser/Triple.h"
 #include <set>
 #include <string>
-#include <utility>
-#include <vector>
 
 using std::string;
 
@@ -17,12 +15,10 @@ using std::string;
  */
 struct Template {
     string prefix, preInit, postInit, preLoop, beginLoop, midLoop, endLoop, postLoop, suffix;
-    std::vector<std::pair<string, string>> regInitTemplates;
     std::set<string> usedRegisters;
 
     Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-             string EndLoop, string PostLoop, string Suffix,
-             std::vector<std::pair<string, string>> RegInitCode, std::set<string> UsedRegisters);
+             string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters);
 
   private:
     void trimLeadingNewline(string &Str);

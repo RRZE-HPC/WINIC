@@ -5,6 +5,8 @@
 #include "ErrorCode.h"
 #include "Globals.h"
 #include "LLVMEnvironment.h"
+#include "MCTargetDesc/AArch64MCTargetDesc.h"
+#include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "Templates.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -22,24 +24,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <initializer_list>
+#include <llvm/IR/Value.h>
+#include <llvm/MC/MCRegisterInfo.h>
 #include <memory>
+#include <optional>
 
-std::string genRegInit(MCRegister Reg, std::string InitValue, Template BenchTemplate) {
-    std::string regName = getEnv().TRI->getRegAsmName(Reg).lower().data();
-    for (auto a : BenchTemplate.regInitTemplates) {
-        if (regName.find(a.first) != std::string::npos || a.first == "default") {
-            if (a.second == "None") break; // template says this should not be initialized
-            if (getEnv().Arch == llvm::Triple::aarch64 && a.first != "default") {
-                // change reg name from e.g. q2 -> v2
-                regName = regName.replace(0, 1, "v");
-            }
-            std::string init = replaceAllInstances(a.second, "reg", regName) + "\n";
-            init = replaceAllInstances(init, "imm", InitValue);
-            return init;
-        }
-    }
-    return "";
-}
 
 std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
                                                std::unordered_set<unsigned> OpcodeBlacklist) {
@@ -187,14 +176,20 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
         }
     }
     std::string initCode;
+    std::string regInit;
     llvm::raw_string_ostream ico(initCode);
+    llvm::raw_string_ostream rio(regInit);
     ico << saveRegs << "\n";
+    std::set<MCRegister> initialized;
     for (auto inst : instructions) {
         // initialize all registers used by the instructions
         for (unsigned i = 0; i < inst.getNumOperands(); i++) {
             if (!inst.getOperand(i).isReg()) continue;
             MCRegister reg = inst.getOperand(i).getReg();
-            ico << genRegInit(reg, "0x4", benchTemplate);
+            if (initialized.find(reg) == initialized.end()) {
+                rio << genSetRegister(reg, 4);
+                initialized.insert(reg);
+            }
         }
         // execute each instruction once in the init function to e.g. mark registers as avx
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, ico);
@@ -204,8 +199,9 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
 
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("lat", saveRegs, loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("lat2", saveRegs, loopCode + loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("lat", saveRegs + regInit, loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("lat2", saveRegs + regInit, loopCode + loopCode, restoreRegs,
+                                  "init");
 
     // check if each instruction of the sequence has exactly one dependency to the next one.
     // otherwise return a warning
@@ -224,8 +220,9 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
                                                   unsigned HelperOpcode) {
-    dbg(__func__, "Opcode: ", Opcode, " Name: ",getEnv().MCII->getName(Opcode).str(), " TargetInstrCount: ", *TargetInstrCount,
-        " UnrollCount: ", UnrollCount, " UsedRegisters.size(): ", UsedRegisters.size(),
+    dbg(__func__, "Opcode: ", Opcode, " Name: ", getEnv().MCII->getName(Opcode).str(),
+        " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
+        " UsedRegisters.size(): ", UsedRegisters.size(),
         " HelperConstraints.size(): ", HelperConstraints.size());
     if (HelperOpcode != MAX_UNSIGNED)
         dbg(__func__, "Helper: ", getEnv().MCII->getName(HelperOpcode).data());
@@ -245,15 +242,14 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     ErrorCode EC;
     if (HelperOpcode != MAX_UNSIGNED) {
         std::tie(EC, instructions) = genTPLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
-                                                    *TargetInstrCount, UsedRegisters);
+                                               *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated, dont include
         // helper instructions
         *TargetInstrCount = UnrollCount * instructions.size() / 2;
     } else {
         // ho helper
-        std::tie(EC, instructions) =
-            genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters);
+        std::tie(EC, instructions) = genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = UnrollCount * instructions.size();
@@ -297,8 +293,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
 
 std::pair<ErrorCode, std::list<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
-               std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
-               unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters) {
+          std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
+          std::set<MCRegister> &UsedRegisters) {
     std::list<MCInst> instructions;
     for (unsigned i = 0; i < Opcodes.size(); i++) {
         unsigned opcode = Opcodes[i];
@@ -550,6 +546,107 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     return {SUCCESS, result};
 }
 
+std::string genSetRegister(MCRegister Reg, unsigned Value) {
+    dbg(__func__, "Register: ", getEnv().regToString(Reg), " Value: ", Value);
+    Value = 2;
+    std::string result;
+    llvm::raw_string_ostream os(result);
+    // a way to move the immediate into the register, may also be a chain of instructions
+    struct Solution {
+        MCInst inst;
+        // set this if another register is needed for staging
+        std::optional<MCRegister> dependencyReg;
+    };
+    // instructions in this list are tried in order
+    std::vector<Solution> solutions;
+
+    switch (getEnv().Arch) {
+    case llvm::Triple::x86_64: {
+        Solution solution1;
+        solution1.inst.setOpcode(X86::MOV64ri32); // GR64
+        solution1.inst.addOperand(MCOperand::createReg(Reg));
+        solution1.inst.addOperand(MCOperand::createImm(Value));
+        solutions.emplace_back(solution1);
+        Solution solution2;
+        solution2.inst.setOpcode(X86::MOVDI2PDIrr); // VR128
+        solution2.inst.addOperand(MCOperand::createReg(Reg));
+        solution2.inst.addOperand(MCOperand::createReg(X86::EAX));
+        solution2.inst.addOperand(MCOperand::createImm(Value));
+        solution2.dependencyReg = X86::EAX;
+        solutions.emplace_back(solution2);
+        break;
+    }
+    case llvm::Triple::aarch64: {
+        Solution solution1;
+        solution1.inst.setOpcode(AArch64::MOVZXi); // GPR64
+        solution1.inst.addOperand(MCOperand::createReg(Reg));
+        solution1.inst.addOperand(MCOperand::createImm(Value));
+        solution1.inst.addOperand(MCOperand::createImm(0));
+        solutions.emplace_back(solution1);
+        Solution solution2;
+        solution2.inst.setOpcode(AArch64::MOVID); // FPR64
+        solution2.inst.addOperand(MCOperand::createReg(Reg));
+        solution2.inst.addOperand(MCOperand::createImm(Value));
+        solutions.emplace_back(solution2);
+        break;
+    }
+    case llvm::Triple::riscv64: {
+        Solution solution1;
+        solution1.inst.setOpcode(RISCV::ADDI); // GPR
+        solution1.inst.addOperand(MCOperand::createReg(Reg));
+        solution1.inst.addOperand(MCOperand::createReg(RISCV::X0));
+        solution1.inst.addOperand(MCOperand::createImm(Value));
+        solutions.emplace_back(solution1);
+        Solution solution2;
+        solution2.inst.setOpcode(RISCV::FMV_W_X); // FPR32
+        solution2.inst.addOperand(MCOperand::createReg(Reg));
+        solution2.inst.addOperand(MCOperand::createReg(RISCV::X10));
+        solution1.inst.addOperand(MCOperand::createImm(Value));
+        solution2.dependencyReg = RISCV::X10;
+        solutions.emplace_back(solution2);
+        Solution solution3;
+        solution3.inst.setOpcode(RISCV::VMV_V_I); // VR
+        solution3.inst.addOperand(MCOperand::createReg(Reg));
+        solution3.inst.addOperand(MCOperand::createImm(Value));
+        solutions.emplace_back(solution3);
+        break;
+    }
+    default:
+        return "";
+    }
+
+    for (Solution solution : solutions) {
+        // find register class of move operation
+        const MCInstrDesc &desc = getEnv().MCII->get(solution.inst.getOpcode());
+        unsigned movClassID = desc.operands()[0].RegClass;
+        MCRegisterClass movClass = getEnv().MRI->getRegClass(movClassID);
+        if (!getEnv().regInRegClass(Reg, movClass)) {
+            // this can not be used by mov directly, check if the register has any superregister
+            // that can be used by the mov
+            for (MCRegister superReg : getEnv().TRI->superregs(Reg)) {
+                auto [EC, cl] = getEnv().getRegClass(superReg);
+                if (EC != SUCCESS) continue;
+                if (getEnv().regInRegClass(superReg, movClass)) {
+                    dbg(__func__, "initializing superregister ", getEnv().regToString(superReg),
+                        " instead of ", getEnv().regToString(Reg));
+                    return genSetRegister(superReg, Value);
+                }
+            }
+            continue; // solution cannot initialize this register
+        }
+        if (solution.dependencyReg) {
+            // this instruction needs another register to be initialized first
+            std::string dependencyString = genSetRegister(solution.dependencyReg.value(), Value);
+            if (dependencyString == "") return "";
+            os << dependencyString;
+        }
+        getEnv().MIP->printInst(&solution.inst, 0, "", *getEnv().MSTI, os);
+        os << "\n";
+        return result;
+    }
+    return "";
+}
+
 ErrorCode isValid(const MCInstrDesc &Desc) {
     if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
     if (Desc.mayLoad()) return S_MAY_LOAD;
@@ -568,10 +665,7 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     std::string temp;
     llvm::raw_string_ostream tso(temp);
     getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, tso);
-    // this is very ugly, these # instructions have isCodeGenOnly flag, how to
-    // check it?
-    if (temp.find("#") != std::string::npos) return S_IS_CODE_GEN_ONLY;
-
+    // TODO some instructions have isCodeGenOnly flag, how to check it?
     // some pseudo instructions are not marked as pseudo (ABS_Fp32)
     if (temp.find_first_not_of('\t') == std::string::npos) return S_DOES_NOT_EMIT_INST;
     return SUCCESS;
