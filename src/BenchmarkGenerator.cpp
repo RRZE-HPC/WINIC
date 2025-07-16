@@ -548,7 +548,6 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
 
 std::string genSetRegister(MCRegister Reg, unsigned Value) {
     dbg(__func__, "Register: ", getEnv().regToString(Reg), " Value: ", Value);
-    Value = 2;
     std::string result;
     llvm::raw_string_ostream os(result);
     // a way to move the immediate into the register, may also be a chain of instructions
