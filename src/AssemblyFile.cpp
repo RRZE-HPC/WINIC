@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <cstdlib>
 #include <iostream>
+#include <llvm/TargetParser/Triple.h>
+#include <regex>
 #include <string>
 
 std::string replaceFunctionName(std::string Str, const std::string Name) {
@@ -79,6 +81,13 @@ std::string AssemblyFile::generateAssembly() {
     for (InitFunction function : initFunctions)
         rso << generateInitFunction(function) << "\n";
     rso << benchTemplate.suffix;
+    if (arch == llvm::Triple::aarch64) {
+        // on AArch64 ADDXri produces  add	x0, x0, #7, lsl #7 because the immediate is not
+        // properly handled (see BenchmarkGenerator::genInst) fix this by removing the lsl
+        // statements
+        std::regex lslPattern(R"(,\s*lsl\s*#\d+)");
+        result = std::regex_replace(result, lslPattern, "");
+    }
     return result;
 }
 

@@ -358,7 +358,7 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
 }
 
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters) {
+                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     unsigned numOperands = desc.getNumOperands();
     std::set<MCRegister> localUsedRegisters;
@@ -425,14 +425,17 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
                 break;
             }
             case MCOI::OPERAND_IMMEDIATE:
-                inst.addOperand(MCOperand::createImm(7));
+                inst.addOperand(MCOperand::createImm(Immediate));
                 break;
             case MCOI::OPERAND_MEMORY:
                 return {S_MEMORY_OPERAND, {}};
             case MCOI::OPERAND_PCREL:
                 return {S_PCREL_OPERAND, {}};
             default:
-                return {S_UNKNOWN_OPERAND, {}};
+                // especially on aarch64 many types of immediates have operand type UNKNOWN_OPERAND
+                // (idk why) speculatively plug in immediates and hope for the best (e.g. ADDXri
+                // cannot be generated without this)
+                inst.addOperand(MCOperand::createImm(Immediate));
             }
         }
     }

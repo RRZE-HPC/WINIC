@@ -104,11 +104,12 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
  * 
  * \param Opcode Opcode of the instruction.
  * \param Constraints A map of fixed registers to use.
+ * \param Immediate The immediate value to be used if needed
  * \param UsedRegisters A blacklist of registers not to be used. Gets updated. If the Constraints demand for a register to be used this will be overridden.
  * \return Pair of ErrorCode and generated MCInst instruction.
  */
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters);
+                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate = 7);
 
 /**
  * \brief Finds the supermost register for a given register.
