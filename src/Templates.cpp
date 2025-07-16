@@ -6,12 +6,10 @@
 #include <stdlib.h>
 
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-                   string EndLoop, string PostLoop, string Suffix,
-                   std::vector<std::pair<string, string>> RegInitCode,
-                   std::set<string> UsedRegisters)
+                   string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
       preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
-      postLoop(std::move(PostLoop)), suffix(std::move(Suffix)), regInitTemplates(RegInitCode),
+      postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
       usedRegisters(std::move(UsedRegisters)) {
     // for readability of this file strings have a leading newline
     // this gets removed here
@@ -80,19 +78,7 @@ done_functionName:
 )",
     R"(
 .section .note.GNU-stack,"",@progbits
-)",
-    std::vector<std::pair<string, string>>{
-        // will be checked in order, default must be last and gets used if no other apply
-        // map to "None" if the register type should not be initialized.
-        // every instance of "reg" will be replaced by the register to initialize, every instance of
-        // "imm" will be replaced by the immediate value to initialize it with
-        {"xmm", "\tmov eax, imm\n\tmovd reg, eax"},
-        {"ymm", "\tmov eax, imm\n\tmovd xmm0, eax\n\tvbroadcastss reg, xmm0"},
-        {"zmm", "\tmov eax, imm\n\tmovd xmm0, eax\n\tvbroadcastss reg, xmm0"},
-        {"mm", "\tmov eax, imm\n\tmovd xmm0, eax\n\tvbroadcastss reg, xmm0"},
-        {"k", "None"},
-        {"default", "mov reg, imm"}},
-    {"edi", "r8d", "rbp", "rsp"}};
+)", {"edi", "r8d", "rbp", "rsp"}};
 
 Template AArch64Template = {
     R"(
@@ -168,18 +154,7 @@ done_functionName:
 .size functionName, .-functionName
 )",
     R"(
-)",
-    std::vector<std::pair<string, string>>{
-        // will be checked in order, default must be last and gets used if no other apply
-        // map to "None" if the register type should not be initialized.
-        // every instance of "reg" will be replaced by the register to initialize, every instance of
-        // "imm" will be replaced by the immediate value to initialize it with
-        {"v", "movi reg.4s, #imm"},
-        {"q", "movi reg.4s, #imm"},
-        {"d", "movi reg.4s, #imm"},
-        {"s", "moiv reg.4s, #imm"},
-        {"default", "mov reg, #imm"}},
-    {"x4"}};
+)", {"x4"}};
 
 Template RISCVTemplate = {
     R"(
@@ -284,17 +259,7 @@ done_functionName:
 .size functionName, .-functionName
 )",
     R"(
-)",
-    std::vector<std::pair<string, string>>{
-        // will be checked in order, default must be last and gets used if no other apply
-        // map to "None" if the register type should not be initialized.
-        // every instance of "reg" will be replaced by the register to initialize, every instance of
-        // "imm" will be replaced by the immediate value to initialize it with
-        {"x", "li reg, imm"},
-        {"f", "li reg, imm"},
-        {"v", "li t2, imm\nvmv.v.x reg, t2"},
-        {"default", "li reg, imm"}},
-    {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (can't use abi names here)
+)", {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (can't use abi names here)
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {
