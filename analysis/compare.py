@@ -8,7 +8,7 @@ import numpy as np
 import yaml
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -146,6 +146,7 @@ class Instruction:
     throughput_upper: float
     latencies: List[Latency]
     uopsName: str
+    roundc: bool  # AVX512 roundc
 
 
 def parse_uops_operand(op: ET.Element) -> Operand:
@@ -206,8 +207,9 @@ def parse_uops_instruction(entry: ET.Element, arch: str):
     except KeyError:
         return None
     uopsName = entry.attrib["string"] if "string" in entry.attrib else ""
+    roundc = bool(int(entry.attrib["roundc"])) if "roundc" in entry.attrib else False
 
-    return Instruction(uopsAsm, operands, throughput, throughput, latencies, uopsName)
+    return Instruction(uopsAsm, operands, throughput, throughput, latencies, uopsName, roundc)
 
 
 def parse_uops_database(arch: str) -> List[Instruction]:
@@ -384,9 +386,13 @@ def parse_LLVM_instruction(LLVMName) -> Instruction:
     # convert operands
     operandList: List[Operand] = []
     index = 1
+    roundc = False
 
     for op in outOperandList:
         if op[1] == "MXCSR":  # uops handles this as a flag, so we dont need it
+            continue
+        if op[0]["def"] == "AVX512RC":  # llvm has this as operand, uops as flag
+            roundc = True
             continue
         type, width = identify_LLVM_operand(op[0]["def"])
         if type is None:
@@ -399,6 +405,9 @@ def parse_LLVM_instruction(LLVMName) -> Instruction:
         index += 1
     for op in inOperandList:
         if op[1] == "MXCSR":  # uops handles this as a flag, so we dont need it
+            continue
+        if op[0]["def"] == "AVX512RC":  # llvm has this as operand, uops as flag
+            roundc = True
             continue
         # process constraints
         wasConstrained = False
@@ -468,7 +477,7 @@ def parse_LLVM_instruction(LLVMName) -> Instruction:
         operand = Operand(index, type, width, read, write, suppressed, regList)
         operandList.append(operand)
         index += 1
-    return Instruction(inst["AsmString"], operandList, None, None, [], "")
+    return Instruction(inst["AsmString"], operandList, None, None, [], "", roundc)
 
 
 def parse_WINIC_instruction(dbEntry) -> Instruction:
@@ -499,17 +508,28 @@ def parse_WINIC_instruction(dbEntry) -> Instruction:
             targetIndex = next(
                 (op.index for op in instruction.operands if len(op.regList) == 1 and op.regList[0] == targetOp), None
             )
-        instruction.latencies.append(Latency(sourceIndex, targetIndex, lat["latencyMin"], lat["latencyMax"]))
+        if "latencyMin" in lat and "latencyMax" in lat:
+            instruction.latencies.append(Latency(sourceIndex, targetIndex, lat["latencyMin"], lat["latencyMax"]))
+        else:
+            pprint(lat)  # database malformed
+            pprint(instruction, compact=True)
+            pprint(dbEntry, compact=True)
+            exit(1)
     return instruction
 
-
-dbgInstruction = ""  # VFNMADD231SSr
+# set debug true, dbg instr. to LLVM Name and set uops name to check why two instrucions were not matched
+# debug = True
+dbgInstruction = ""
+dbgUopsInstructionString = ""
+# things that should match
+# VFMADD132PDZrb VFMADD132PD_ER (ZMM, ZMM, ZMM)
+# ADC16ri ADC (R16, I16)
+# VSCALEFSSZrr: VSCALEFSS (XMM, XMM, XMM)
 
 
 def is_same(uopsInst: Instruction, LLVMInst: Instruction):
     global dbgInstruction
-    # VPROTB (XMM, XMM, I8) VFNMADD231SS (XMM, K, XMM, XMM)  ADC16ri ADC (R16, I16)
-    if dbgInstruction != "" and "" not in uopsInst.uopsName:
+    if dbgInstruction != "" and dbgUopsInstructionString not in uopsInst.uopsName:
         return False
     if not is_same_asm_name(LLVMInst.asmName, uopsInst.asmName):
         if dbgInstruction != "":
@@ -520,6 +540,12 @@ def is_same(uopsInst: Instruction, LLVMInst: Instruction):
     if len(uopsInst.operands) != len(LLVMInst.operands):
         if dbgInstruction != "":
             print("numOps")
+            pprint(uopsInst, compact=True)
+            pprint(LLVMInst, compact=True)
+        return False
+    if uopsInst.roundc != LLVMInst.roundc:
+        if dbgInstruction != "":
+            print("roundc")
             pprint(uopsInst, compact=True)
             pprint(LLVMInst, compact=True)
         return False
@@ -747,6 +773,37 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
     return c
 
 
+def count_ranges(database) -> int:
+    # parse measured instructions
+    with open(database, "r") as file:
+        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+    db = yaml.safe_load(raw_content)
+    tp_range_counter = 0
+    tp_exact_counter = 0
+    lat_range_counter = 0
+    lat_exact_counter = 0
+    for db_entry in db:
+        m_instr = parse_WINIC_instruction(db_entry)
+        if m_instr.throughput_lower != None:
+            if m_instr.throughput_lower != m_instr.throughput_upper:
+                tp_range_counter += 1
+            else:
+                tp_exact_counter += 1
+
+        for lat_entry in m_instr.latencies:
+            if lat_entry.cyclesMin != None:
+                if lat_entry.cyclesMin != lat_entry.cyclesMax:
+                    lat_range_counter += 1
+                else:
+                    lat_exact_counter += 1
+    print(f"{tp_range_counter=}")
+    print(f"{tp_exact_counter=}")
+    print(f"{lat_range_counter=}")
+    print(f"{lat_exact_counter=}")
+    print(f"proportion TP ranges: {tp_range_counter/(tp_range_counter+tp_exact_counter):.2f}")
+    print(f"proportion LAT ranges: {lat_range_counter/(lat_range_counter+lat_exact_counter):.2f}")
+
+
 def plotTP(values):
     categories = [
         "one match\nsame value",
@@ -900,7 +957,7 @@ def plot_combined(lat: Counters, tp: Counters):
 
     # reference values are Zen4
     if lat is None:
-        lat = np.array([[5740, 4274], [240, 475], [400, 0]])
+        lat = np.array([[5871, 4275], [240, 494], [1345, 0]])
     else:
         lat = np.array(
             [
@@ -910,7 +967,7 @@ def plot_combined(lat: Counters, tp: Counters):
             ]
         )
     if tp is None:
-        tp = np.array([[3171, 1953], [99, 258], [258, 0]])
+        tp = np.array([[3173, 1950], [102, 256], [626, 0]])
     else:
         tp = np.array(
             [
@@ -978,7 +1035,6 @@ def checkUnique():
 # some available uops arches:
 # CNL, CLX, ICL TGL RKL ADL-P ZEN4
 def main(database, arch: str):
-
     print("Processing Latency")
     lat_res = compare(database, "lat", arch)
     print("Processing Throughput")
@@ -986,7 +1042,56 @@ def main(database, arch: str):
     plot_combined(lat_res, tp_res)
 
 
-# main("data/genoa/genoa.yaml", "ZEN4")
-# compare(os.path.join(script_dir, os.pardir, "data", "genoa", "genoanew.yaml"), "lat", "ZEN4")
-# compare(os.path.join(script_dir, os.pardir, "data", "genoa", "genoanew.yaml"), "tp", "ZEN4")
-plot_combined(None, None)
+def db_diff(database1, database2, tp, lat):
+    with open(database1, "r") as file:
+        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+    db1 = yaml.safe_load(raw_content)
+    with open(database2, "r") as file:
+        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+    db2 = yaml.safe_load(raw_content)
+    output = ""
+
+    for entry1 in db1:
+        instr1 = parse_WINIC_instruction(entry1)
+        instr2 = None
+        for entry2 in db2:
+            if entry2["llvmName"] == entry1["llvmName"]:
+                instr2 = parse_WINIC_instruction(entry2)
+                break
+        if instr2 == None:
+            output += entry1["llvmName"] + " missing in new data"
+            # entries1.insert(entry1)
+        else:
+            # compare
+            if tp:
+                if instr1.throughput_lower != instr2.throughput_lower:
+                    output += f"{entry1["llvmName"]} tpLower {instr1.throughput_lower} -> {instr2.throughput_lower}\n"
+                if instr1.throughput_upper != instr2.throughput_upper:
+                    output += f"{entry1["llvmName"]} tpUpper {instr1.throughput_upper} -> {instr2.throughput_upper}\n"
+            lat_map2 = {(l.startOpIndex, l.targetOpIndex): l for l in instr2.latencies}
+            if not lat:
+                continue
+            for lat1 in instr1.latencies:
+                key = (lat1.startOpIndex, lat1.targetOpIndex)
+                latString = f'{entry1["llvmName"]} ({lat1.startOpIndex} -> {lat1.targetOpIndex})'
+                if key not in lat_map2:
+                    output += latString + "missing\n"
+                else:
+                    if lat1.cyclesMin != lat_map2[key].cyclesMin:
+                        output += f"{latString} cyclesMin: {lat1.cyclesMin} -> {lat_map2[key].cyclesMin}\n"
+                    if lat1.cyclesMax != lat_map2[key].cyclesMax:
+                        output += f"{latString} cyclesMax: {lat1.cyclesMax} -> {lat_map2[key].cyclesMax}\n"
+    with open("analysis/diff.txt", "w") as f:
+        f.write(output)
+
+def count_uops_tp_vals(arch):
+    uops_instructions = parse_uops_database(arch)
+    print(f"parsed a total of {len(uops_instructions)} uops instructions")
+
+# main("data/zen4/genoa.yaml", "ZEN4")
+# main("build-genoa20/genoa.yaml", "ZEN4")
+# db_diff("data/zen4/genoa.yaml","build-genoa20/genoa.yaml", False, True)
+# db_diff("data/zen4/genoa.yaml", "build-genoa20/genoa.yaml", False, True)
+# plot_combined(None, None)
+# count_ranges("data/zen4/genoa.yaml")
+count_uops_tp_vals("ZEN4")
