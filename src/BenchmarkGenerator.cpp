@@ -29,7 +29,6 @@
 #include <memory>
 #include <optional>
 
-
 std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
                                                std::unordered_set<unsigned> OpcodeBlacklist) {
     dbg(__func__, "MinOpcode: ", MinOpcode, " MaxOpcode: ", MaxOpcode,
@@ -654,7 +653,8 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     if (Desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
     if (Desc.isReturn()) return S_IS_RETURN;
     if (Desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?
-    if (getEnv().Arch == Triple::ArchType::x86_64 && Desc.hasImplicitDefOfPhysReg(X86::FPSW))
+    if (!includeX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
+        Desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
     // Two more checks which only work after generating an instruction TODO find other way

@@ -33,6 +33,8 @@ To measure only a range of opcodes, use `--minOpcode` and `--maxOpcode`.
 
 To measure single instructions add one or more `-i <LLVM_INSTRUCTION_NAME>` options.
 
+By default x87 floating point instructions are excluded, as they are deprecated and consume a lot of time on architectures that emulate them. Use the `--X87FP` flag to measure them.
+
 ### MAN
 In manual mode, WINIC can execute arbitrary altered benchmark functions.
 To run a function called "tp" from `file.s` and calculate the cycles per instruction assuming the loop has 12 instructions do
@@ -43,7 +45,7 @@ winic -f <frequency> MAN --path file.s --funcName tp --nInst 12
 There are always cases where WINIC doesn't produce correct data. To do a custom benchmark for an instruction, first run WINIC in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
 
 ## Updating existing database
-By default TP and LAT mode generate a db_timestamp.yaml file with the results. Use `--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones, all other values will be left unchanged. This works with single instructions aswell as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
+By default TP and LAT mode generate a db_timestamp.yaml file with the results. Use `-o/--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones, all other values will be left unchanged. This works with single instructions aswell as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
 
 ## Helper instructions
 WINIC automatically uses helper instructions to:

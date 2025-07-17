@@ -23,6 +23,7 @@ LLVMEnvironment &getEnv();
 
 extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
+extern bool includeX87FP;
 
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
 

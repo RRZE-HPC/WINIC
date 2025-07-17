@@ -9,3 +9,4 @@ LLVMEnvironment &getEnv() {
 
 std::unique_ptr<std::ofstream> fileStream;
 std::ostream *ios = &std::cout;
+bool includeX87FP;

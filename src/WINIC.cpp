@@ -265,12 +265,12 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
     }
     if (!InitName.empty()) {
         if ((init = (double (*)())dlsym(handle, InitName.data())) == NULL) {
-            std::cerr << "dlsym: couldn't find function" << InitName << std::endl;
+            std::cerr << "dlsym: couldn't find function " << InitName << std::endl;
             return {E_GENERIC, {}};
         }
     }
     if ((function = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
-        std::cerr << "dlsym: couldn't find function" << FunctionName << std::endl;
+        std::cerr << "dlsym: couldn't find function " << FunctionName << std::endl;
         return {E_GENERIC, {}};
     }
     struct timeval start, end;
@@ -976,6 +976,8 @@ int main(int argc, char **argv) {
                    "Path to the .yaml file to save the results to. If the file already exists new "
                    "values will be overwritten. If emtpy a timestamped file will be generated. If "
                    "/dev/null no file will be generated");
+    tp->add_flag("--X87FP", includeX87FP, "Include x87 floating point instructions")
+        ->default_val(false);
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
@@ -986,6 +988,8 @@ int main(int argc, char **argv) {
                     "Path to the .yaml file to save the results to. If the file already exists new "
                     "values will be overwritten. If emtpy a timestamped file will be generated. If "
                     "/dev/null no file will be generated");
+    lat->add_flag("--X87FP", includeX87FP, "Include x87 floating point instructions")
+        ->default_val(false);
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;
