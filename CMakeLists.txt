@@ -1,14 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-project(winic LANGUAGES CXX)
+project(winic LANGUAGES CXX C)
 
 # Require C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Paths to your LLVM project source and build directories
-# Pass these on the command line or cache-set them:
-#   -DLLVM_SOURCE_DIR=/path/to/llvm-project/llvm
-#   -DLLVM_BINARY_DIR=/path/to/llvm-project/build
 # Path to clang executable (used by the tool at runtime).
 set(CLANG_PATH "${CLANG_PATH}" CACHE FILEPATH "Path to clang executable")
 
@@ -82,7 +78,6 @@ target_include_directories(winic SYSTEM PRIVATE
 # target_compile_options(winic PRIVATE -Wall -Wextra -Wpedantic)
 
 # Pass CLANG_PATH macro to the compiler
-# It will be a quoted string literal in the C++ code
 target_compile_definitions(winic PRIVATE
   CLANG_PATH="${CLANG_PATH}"
 )
