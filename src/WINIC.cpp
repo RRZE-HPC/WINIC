@@ -353,8 +353,8 @@ getTPHelperInstruction(unsigned Opcode) {
     // priorityTPHelper can be used to prevent this from happening
     for (unsigned possibleHelper : priorityTPHelper) {
         TPMeasurement tpRes = throughputDatabase[possibleHelper];
-        if (tpRes.ec != SUCCESS) continue;  // no value
-        if (tpRes.lowerTP < 0.25) continue; // we dont trust values this low
+        if (tpRes.ec != SUCCESS) continue;                          // no value
+        if (!greaterEqWithTolerance(tpRes.lowerTP, 0.25)) continue; // we dont trust values this low
         for (MCRegister possibleWriteReg : getEnv().getPossibleDefs(possibleHelper)) {
             if (getEnv().TRI->isSuperRegisterEq(useReg, possibleWriteReg)) {
                 useReg = possibleWriteReg;
@@ -387,7 +387,7 @@ getTPHelperInstruction(unsigned Opcode) {
     // the no priorityHelper can be used, try all other instructions now
     for (auto [possibleHelper, res] : throughputDatabase) {
         if (res.ec != SUCCESS) continue;
-        if (res.lowerTP < 0.25) continue;
+        if (greaterEqWithTolerance(res.lowerTP, 0.25)) continue;
         std::set<MCRegister> possibleWrites = getEnv().getPossibleDefs(possibleHelper);
         if (possibleWrites.find(useReg) != possibleWrites.end()) {
             auto [EC, opIndex] = whichOperandCanUse(possibleHelper, "def", useReg);

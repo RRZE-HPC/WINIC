@@ -43,6 +43,7 @@ extern LLVMEnvironment env;
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
 inline bool smallerEqWithTolerance(double A, double B) { return A < B || equalWithTolerance(A, B); }
+inline bool greaterEqWithTolerance(double A, double B) { return A > B || equalWithTolerance(A, B); }
 // usual latencies are close to an integer >= 1
 inline bool isUnusualLat(double A) {
     if (A < 0.5) return true;
