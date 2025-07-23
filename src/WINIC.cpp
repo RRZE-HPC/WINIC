@@ -741,6 +741,7 @@ void buildLatDatabase(double Frequency) {
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
     std::set<DependencyType> completedTypes;
+    unsigned loopCount = 1e5;
 
     // classify measurements by operand combination, measure if trivial
     if (showProgress) std::cout << "phase1: trivial measurements\n";
@@ -751,7 +752,7 @@ void buildLatDatabase(double Frequency) {
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
-            auto [EC, lat] = measureInSubprocess({measurement}, 1e6, Frequency);
+            auto [EC, lat] = measureInSubprocess({measurement}, loopCount, Frequency);
             measurement.ec = EC;
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
@@ -775,19 +776,8 @@ void buildLatDatabase(double Frequency) {
         } else {
             // This is not symmetric, it can only be measured in pair with another instruction
             // which has the same dependencyType but reversed. e.g. GR16 -> EFLAGS and EFLAGS ->
-            // GR16 Run quick test to see if this instruction can be measured this is done here
-            // because later instructions get measured in pairs and it is not clear which one caused
-            // the problem
-            ErrorCode EC = canMeasure(measurement, Frequency);
-            if (EC == SUCCESS)
-                // needs helper to be measured, classify but dont measure yet
-                classifiedMeasurements[measurement.type].emplace_back(&measurement);
-            else {
-                measurement.ec = EC;
-                latencyOutputMessage[measurement.opcode] +=
-                    str("\t", measurement, "\n\t\t", ecToString(EC),
-                        ", this instruction cannot be measured on this platform\n");
-            }
+            // GR16.
+            classifiedMeasurements[measurement.type].emplace_back(&measurement);
         }
     }
 
@@ -817,8 +807,9 @@ void buildLatDatabase(double Frequency) {
         }
         auto &measurementsB = classifiedMeasurements[dTypeB];
         out(*ios, "\t", measurementsB.size(), " measurements of reversed Type");
-        // From now on, if the errorCode doesnt get set by measuring the instructions, it is because
-        // there is no helper. Set all error codes to ERROR_NO_HELPER here to avoid duplicate code
+        // From now on, if the errorCode doesn't get set by measuring the instructions, it is
+        // because there is no helper. Set all error codes to ERROR_NO_HELPER here to avoid
+        // duplicate code
         for (auto &mA : measurementsA)
             mA->ec = E_NO_HELPER;
         for (auto &mB : measurementsB)
@@ -827,90 +818,129 @@ void buildLatDatabase(double Frequency) {
         // Find the pair of instructions of the current types that has the smallest combined
         // latency. Then use those two instructions to measure all other. This way the resulting
         // ranges are as small as posible
+        std::vector<LatMeasurement *>::iterator itA = measurementsA.begin();
+        std::vector<LatMeasurement *>::iterator itB = measurementsB.begin();
+        LatMeasurement *smallestA = nullptr;
+        LatMeasurement *smallestB = nullptr;
         double minCombinedLat = 1000;
-        // Select first A which can be measured
-        LatMeasurement *smallestA = measurementsA[0];
-        for (auto &mA : measurementsA) {
-            if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
-            smallestA = mA;
-            break;
+        // first make sure we have a starting point for each type
+        while (itA != measurementsA.end()) {
+            LatMeasurement *m = *(itA++);
+            if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
+            ErrorCode EC = canMeasure(*m, Frequency);
+            if (EC == SUCCESS) {
+                smallestA = m;
+                break;
+            }
+            latencyOutputMessage[m->opcode] +=
+                str("\t", m, "\n\t\t", ecToString(EC),
+                    ", this instruction cannot be measured on this platform\n");
+            opcodeBlacklist.emplace(m->opcode);
         }
-        // Check if there is any valid A
-        if (opcodeBlacklist.find(smallestA->opcode) != opcodeBlacklist.end()) {
+        if (smallestA == nullptr) {
             out(*ios, "\tno measurement of type ", dTypeA, " can be executed successfully");
             continue;
         }
-        out(*ios, "\tSelecting helper instructions for this type combination");
-
-        // Find smallest B
-        LatMeasurement *smallestB = measurementsB[0];
-        for (LatMeasurement *mB : measurementsB) {
-            if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
-            if (mB->opcode == smallestA->opcode) continue;
-            out(*ios, "\tMeasuring ", *smallestA, " and ", *mB);
-            auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, 1e6, Frequency);
-            if (EC != SUCCESS) {
-                if (EC == W_MULTIPLE_DEPENDENCIES) {
-                    out(*ios, "\tDetected multiple dependencys between ", *smallestA, " and ", *mB,
-                        "so result of their combination will not be considered for finding "
-                        "helpers");
+        while (itB != measurementsB.end()) {
+            LatMeasurement *m = *(itB++);
+            if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
+            ErrorCode EC = canMeasure(*m, Frequency);
+            if (EC == SUCCESS) {
+                smallestB = m;
+                break;
+            }
+            latencyOutputMessage[m->opcode] +=
+                str("\t", m, "\n\t\t", ecToString(EC),
+                    ", this instruction cannot be measured on this platform\n");
+            opcodeBlacklist.emplace(m->opcode);
+        }
+        if (smallestB == nullptr) {
+            out(*ios, "\tno measurement of type ", dTypeB, " can be executed successfully");
+            continue;
+        }
+        auto [EC, lat] = measureInSubprocess({*smallestA, *smallestB}, loopCount, Frequency);
+        if (isError(EC)) {
+            out(*ios,
+                "\tcannot measure type. very unusual: both instructions can be executed "
+                "individually but fail when interleaved: \n",
+                smallestA, "\n", smallestB);
+            continue;
+        }
+        minCombinedLat = lat;
+        // now go through both types and find the combination with minimal latency.
+        // alternate between incrementing the iterators if the latency improved
+        std::string currentIterator = "A";
+        while (itA != measurementsA.end() || itB != measurementsB.end()) {
+            LatMeasurement *mA;
+            LatMeasurement *mB;
+            // store measurement to work with in mA/mB, the current smallest candidate in the other
+            // one and increment current iterator
+            if (currentIterator == "A") {
+                if (itA == measurementsA.end()) {
+                    currentIterator = "B";
+                    continue;
+                }
+                mA = *(itA++);
+                mB = smallestB;
+            } else {
+                if (itB == measurementsB.end()) {
+                    currentIterator = "A";
+                    continue;
+                }
+                mA = smallestA;
+                mB = *(itB++);
+            }
+            if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end() ||
+                opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end() ||
+                mA->opcode == mB->opcode)
+                continue;
+            auto [EC, lat] = measureInSubprocess({*mA, *mB}, loopCount, Frequency);
+            if (isError(EC)) {
+                out(*ios, "\tMeasuring ", *mA, " and ", *mB,
+                    " was unsuccessful, EC: ", ecToString(EC));
+                if (currentIterator == "A") {
+                    out(*ios, "\t assuming ", *mA, " was the problem and blacklisting it");
+                    opcodeBlacklist.emplace(mA->opcode);
+                    mA->ec = EC;
                 } else {
-                    out(*ios, "\tMeasuring ", *smallestA, " and ", *mB,
-                        " was unsuccessful, EC: ", ecToString(EC),
-                        ". this is unusual because both were executed individually before");
+                    out(*ios, "\t assuming ", *mB, " was the problem and blacklisting it");
+                    opcodeBlacklist.emplace(mB->opcode);
+                    mB->ec = EC;
                 }
                 continue;
             }
-            if (isUnusualLat(lat)) {
-                out(*ios, "\tUnusual latency: ", lat, " from ", *mB, " and ", *smallestA,
-                    "discarding this result");
+            // TODO this check technically should invalidate the combination of instructions not
+            // current one
+            if (EC == W_MULTIPLE_DEPENDENCIES) {
+                out(*ios, "\tDetected multiple dependencys between ", *mA, " and ", *mB,
+                    "so result of their combination will not be considered for finding "
+                    "helpers");
                 continue;
             }
             if (lat < minCombinedLat) {
-                smallestB = mB;
-                minCombinedLat = lat;
-            }
-            // optimization: there is nothing better than two instructions with latency 1 cy
-            if (equalWithTolerance(minCombinedLat, 2)) break;
-        }
-        // Check if a valid B was found
-        if (opcodeBlacklist.find(smallestB->opcode) != opcodeBlacklist.end()) {
-            out(*ios, "No measurement of type ", dTypeB, " can be executed successfully");
-            continue;
-        }
-
-        // Find smallest A
-        for (LatMeasurement *mA : measurementsA) {
-            if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
-            if (mA->opcode == smallestB->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, 1e6, Frequency);
-            if (EC != SUCCESS) {
-                if (EC == W_MULTIPLE_DEPENDENCIES) {
-                    out(*ios, "\tDetected multiple dependencys between ", *mA, " and ", *smallestB,
-                        "so result of their combination will not be considered for finding "
-                        "helpers");
-                } else {
-                    out(*ios, "\tMeasuring ", *mA, " and ", *smallestB,
-                        " was unsuccessful, EC: ", ecToString(EC),
-                        " this is unusual because both were executed individually before");
+                if (isUnusualLat(lat) && !isUnusualLat(minCombinedLat)) {
+                    out(*ios, "\tUnusual ", lat, " from ", *mA, " and ", *mB,
+                        "latency would be lower but current candidate pair has clean latency, "
+                        "discarding this result");
+                    continue;
                 }
-                continue;
-            }
-            if (isUnusualLat(lat)) {
-                out(*ios, "\tUnusual ", lat, " from ", *mA, " and ", *smallestB,
-                    "discarding this result");
-                continue;
-            }
-            if (lat < minCombinedLat) {
-                smallestA = mA;
+                if (lat < 2 && !equalWithTolerance(lat, 2)) {
+                    out(*ios, "\tUnusual ", lat, " from ", *mA, " and ", *mB,
+                        "lower than 2, discarding this result");
+                    continue;
+                }
+                if (currentIterator == "A") {
+                    smallestA = mA;
+                    currentIterator = "B";
+                } else {
+                    smallestB = mB;
+                    currentIterator = "A";
+                }
                 minCombinedLat = lat;
+                out(*ios, "\tNew pair: ", *mA, " ", *mB, "with latency ", lat);
+                // Optimization: there is nothing better than two instructions with latency 1 cy
+                if (equalWithTolerance(minCombinedLat, 2)) break;
             }
-            // Optimization: there is nothing better than two instructions with latency 1 cy
-            if (equalWithTolerance(minCombinedLat, 2)) break;
-        }
-        if (isUnusualLat(minCombinedLat) || minCombinedLat < 2) {
-            out(*ios, "\tCan not find a pair with normal latency for types");
-            continue;
         }
 
         smallestA->lowerBound = 1;
@@ -924,7 +954,7 @@ void buildLatDatabase(double Frequency) {
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             if (mA->opcode == smallestB->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, 1e6, Frequency);
+            auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, loopCount, Frequency);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
@@ -938,7 +968,7 @@ void buildLatDatabase(double Frequency) {
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             if (mB->opcode == smallestA->opcode) continue;
-            auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, 1e6, Frequency);
+            auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, loopCount, Frequency);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
@@ -1038,6 +1068,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < argc; ++i)
         ss << argv[i] << " ";
 
+    out(*ios, "Timestamp: ", timestamp);
     out(*ios, "Command: ", ss.str());
     out(*ios, "Frequency: ", frequency, " GHz");
     dbgToFile = false;
