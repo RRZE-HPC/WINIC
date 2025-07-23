@@ -646,6 +646,8 @@ std::string genSetRegister(MCRegister Reg, unsigned Value) {
 }
 
 ErrorCode isValid(const MCInstrDesc &Desc) {
+    dbg(__func__, "Opcode: ", Desc.getOpcode(),
+        " Name: ", getEnv().MCII->getName(Desc.getOpcode()).data());
     if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
     if (Desc.mayLoad()) return S_MAY_LOAD;
     if (Desc.mayStore()) return S_MAY_STORE;

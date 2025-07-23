@@ -323,7 +323,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
 
 std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
 getTPHelperInstruction(unsigned Opcode) {
-    dbg(__func__, "Opcode: ", Opcode);
+    dbg(__func__, "Opcode: ", Opcode, " priorityTPHelper.size(): ", priorityTPHelper.size());
     // first check if this instruction needs a helper
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
@@ -411,7 +411,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst = 12;
-    unsigned n = 1000000; // loop count
+    unsigned n = 1e6; // loop count, 1e5 seems to be unreliable for TP
     AssemblyFile assembly;
     ErrorCode ec;
     std::set<MCRegister> usedRegs;
@@ -434,6 +434,13 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     double time2 = *std::min_element(benchResults["tp2"].begin(), benchResults["tp2"].end());
 
     auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency, true);
+    if (EC != SUCCESS) {
+        std::string msg =
+            str("Anomaly detected when unrolling: time: ", time1, " timeUnrolled: ", time2);
+        dbg(__func__, msg);
+        throughputOutputMessage[Opcode] += str("\t", msg, "\n");
+        return {EC, -1, -1};
+    }
     if (helperOpcode != MAX_UNSIGNED) {
         // we did use a helper, this can change the TP
         // TODO change once port distribution is implemented
@@ -689,6 +696,7 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency) {
 }
 
 void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency) {
+    dbg(__func__, "Opcodes.size(): ", Opcodes.size(), " Frequency: ", Frequency);
     // mark instructions to be measured
     for (unsigned opcode : Opcodes)
         throughputDatabase[opcode].ec = NO_ERROR_CODE;
@@ -707,8 +715,10 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency) {
             // check if this opcode can be measured
             const MCInstrDesc &desc = getEnv().MCII->get(opcode);
             ErrorCode ec = isValid(desc);
-            if (isValid(desc) != SUCCESS) {
+            if (ec != SUCCESS) {
+                dbg(__func__, "Opcode ", opcode, " is not valid: ", ecToString(ec));
                 throughputDatabase[opcode] = {opcode, ec, -1, -1};
+                throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
                 continue;
             }
             auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, Frequency);
