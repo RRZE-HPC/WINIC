@@ -1145,8 +1145,10 @@ int main(int argc, char **argv) {
         for (LatMeasurement result : latencyDatabase) {
             ErrorCode EC = updateDatabaseEntryLAT(result);
             if (EC != SUCCESS) {
-                std::cerr << "failed to update database entry: " << ecToString(EC) << std::endl;
-                return 1;
+                std::string msg =
+                    str("failed to update database entry for ", result, ": ", ecToString(EC));
+                out(*ios, msg);
+                std::cerr << msg << std::endl;
             }
         }
 
