@@ -466,7 +466,7 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
     const MCInstrDesc &desc2 = getEnv().MCII->get(Inst2.getOpcode());
     // collect all registers Inst1 will define
     std::set<MCRegister> defs1;
-    for (unsigned i = 0; i < desc1.getNumDefs(); i++) {
+    for (unsigned i = 0; i < desc1.getNumDefs() && i < Inst1.getNumOperands(); i++) {
         if (Inst1.getOperand(i).isReg()) defs1.insert(Inst1.getOperand(i).getReg());
     }
     for (MCRegister implDef : desc1.implicit_defs()) {
@@ -659,15 +659,7 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
         Desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
-    // Two more checks which only work after generating an instruction TODO find other way
-    std::set<MCRegister> emptySet;
-    auto [EC, inst] = genInst(Desc.getOpcode(), {}, emptySet);
-    if (EC != SUCCESS) return EC;
-    std::string temp;
-    llvm::raw_string_ostream tso(temp);
-    getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, tso);
     // TODO some instructions have isCodeGenOnly flag, how to check it?
-    // some pseudo instructions are not marked as pseudo (ABS_Fp32)
-    if (temp.find_first_not_of('\t') == std::string::npos) return S_DOES_NOT_EMIT_INST;
+    // TODO some pseudo instructions are not marked as pseudo (ABS_Fp32)
     return SUCCESS;
 }
