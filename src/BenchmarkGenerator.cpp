@@ -270,13 +270,26 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
             restoreRegs.insert(0, restore);
         }
     }
-
+    std::string regInit;
     std::string singleLoopCode;
+    llvm::raw_string_ostream rio(regInit);
     llvm::raw_string_ostream slo(singleLoopCode);
+    std::set<MCRegister> initialized;
     for (auto inst : instructions) {
+        // initialize all registers used by the instructions
+        for (unsigned i = 0; i < inst.getNumOperands(); i++) {
+            if (!inst.getOperand(i).isReg()) continue;
+            MCRegister reg = inst.getOperand(i).getReg();
+            if (initialized.find(reg) == initialized.end()) {
+                rio << genSetRegister(reg, 4);
+                initialized.insert(reg);
+            }
+        }
+        // build loop code
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, slo);
         slo << "\n";
     }
+
     std::string loopCode;
     for (unsigned i = 0; i < UnrollCount; i++)
         loopCode.append(singleLoopCode);
@@ -285,8 +298,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
 
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("tp", saveRegs, loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("tp2", saveRegs, loopCode + loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tp", saveRegs + regInit, loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tp2", saveRegs+ regInit, loopCode + loopCode, restoreRegs, "init");
     return {SUCCESS, assemblyFile};
 }
 
