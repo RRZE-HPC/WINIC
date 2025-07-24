@@ -858,6 +858,7 @@ void buildLatDatabase(double Frequency) {
             out(*ios, "\tno measurement of type ", dTypeB, " can be executed successfully");
             continue;
         }
+        // measure the combined latency of the two instructions as a baseline
         auto [EC, lat] = measureInSubprocess({*smallestA, *smallestB}, loopCount, Frequency);
         if (isError(EC)) {
             out(*ios,
@@ -953,7 +954,6 @@ void buildLatDatabase(double Frequency) {
         // Use them to measure everything else
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
-            if (mA->opcode == smallestB->opcode) continue;
             auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, loopCount, Frequency);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
@@ -967,7 +967,6 @@ void buildLatDatabase(double Frequency) {
         }
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
-            if (mB->opcode == smallestA->opcode) continue;
             auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, loopCount, Frequency);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
