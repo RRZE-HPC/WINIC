@@ -57,7 +57,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     MCInst inst;
     inst.setOpcode(Opcode);
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
-    if (!iName) return {E_GENERIC, {}};
+    if (!iName) return {S_NO_MNEMONIC, {}};
 
     std::string s = iName;
     // remove trailing spaces

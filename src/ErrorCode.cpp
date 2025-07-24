@@ -38,8 +38,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_IS_X87FP";
     case S_MANUALLY:
         return "SKIP_MANUALLY";
-    case S_DOES_NOT_EMIT_INST:
-        return "SKIP_DOES_NOT_EMIT_INST";
+    case S_NO_MNEMONIC:
+        return "SKIP_NO_MNEMONIC";
     case E_TEMPLATE:
         return "ERROR_TEMPLATE";
     case E_NO_HELPER:

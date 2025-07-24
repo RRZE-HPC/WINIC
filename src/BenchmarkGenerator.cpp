@@ -559,7 +559,6 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
 }
 
 std::string genSetRegister(MCRegister Reg, unsigned Value) {
-    dbg(__func__, "Register: ", getEnv().regToString(Reg), " Value: ", Value);
     std::string result;
     llvm::raw_string_ostream os(result);
     // a way to move the immediate into the register, may also be a chain of instructions
@@ -671,6 +670,10 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     if (!includeX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
         Desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
+    MCInst inst;
+    inst.setOpcode(Desc.getOpcode());
+    auto [iName, _] = getEnv().MIP->getMnemonic(inst);
+    if (!iName) return S_NO_MNEMONIC;
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
     // TODO some instructions have isCodeGenOnly flag, how to check it?
     // TODO some pseudo instructions are not marked as pseudo (ABS_Fp32)
