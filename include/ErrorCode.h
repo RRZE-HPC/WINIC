@@ -21,7 +21,7 @@ enum ErrorCode {
     S_IS_CODE_GEN_ONLY,
     S_IS_X87FP,
     S_MANUALLY,
-    S_DOES_NOT_EMIT_INST,
+    S_NO_MNEMONIC,
     E_TEMPLATE, //errors
     E_NO_HELPER,
     E_ASSEMBLY,
