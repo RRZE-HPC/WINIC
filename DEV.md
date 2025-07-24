@@ -47,7 +47,7 @@ ASM:    [op0: reg(rw)]   [op1: imm(r)]
 | SUCCESS                 | success | N/A | Operation completed successfully|
 | NO_ERROR_CODE           | default | N/A | No error code assigned, should not occurr as result of measuring an instruciton|
 | W_MULTIPLE_DEPENDENCIES | warning | yes | Detected Multiple dependencies between the instructions generated. The result may be improved manually|
-| S_DOES_NOT_EMIT_INST    | skip    | no  | Skipped: does not emit machine instruction|
+| SKIP_NO_MNEMONIC    | skip    | no  | Skipped: does not have a mnemonic and therefore does not emit machine instruction|
 | S_INSTRUCION_PREFIX     | skip    | no  | Skipped: just an instruction prefix|
 | S_IS_CALL               | skip    | no  | Skipped: calls cannot be measured|
 | S_IS_CODE_GEN_ONLY      | skip    | no  | Skipped: instruction is for code generation only|
@@ -58,7 +58,7 @@ ASM:    [op0: reg(rw)]   [op1: imm(r)]
 | S_MANUALLY              | skip    | yes | Skipped: marked for manual skipping|
 | S_MAY_LOAD              | skip    | no  | Skipped: instruction may load from memory|
 | S_MAY_STORE             | skip    | no  | Skipped: instruction may store to memory|
-| S_MEMORY_OPERAND        | skip    | no  | Skipped: instruction has memory operand|
+| S_MEMORY_OPERAND        | skip    | no  | Skipped: instruction has memory operand, this does not enforce mayLoad or mayStore flag|
 | S_PCREL_OPERAND         | skip    | no  | Skipped: instruction has PC-relative operand|
 | S_PSEUDO_INSTRUCTION    | skip    | no  | Skipped: pseudo-instruction, not real hardware instruction|
 | S_UNKNOWN_OPERAND       | skip    | no  | Skipped: instruction has unknown operand type|
@@ -78,3 +78,7 @@ ASM:    [op0: reg(rw)]   [op1: imm(r)]
 | E_UNSUPPORTED_ARCH      | error   | no  | Either LLVM Failed to detect the target, or this is an architectures other than x86, AArch64 and RISCV|
 | E_UNROLL_ANOMALY        | error   | yes | When unrolling the loop, the time per instruction increased significantly. The instruciton may still be measured manually. The cause for this is currently unknown|
 | E_UNREACHABLE           | error   | no  | Unreachable code executed. This should never happen. Please file a bug report if you encounter this. |
+
+## Safety
+
+MCInstPrinter->PrintInst can fail or even segfault if the operands are not set correctly. It is therefore only used in functions that are run in a subprocess.
