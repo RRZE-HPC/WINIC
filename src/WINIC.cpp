@@ -175,10 +175,18 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         }
         dup2(fd, STDOUT_FILENO);
         dup2(fd, STDERR_FILENO);
-        std::string extraOptions = "";
-        if (getEnv().Arch == llvm::Triple::riscv64) extraOptions += "-march=rv64gcv";
+        std::string cpu = getEnv().Machine->getTargetCPU().data();
+        std::string archOption;
+        if (getEnv().Arch == llvm::Triple::riscv64 && cpu.find("generic") != std::string::npos) {
+            // generic riscv64 will fail to assemble benchmarks, use very
+            // permissive -march flag as workaround
+            cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
+            archOption = str("-march=", cpu);
+        } else {
+            archOption = str("-mcpu=", cpu);
+        }
 
-        execl(CLANG_PATH, "clang", extraOptions.data(), "-x", "assembler-with-cpp", "-shared",
+        execl(CLANG_PATH, "clang", archOption.data(), "-x", "assembler-with-cpp", "-shared",
               sPath.data(), "-o", oPath.data(), nullptr);
         _exit(127);       // execl failed
     } else if (pid > 0) { // Parent

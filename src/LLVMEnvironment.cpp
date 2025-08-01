@@ -25,10 +25,11 @@
 #include <ErrorCode.h>
 #include <algorithm>
 #include <assert.h>
-#include <cstddef>
+#include <iostream>
 #include <iterator>
 #include <limits>
 #include <optional>
+#include <ostream>
 
 using namespace llvm;
 
@@ -53,8 +54,12 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
 
     if (Cpu.empty()) Cpu = llvm::sys::getHostCPUName().str();
     if (Cpu.empty()) return E_CPU_DETECT;
-    outs() << "detected " << targetTripleStr << ", march: " << Cpu << "\n";
-    outs().flush();
+    std::cout << "detected " << targetTripleStr << ", CPU: " << Cpu << std::endl;
+    if (Cpu.find("generic") != std::string::npos)
+        std::cout << "Generic CPU detected, this may lead suboptimal results. Use --cpu to "
+                     "specify a CPU."
+                  << std::endl;
+
     if (TargetTriple.getArch() == Triple::ArchType::x86_64) {
         LLVMInitializeX86Target();
         LLVMInitializeX86TargetInfo();
