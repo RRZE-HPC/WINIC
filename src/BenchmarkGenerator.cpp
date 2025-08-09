@@ -29,6 +29,8 @@
 #include <memory>
 #include <optional>
 
+namespace winic {
+
 std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
                                                std::unordered_set<unsigned> OpcodeBlacklist) {
     dbg(__func__, "MinOpcode: ", MinOpcode, " MaxOpcode: ", MaxOpcode,
@@ -299,7 +301,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("tp", saveRegs + regInit, loopCode, restoreRegs, "init");
-    assemblyFile.addBenchFunction("tp2", saveRegs+ regInit, loopCode + loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tp2", saveRegs + regInit, loopCode + loopCode, restoreRegs,
+                                  "init");
     return {SUCCESS, assemblyFile};
 }
 
@@ -679,3 +682,5 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     // TODO some pseudo instructions are not marked as pseudo (ABS_Fp32)
     return SUCCESS;
 }
+
+} // namespace winic

@@ -32,6 +32,7 @@
 #include <ostream>
 
 using namespace llvm;
+namespace winic {
 
 LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("my_module", Ctx)) {}
 
@@ -222,3 +223,5 @@ std::set<MCRegister> LLVMEnvironment::regUnion(std::set<MCRegister> A, std::set<
     std::set_union(A.begin(), A.end(), B.begin(), B.end(), std::inserter(result, result.begin()));
     return result;
 }
+
+} // namespace winic

@@ -32,6 +32,8 @@ class TargetRegisterInfo;
 
 using namespace llvm;
 
+namespace winic {
+
 class LLVMEnvironment {
   public:
     LLVMContext Ctx;
@@ -80,7 +82,6 @@ class LLVMEnvironment {
      * \return True if Reg is in the register class, false otherwise.
      */
     bool regInRegClass(MCRegister Reg, unsigned RegClassID);
-
 
     /**
      * \brief Get any register class the register belongs to.
@@ -155,5 +156,7 @@ class LLVMEnvironment {
      */
     std::set<MCRegister> regUnion(std::set<MCRegister> A, std::set<MCRegister> B);
 };
+
+} // namespace winic
 
 #endif // LLVM_ENVIRONMENT_H

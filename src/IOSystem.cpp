@@ -11,6 +11,8 @@
 #include <iostream>
 #include <string>
 
+namespace winic {
+
 std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     // create yaml output
     std::vector<IOOperand> operands;
@@ -204,3 +206,5 @@ ErrorCode saveYaml(std::string Path) {
     }
     return SUCCESS;
 }
+
+} // namespace winic

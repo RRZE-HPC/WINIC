@@ -15,6 +15,8 @@
 #include <string>
 #include <tuple>
 
+namespace winic {
+
 /**
  * \brief Returns a reference to the global LLVMEnvironment instance.
  * \return Reference to LLVMEnvironment.
@@ -24,6 +26,13 @@ LLVMEnvironment &getEnv();
 extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
 extern bool includeX87FP;
+
+/**
+ * \brief Sets the output stream to a file.
+ * \param Filename The name of the file to write output to.
+ * If the file cannot be opened, it falls back to std::cout.
+ */
+void setOutputToFile(const std::string &Filename);
 
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
 
@@ -221,5 +230,7 @@ inline std::ostream &operator<<(std::ostream &OS, const TPMeasurement &Op) {
     if (!isError(Op.ec)) return OS << str(name, " [", Op.lowerTP, ";", Op.upperTP, "]");
     return OS << str(name, " [", ecToString(Op.ec), "]");
 }
+
+} // namespace winic
 
 #endif // GLOBALS_H

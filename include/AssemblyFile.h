@@ -6,6 +6,8 @@
 #include <set>
 #include <string>
 
+namespace winic {
+
 struct BenchFunction {
     std::string name;
     std::string preLoopCode;
@@ -119,5 +121,7 @@ class AssemblyFile {
      */
     std::string generateInitFunction(InitFunction Function);
 };
+
+} // namespace winic
 
 #endif // ASSEMBLY_FILE

@@ -2,6 +2,8 @@
 
 #include <string>
 
+namespace winic {
+
 std::string ecToString(ErrorCode EC) {
     switch (EC) {
     case SUCCESS:
@@ -81,3 +83,5 @@ std::string ecToString(ErrorCode EC) {
 bool isError(ErrorCode EC) {
     return EC != SUCCESS && EC != W_MULTIPLE_DEPENDENCIES && EC != NO_ERROR_CODE;
 }
+
+} // namespace winic

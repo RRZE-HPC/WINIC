@@ -24,6 +24,11 @@ class LLVMEnvironment;
 
 using namespace llvm;
 
+static bool dbgToFile = true;
+static bool showProgress = true;
+
+namespace winic {
+
 static std::unordered_map<unsigned, TPMeasurement> throughputDatabase;
 // opcodes in this list will be used as helpers wherever possible even when they
 // define a superregister of the register we need a helper for
@@ -37,8 +42,6 @@ static std::map<DependencyType, LatMeasurement> helperInstructionsLat;
 // append messages to be printed to the report file
 static std::map<unsigned, std::string> latencyOutputMessage;
 
-static bool dbgToFile = true;
-static bool showProgress = true;
 extern LLVMEnvironment env;
 
 inline bool equalWithTolerance(double A, double B) { return std::abs(A - B) <= 0.1 * A; }
@@ -207,6 +210,8 @@ void buildLatDatabase(double Frequency);
  * \param argv Argument vector.
  * \return Program exit code.
  */
-int main(int argc, char **argv);
+int run(int argc, char **argv);
+
+} // namespace winic
 
 #endif // LLVM_INSTR_GEN_H

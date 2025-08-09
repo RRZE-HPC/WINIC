@@ -7,6 +7,8 @@
 
 using std::string;
 
+namespace winic {
+
 /**
  * a template provides all code necessary in addition to the loop code to build an assembly file.
  * usedRegister contains all registers used by the template (like for the loop itself). Those should
@@ -29,5 +31,7 @@ extern Template AArch64Template;
 extern Template RISCVTemplate;
 
 Template getTemplate(llvm::Triple::ArchType Arch);
+
+} // namespace winic
 
 #endif // TEMPLATES

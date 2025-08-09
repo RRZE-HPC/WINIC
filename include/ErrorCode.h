@@ -3,11 +3,13 @@
 
 #include <string>
 
+namespace winic {
+
 enum ErrorCode {
     SUCCESS,
     NO_ERROR_CODE,
-    W_MULTIPLE_DEPENDENCIES, //warnings
-    S_MEMORY_OPERAND, //skip reasons
+    W_MULTIPLE_DEPENDENCIES, // warnings
+    S_MEMORY_OPERAND,        // skip reasons
     S_PCREL_OPERAND,
     S_UNKNOWN_OPERAND,
     S_PSEUDO_INSTRUCTION,
@@ -22,7 +24,7 @@ enum ErrorCode {
     S_IS_X87FP,
     S_MANUALLY,
     S_NO_MNEMONIC,
-    E_TEMPLATE, //errors
+    E_TEMPLATE, // errors
     E_NO_HELPER,
     E_ASSEMBLY,
     E_MMAP,
@@ -45,5 +47,7 @@ std::string ecToString(ErrorCode EC);
 
 // returns true if EC is SUCCESS, a warning or the default EC
 bool isError(ErrorCode EC);
+
+} // namespace winic
 
 #endif // ERROR_CODE_H

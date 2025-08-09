@@ -9,6 +9,8 @@
 #include <regex>
 #include <string>
 
+namespace winic {
+
 std::string replaceFunctionName(std::string Str, const std::string Name) {
     size_t startPos = 0;
     while ((startPos = Str.find("functionName", startPos)) != std::string::npos) {
@@ -114,3 +116,5 @@ std::string AssemblyFile::generateInitFunction(InitFunction Function) {
     rso << replaceFunctionName(benchTemplate.postInit, Function.name);
     return result;
 }
+
+} // namespace winic

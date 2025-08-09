@@ -22,6 +22,7 @@ class MCInstrDesc;
 struct Template;
 
 using namespace llvm;
+namespace winic {
 
 /**
  * \brief Generates all possible latency measurements for all instructions.
@@ -35,7 +36,8 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
 
 /**
  * \brief Generates a benchmark based on the list of latency measurements.
- * \param Measurements List of instructions, will be written to the loop in the given order using the same registers on the useOps and defOps.
+ * \param Measurements List of instructions, will be written to the loop in the given order using
+ * the same registers on the useOps and defOps.
  * \param TargetInstrCount Pointer to the target number of instructions.
  * \param UsedRegisters Set of registers to avoid using (optional).
  * \return Pair of ErrorCode and generated AssemblyFile.
@@ -62,41 +64,47 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
 
 /**
  * \brief Generates the inner loop for a throughput measurement.
- * 
- * Does not introduce dependencies between the instructions, but does not account for possible implicit dependencies.
- * 
+ *
+ * Does not introduce dependencies between the instructions, but does not account for possible
+ * implicit dependencies.
+ *
  * \param Opcodes Sequence of instructions to generate.
  * \param ConstraintsVector Constraints for each instruction.
- * \param TargetInstrCount How often to generate the sequence. May generate less if not enough registers are available to generate all instructions without introducing dependencies.
+ * \param TargetInstrCount How often to generate the sequence. May generate less if not enough
+ * registers are available to generate all instructions without introducing dependencies.
  * \param UsedRegisters A register blacklist (will be updated).
  * \return Pair of ErrorCode and list of generated MCInst instructions.
  */
 std::pair<ErrorCode, std::list<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
-               std::vector<std::map<unsigned, MCRegister>> ConstraintsVector,
-               unsigned TargetInstrCount, std::set<MCRegister> &UsedRegisters);
+          std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
+          std::set<MCRegister> &UsedRegisters);
 
 /**
- * \brief Generates a constraint (operand -> Register) to make an instruction use/def a specific register.
- * 
+ * \brief Generates a constraint (operand -> Register) to make an instruction use/def a specific
+ * register.
+ *
  * \param Opcode The opcode to analyze.
  * \param Type "use" or "def" to specify operand type.
  * \param RequiredRegister The register required for the operand.
- * \return Tuple of ErrorCode and operand number. Returns SUCCESS and -1 if the instruction defs/uses the register implicitly. Returns Error if no operand can use/def the register.
+ * \return Tuple of ErrorCode and operand number. Returns SUCCESS and -1 if the instruction
+ * defs/uses the register implicitly. Returns Error if no operand can use/def the register.
  */
 std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
                                               MCRegister RequiredRegister);
 
 /**
  * \brief Generates an instruction for a given opcode and constraints.
- * 
+ *
  * This function takes an opcode and generates a valid MCInst. Adds registers used to UsedRegisters.
- * Remember to add implicit uses/defs of normal registers to UsedRegisters before calling this, otherwise they may be used for other operands and introduce unwanted dependencies.
- * 
+ * Remember to add implicit uses/defs of normal registers to UsedRegisters before calling this,
+ * otherwise they may be used for other operands and introduce unwanted dependencies.
+ *
  * \param Opcode Opcode of the instruction.
  * \param Constraints A map of fixed registers to use.
  * \param Immediate The immediate value to be used if needed
- * \param UsedRegisters A blacklist of registers not to be used. Gets updated. If the Constraints demand for a register to be used this will be overridden.
+ * \param UsedRegisters A blacklist of registers not to be used. Gets updated. If the Constraints
+ * demand for a register to be used this will be overridden.
  * \return Pair of ErrorCode and generated MCInst instruction.
  */
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
@@ -128,7 +136,8 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
                                                         std::set<MCRegister> UsedRegisters);
 
 /**
- * \brief Returns a list of dependencies between two instructions, taking into account implicit and explicit defs/uses.
+ * \brief Returns a list of dependencies between two instructions, taking into account implicit and
+ * explicit defs/uses.
  * \param Inst1 The first instruction.
  * \param Inst2 The second instruction.
  * \return List of DependencyType objects.
@@ -163,5 +172,7 @@ std::string genSetRegister(MCRegister Reg, unsigned Value);
  * \return ErrorCode indicating validity.
  */
 ErrorCode isValid(const MCInstrDesc &Desc);
+
+} // namespace winic
 
 #endif // BENCHMARK_GENERATOR

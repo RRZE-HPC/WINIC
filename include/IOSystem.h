@@ -1,3 +1,6 @@
+#ifndef IOSYSTEM_H
+#define IOSYSTEM_H
+
 #include "llvm/Support/YAMLTraits.h"
 #include <ErrorCode.h>
 #include <Globals.h>
@@ -6,6 +9,7 @@
 #include <optional>
 #include <string>
 
+namespace winic {
 // serializable structs for yaml output
 
 /**
@@ -26,7 +30,6 @@ struct IOLatency {
     std::optional<double> max;
 };
 
-
 /**
  * \brief Represents an instruction for YAML serialization.
  */
@@ -40,71 +43,6 @@ struct IOInstruction {
     std::optional<double> throughputMin; ///< Minimum throughput
     std::optional<double> throughputMax; ///< Maximum throughput
 };
-
-LLVM_YAML_IS_SEQUENCE_VECTOR(IOOperand)
-LLVM_YAML_IS_SEQUENCE_VECTOR(IOInstruction)
-LLVM_YAML_IS_SEQUENCE_VECTOR(IOLatency)
-LLVM_YAML_IS_STRING_MAP(std::optional<double>)
-
-namespace llvm {
-namespace yaml {
-
-template <> struct MappingTraits<IOOperand> {
-    static void mapping(IO &Io, IOOperand &Op) {
-        Io.mapRequired("class", Op.opClass);
-        Io.mapOptional("name", Op.name);
-        Io.mapOptional("imd", Op.imd);
-        Io.mapRequired("read", Op.read);
-        Io.mapRequired("write", Op.write);
-    }
-};
-template <> struct MappingTraits<IOLatency> {
-    static void mapping(IO &Io, IOLatency &Lat) {
-        Io.mapRequired("sourceOperand", Lat.sourceOperand);
-        Io.mapRequired("targetOperand", Lat.targetOperand);
-        Io.mapRequired("latencyMin", Lat.min);
-        Io.mapRequired("latencyMax", Lat.max);
-    }
-};
-
-template <> struct MappingTraits<IOInstruction> {
-    static void mapping(IO &Io, IOInstruction &Inst) {
-        Io.mapRequired("llvmName", Inst.llvmName);
-        Io.mapRequired("name", Inst.name);
-        Io.mapRequired("operands", Inst.operands);
-        Io.mapRequired("latency", Inst.latency);
-        Io.mapRequired("operandLatencies", Inst.latencies);
-        Io.mapRequired("throughput", Inst.throughput);
-        Io.mapRequired("throughputMin", Inst.throughputMin);
-        Io.mapRequired("throughputMax", Inst.throughputMax);
-    }
-};
-
-template <> struct ScalarTraits<std::optional<double>> {
-    static void output(const std::optional<double> &Val, void *, raw_ostream &Out) {
-        if (Val)
-            ScalarTraits<double>::output(*Val, nullptr, Out);
-        else
-            Out << "null";
-    }
-    static StringRef input(StringRef Scalar, void *, std::optional<double> &Val) {
-        if (Scalar == "null" || Scalar == "~" || Scalar.empty()) {
-            Val.reset();
-            return {};
-        }
-        double tmp;
-        auto Err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
-        if (Err.empty()) Val = tmp;
-        return Err;
-    }
-    static QuotingType mustQuote(StringRef S) {
-        if (S == "null" || S == "~" || S.empty()) return QuotingType::None;
-        return ScalarTraits<double>::mustQuote(S);
-    }
-};
-
-} // namespace yaml
-} // namespace llvm
 
 static std::vector<IOInstruction> outputDatabase;
 
@@ -161,3 +99,72 @@ ErrorCode loadYaml(std::string Path);
  * \return ErrorCode indicating success or failure.
  */
 ErrorCode saveYaml(std::string Path);
+
+} // namespace winic
+
+LLVM_YAML_IS_SEQUENCE_VECTOR(winic::IOOperand)
+LLVM_YAML_IS_SEQUENCE_VECTOR(winic::IOInstruction)
+LLVM_YAML_IS_SEQUENCE_VECTOR(winic::IOLatency)
+LLVM_YAML_IS_STRING_MAP(std::optional<double>)
+
+namespace llvm {
+namespace yaml {
+
+template <> struct MappingTraits<winic::IOOperand> {
+    static void mapping(IO &Io, winic::IOOperand &Op) {
+        Io.mapRequired("class", Op.opClass);
+        Io.mapOptional("name", Op.name);
+        Io.mapOptional("imd", Op.imd);
+        Io.mapRequired("read", Op.read);
+        Io.mapRequired("write", Op.write);
+    }
+};
+template <> struct MappingTraits<winic::IOLatency> {
+    static void mapping(IO &Io, winic::IOLatency &Lat) {
+        Io.mapRequired("sourceOperand", Lat.sourceOperand);
+        Io.mapRequired("targetOperand", Lat.targetOperand);
+        Io.mapRequired("latencyMin", Lat.min);
+        Io.mapRequired("latencyMax", Lat.max);
+    }
+};
+
+template <> struct MappingTraits<winic::IOInstruction> {
+    static void mapping(IO &Io, winic::IOInstruction &Inst) {
+        Io.mapRequired("llvmName", Inst.llvmName);
+        Io.mapRequired("name", Inst.name);
+        Io.mapRequired("operands", Inst.operands);
+        Io.mapRequired("latency", Inst.latency);
+        Io.mapRequired("operandLatencies", Inst.latencies);
+        Io.mapRequired("throughput", Inst.throughput);
+        Io.mapRequired("throughputMin", Inst.throughputMin);
+        Io.mapRequired("throughputMax", Inst.throughputMax);
+    }
+};
+
+template <> struct ScalarTraits<std::optional<double>> {
+    static void output(const std::optional<double> &Val, void *, raw_ostream &Out) {
+        if (Val)
+            ScalarTraits<double>::output(*Val, nullptr, Out);
+        else
+            Out << "null";
+    }
+    static StringRef input(StringRef Scalar, void *, std::optional<double> &Val) {
+        if (Scalar == "null" || Scalar == "~" || Scalar.empty()) {
+            Val.reset();
+            return {};
+        }
+        double tmp;
+        auto Err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
+        if (Err.empty()) Val = tmp;
+        return Err;
+    }
+    static QuotingType mustQuote(StringRef S) {
+        if (S == "null" || S == "~" || S.empty()) return QuotingType::None;
+        return ScalarTraits<double>::mustQuote(S);
+    }
+};
+
+} // namespace yaml
+} // namespace llvm
+
+#endif // IOSYSTEM_H

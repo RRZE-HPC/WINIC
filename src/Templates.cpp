@@ -5,6 +5,8 @@
 #include <set>
 #include <stdlib.h>
 
+namespace winic {
+
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
                    string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
@@ -279,3 +281,5 @@ Template getTemplate(llvm::Triple::ArchType Arch) {
         exit(EXIT_FAILURE);
     }
 }
+
+} // namespace winic

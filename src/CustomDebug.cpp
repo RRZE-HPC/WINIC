@@ -1,6 +1,8 @@
 #include "CustomDebug.h"
 #include <set>
 
+namespace winic {
+
 bool debug = false;
 
 // clang-format off
@@ -20,3 +22,5 @@ std::set<std::string> functionBlacklist = {
     // "calculateCycles",
 };
 // clang-format on
+
+} // namespace winic

@@ -59,7 +59,7 @@ class MCInstrDesc;
 #endif
 
 namespace {
-std::string generateTimestamp() {
+static std::string generateTimestamp() {
     // Get current time
     auto now = std::chrono::system_clock::now();
     std::time_t nowC = std::chrono::system_clock::to_time_t(now);
@@ -68,16 +68,6 @@ std::string generateTimestamp() {
     std::ostringstream ss;
     ss << std::put_time(std::localtime(&nowC), "%Y-%m-%d_%H-%M-%S");
     return ss.str();
-}
-
-void setOutputToFile(const std::string &Filename) {
-    fileStream = std::make_unique<std::ofstream>(Filename);
-    if (fileStream->is_open()) {
-        ios = fileStream.get(); // Redirect global output
-    } else {
-        std::cerr << "Failed to open file: " << Filename << std::endl;
-        ios = &std::cout; // Fallback
-    }
 }
 
 void displayProgress(size_t Progress, size_t Total) {
@@ -114,6 +104,8 @@ void prepAsmDir() {
     }
 }
 } // namespace
+
+namespace winic {
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
@@ -871,8 +863,8 @@ void buildLatDatabase(double Frequency) {
         if (isError(EC)) {
             out(*ios,
                 "\tcannot measure type. very unusual: both instructions can be executed "
-                "individually but fail when interleaved: \n",
-                smallestA, "\n", smallestB);
+                "individually but fail when interleaved: \n\t",
+                smallestA->toString(), "\n\t", smallestB->toString());
             continue;
         }
         minCombinedLat = lat;
@@ -998,7 +990,7 @@ void buildLatDatabase(double Frequency) {
     }
 }
 
-int main(int argc, char **argv) {
+int run(int argc, char **argv) {
     double frequency;
     std::string cpu = "";
     std::string march = "";
@@ -1230,3 +1222,7 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
+} // namespace winic
+
+int main(int argc, char **argv) { return winic::run(argc, argv); }

@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+namespace winic {
+
 extern bool debug;
 
 extern std::set<std::string> functionBlacklist;
@@ -49,5 +51,7 @@ template <typename... Args> static std::string str(Args &&...Arguments) {
     (oss << ... << Arguments) << std::flush;
     return oss.str();
 }
+
+} // namespace winic
 
 #endif // CUSTOM_DEBUG_H
