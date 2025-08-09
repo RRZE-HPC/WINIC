@@ -164,11 +164,9 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         lat.min = min;
         lat.max = max;
         instruction->latencies.insert(instruction->latencies.end(), lat);
-        // it->operandLatencies[useIndexString][defIndexString] = std::round(M.lowerBound);
-        // take any latency value for now to ensure OSACA compatibility, remove once OSACA is
-        // updated to use operandLatencies
-        instruction->latency = min;
     }
+    // take maximum latency value as instruction latency
+    instruction->latency = std::max(instruction->latency, max);
 
     return SUCCESS;
 }
