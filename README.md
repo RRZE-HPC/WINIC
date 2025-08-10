@@ -1,16 +1,16 @@
 
 # Introduction
 
-WINIC is a platform-independent automated micro-benchmarking tool. It currently works for x86 and ARM on Linux.
+WINIC is a platform-independent automated micro-benchmarking tool. It currently supports x86, ARM and RISC-V on Linux.
 WINIC can automatically determine latency and throughput values for all instructions the given CPU supports.
 
 ## Limitations
 WINIC currently cannot measure: 
 - instructions accessing memory (this will be added in the future)
-- branches, returns, system calls
+- branches, returns, system calls and privileged instructions
 
 # Download and Build
-WINIC is relying on LLVM and clang to generate and assemble benchmarks. Use `setup.sh` after cloning this repository to automatically download and build LLVM aswell as NAME. To manage multiple builds e.g. for multiple platforms in an HPC context specify `--dir <buildName>` to build a version of LLVM into ./llvm-build-buildName and WINICinto ./build-buildName.
+WINIC is relying on LLVM and clang to generate and assemble benchmarks. Use `setup.sh` after cloning this repository to automatically download and build LLVM aswell as WINIC. To manage multiple builds e.g. for multiple platforms in an HPC context specify `--dir <buildName>` to build a version of LLVM into ./llvm-build-buildName and WINIC into ./build-buildName.
 
 # Usage
 To calculate throughput and latency WINIC needs the clock-frequency to be fixed e.g. by using [likwid-setFrequencies](https://github.com/RRZE-HPC/likwid/wiki/likwid-setFrequencies). Once the frequency is fixed you can use WINIC as follows: 
@@ -33,7 +33,7 @@ To measure only a range of opcodes, use `--minOpcode` and `--maxOpcode`.
 
 To measure single instructions add one or more `-i <LLVM_INSTRUCTION_NAME>` options.
 
-By default x87 floating point instructions are excluded, as they are deprecated and consume a lot of time on architectures that emulate them. Use the `--X87FP` flag to measure them.
+By default x87 floating point instructions are excluded, as they are deprecated and consume a lot of time on architectures that emulate them. Use the `--x87FP` flag to measure them.
 
 ### MAN
 In manual mode, WINIC can execute arbitrary altered benchmark functions.
@@ -45,7 +45,7 @@ winic -f <frequency> MAN --path file.s --funcName tp --nInst 12
 There are always cases where WINIC doesn't produce correct data. To do a custom benchmark for an instruction, first run WINIC in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
 
 ## Updating existing database
-By default TP and LAT mode generate a db_timestamp.yaml file with the results. Use `-o/--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones, all other values will be left unchanged. This works with single instructions aswell as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
+By default TP and LAT mode generate a `db_timestamp.yaml` file with the results. Use `-o/--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones, all other values will be left unchanged. This works with single instructions aswell as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
 
 ## Helper instructions
 WINIC automatically uses helper instructions to:
