@@ -131,7 +131,8 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, double Frequency);
+                                            unsigned LoopCount, double Frequency,
+                                            unsigned RegInitValue = 4);
 
 /**
  * \brief Calls measureThroughput in a subprocess to recover from segfaults during benchmarking.
@@ -151,7 +152,8 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
-                                                 unsigned LoopCount, double Frequency);
+                                                 unsigned LoopCount, double Frequency,
+                                                 unsigned RegInitValue = 4);
 
 /**
  * \brief Calls runManual in a subprocess to recover from segfaults during benchmarking.

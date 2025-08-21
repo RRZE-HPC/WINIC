@@ -44,7 +44,8 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
  */
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
-                                                   std::set<MCRegister> UsedRegisters = {});
+                                                   std::set<MCRegister> UsedRegisters = {},
+                                                   unsigned RegInitValue = 4);
 
 /**
  * \brief Generates a throughput benchmark for a given opcode.

@@ -107,7 +107,8 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
 
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
-                                                   std::set<MCRegister> UsedRegisters) {
+                                                   std::set<MCRegister> UsedRegisters,
+                                                   unsigned RegInitValue) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(),
         " TargetInstrCount: ", *TargetInstrCount, " UsedRegisters.size(): ", UsedRegisters.size());
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
@@ -188,7 +189,7 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
             if (!inst.getOperand(i).isReg()) continue;
             MCRegister reg = inst.getOperand(i).getReg();
             if (initialized.find(reg) == initialized.end()) {
-                rio << genSetRegister(reg, 4);
+                rio << genSetRegister(reg, RegInitValue);
                 initialized.insert(reg);
             }
         }
