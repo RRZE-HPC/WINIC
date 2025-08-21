@@ -970,7 +970,8 @@ void buildLatDatabase(double Frequency) {
         }
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
-            auto [EC, lat] = measureInSubprocess({*smallestA, *mB}, loopCount, Frequency);
+            // mB has to come first as the first instruction in the benchmark determines the name of the debug .s file
+            auto [EC, lat] = measureInSubprocess({*mB, *smallestA}, loopCount, Frequency);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
