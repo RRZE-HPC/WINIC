@@ -178,8 +178,8 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
             archOption = str("-mcpu=", cpu);
         }
 
-        execl(CLANG_PATH, "clang", archOption.data(), "-x", "assembler-with-cpp", "-shared",
-              sPath.data(), "-o", oPath.data(), nullptr);
+        execl(CLANG_PATH, "clang", archOption.data(), "-nostdlib", "-x", "assembler-with-cpp",
+              "-shared", sPath.data(), "-o", oPath.data(), nullptr);
         _exit(127);       // execl failed
     } else if (pid > 0) { // Parent
         int status;
@@ -970,7 +970,8 @@ void buildLatDatabase(double Frequency) {
         }
         for (LatMeasurement *mB : measurementsB) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
-            // mB has to come first as the first instruction in the benchmark determines the name of the debug .s file
+            // mB has to come first as the first instruction in the benchmark determines the name of
+            // the debug .s file
             auto [EC, lat] = measureInSubprocess({*mB, *smallestA}, loopCount, Frequency);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
