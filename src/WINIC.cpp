@@ -1102,11 +1102,10 @@ int run(int argc, char **argv) {
     std::unordered_set<unsigned> opcodeBlacklist;
 
     if (getEnv().Arch == Triple::ArchType::x86_64) {
-        skipInstructions = {"SYSCALL",   "CPUID",     "MWAITXrrr", "RDRAND16r", "RDRAND32r",
-                            "RDRAND64r", "RDSEED16r", "RDSEED32r", "RDSEED64r", "RDTSC",
-                            "SLDT16r",   "SLDT32r",   "SLDT64r",   "SMSW16r",   "SMSW32r",
-                            "SMSW64r",   "STR16r",    "STR32r",    "STR64r",    "VERRr",
-                            "VERWr"};
+        // those each take > 300 cycles on Zen4, together doubling the runtime
+        skipInstructions = {"SYSCALL", "CPUID",   "RDSEED16r", "RDSEED32r", "RDSEED64r",
+                            "RDTSC",   "SLDT16r", "SLDT32r",   "SLDT64r",   "SMSW16r",
+                            "SMSW32r", "SMSW64r", "STR16r",    "STR32r",    "STR64r"};
     }
     for (auto name : skipInstructions)
         opcodeBlacklist.insert(getEnv().getOpcode(name));
