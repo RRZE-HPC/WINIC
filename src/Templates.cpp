@@ -160,8 +160,6 @@ done_functionName:
 
 Template RISCVTemplate = {
     R"(
-#define N x0
-
 .section .text
 
 )",
