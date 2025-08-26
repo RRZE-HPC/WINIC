@@ -1062,8 +1062,8 @@ int run(int argc, char **argv) {
         if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
         if (std::filesystem::exists(databasePath)) {
             out(*ios, "Using existing database: ", databasePath);
-            ErrorCode EC = loadYaml(databasePath);
-            if (EC != SUCCESS) return -1;
+            // loading the database is delayed as it has a doing it before the measurements has a
+            // negative performance impact, probably due to the frequent forking
         } else
             out(*ios, "Creating new database: ", databasePath);
     }
@@ -1154,11 +1154,6 @@ int run(int argc, char **argv) {
         for (auto &[opcode, result] : throughputDatabase)
             if (result.ec == SUCCESS) updateDatabaseEntryTP(result);
 
-        // save database
-        if (databasePath != "/dev/null") {
-            ErrorCode EC = saveYaml(databasePath);
-            if (EC != SUCCESS) return 1;
-        }
     } else if (*lat) {
         out(*ios, "Mode: Latency");
 
@@ -1195,12 +1190,6 @@ int run(int argc, char **argv) {
                 std::cerr << msg << std::endl;
             }
         }
-
-        // save database
-        if (databasePath != "/dev/null") {
-            ErrorCode EC = saveYaml(databasePath);
-            if (EC != SUCCESS) return 1;
-        }
     } else if (*man) {
         auto [EC, times] =
             measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
@@ -1217,6 +1206,27 @@ int run(int argc, char **argv) {
         // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
         double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
         std::cout << cyclesPerInstruction << " (clock cycles)\n";
+    }
+    if (*tp || *lat) {
+        // save database
+        if (databasePath != "/dev/null") {
+            if (std::filesystem::exists(databasePath)) {
+                out(*ios, "Loading existing database: ", databasePath);
+                ErrorCode EC = loadYaml(databasePath);
+                out(*ios, ecToString(EC));
+                if (EC != SUCCESS) {
+                    std::string err = str("The database at: ", databasePath,
+                                          " is corrupted, creating a new timestamped one");
+                    out(*ios, err);
+                    std::cerr << err.data() << std::endl;
+                    databasePath = str("db_", timestamp, ".yaml");
+                }
+            } else
+                out(*ios, "Creating new database: ", databasePath);
+            out(*ios, "Saving database to: ", databasePath);
+            ErrorCode EC = saveYaml(databasePath);
+            if (EC != SUCCESS) return 1;
+        }
     }
 
     gettimeofday(&end, NULL);

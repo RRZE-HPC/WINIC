@@ -186,6 +186,10 @@ ErrorCode loadYaml(std::string Path) {
         std::cerr << "YAML serialization error: " << e.what() << "\n";
         return E_FILE;
     }
+    if (yin.error()) { // check for parse/serialization errors
+        std::cerr << "YAML parsing failed for file: " << Path << "\n";
+        return E_FILE;
+    }
     return SUCCESS;
 }
 
