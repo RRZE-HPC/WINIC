@@ -1054,9 +1054,9 @@ int run(int argc, char **argv) {
     if (noReport || *man)
         setOutputToFile("/dev/null");
     else if (*tp)
-        setOutputToFile("report_TP_" + timestamp + ".txt");
+        setOutputToFile("report_TP_" + timestamp);
     else if (*lat)
-        setOutputToFile("report_LAT_" + timestamp + ".txt");
+        setOutputToFile("report_LAT_" + timestamp);
 
     if (databasePath != "/dev/null") {
         if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
