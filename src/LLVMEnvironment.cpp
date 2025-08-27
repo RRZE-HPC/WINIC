@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <optional>
-#include <ostream>
 
 using namespace llvm;
 namespace winic {
@@ -37,14 +36,6 @@ namespace winic {
 LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("my_module", Ctx)) {}
 
 ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
-    // LLVMInitializeX86AsmParser();
-    // LLVMInitializeX86Disassembler();
-    // LLVMInitializeX86TargetMCA();
-    // InitializeAllTargets();
-    // InitializeAllTargetInfos();
-    // InitializeAllTargetMCs();
-    // InitializeAllAsmPrinters();
-    // StringRef TargetTripleStr = "x86_64-pc-linux";
     std::string targetTripleStr;
     if (March.empty()) {
         targetTripleStr = llvm::sys::getDefaultTargetTriple();
@@ -81,22 +72,36 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
             errs() << "unsupported architecture: " << TargetTriple.getArchName() << "\n";
         return E_UNSUPPORTED_ARCH;
     }
-    // copied from InstrRefLDVTest.cpp
-    Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"
-                       "f80:128-n8:16:32:64-S128");
+    // partially copied from InstrRefLDVTest.cpp InstrRefLDVTest.cpp
+    // Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"
+    //                    "f80:128-n8:16:32:64-S128");
+    // Mod->setDataLayout(Machine->createDataLayout());
     std::string error;
     const Target *theTarget = TargetRegistry::lookupTarget("", TargetTriple, error);
+
+    MRI.reset(theTarget->createMCRegInfo(targetTripleStr));
+    assert(MRI && "Unable to create register info!");
+    MCTargetOptions mcOptions;
+    MAI.reset(theTarget->createMCAsmInfo(*MRI, targetTripleStr, mcOptions));
+    assert(MAI && "Unable to create asm info!");
+    MCII.reset(theTarget->createMCInstrInfo());
+    assert(MCII && "Unable to create MCInnstr info!");
+    MSTI.reset(theTarget->createMCSubtargetInfo(targetTripleStr, Cpu, ""));
+    assert(MSTI && "Unable to create MCSubtargetInfo!");
+    // set syntaxVariant here
+    MIP.reset(theTarget->createMCInstPrinter(Triple(targetTripleStr), 1, *MAI, *MCII, *MRI));
+    assert(MIP && "Unable to create MCInstPrinter!");
     TargetOptions options;
-    Machine = std::unique_ptr<TargetMachine>(
-        theTarget->createTargetMachine(Triple::normalize(targetTripleStr), Cpu, "", options,
-                                       std::nullopt, std::nullopt, CodeGenOptLevel::Aggressive));
+    Machine.reset(theTarget->createTargetMachine(Triple::normalize(targetTripleStr), Cpu, "",
+                                                 options, std::nullopt, std::nullopt,
+                                                 CodeGenOptLevel::Aggressive));
     assert(Machine && "Unable to create Machine");
+
     FunctionType *type = FunctionType::get(Type::getVoidTy(Ctx), false);
     assert(type && "Unable to create Type");
     Function *f = Function::Create(type, GlobalValue::ExternalLinkage, "Test", &*Mod);
     assert(type && "Unable to create Function");
     unsigned functionNum = 42;
-
     // release/20.x
     MMI = std::make_unique<MachineModuleInfo>(Machine.get());
     const TargetSubtargetInfo &stimpl = *Machine->getSubtargetImpl(*f);
@@ -110,27 +115,9 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     // MF = std::make_unique<MachineFunction>(*f,
     //                                        *static_cast<const LLVMTargetMachine
     //                                        *>(Machine.get()), stimpl, functionNum, *MMI.get());
-
     TRI = MF->getSubtarget().getRegisterInfo();
-    // copied from InstrRefLDVTest.cpp
     MaxReg = TRI->getNumSupportedRegs(*MF);
-    MRI = theTarget->createMCRegInfo(targetTripleStr);
-    assert(MRI && "Unable to create register info!");
-    MCTargetOptions mcOptions;
-    MAI = theTarget->createMCAsmInfo(*MRI, targetTripleStr, mcOptions);
-    assert(MAI && "Unable to create asm info!");
-    MCII = theTarget->createMCInstrInfo();
-    assert(MCII && "Unable to create MCInnstr info!");
-    MSTI = theTarget->createMCSubtargetInfo(targetTripleStr, Cpu, "");
-    assert(MSTI && "Unable to create MCSubtargetInfo!");
     Arch = MSTI->getTargetTriple().getArch(); // for convenience
-    // set syntaxVariant here
-    if (Arch == Triple::ArchType::x86_64)
-        MIP = theTarget->createMCInstPrinter(Triple(targetTripleStr), 1, *MAI, *MCII, *MRI);
-    else
-        MIP = theTarget->createMCInstPrinter(Triple(targetTripleStr), 1, *MAI, *MCII, *MRI);
-    assert(MIP && "Unable to create MCInstPrinter!");
-
     return SUCCESS;
 }
 

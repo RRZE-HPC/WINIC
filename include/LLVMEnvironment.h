@@ -6,8 +6,12 @@
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/MC/MCAsmInfo.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Triple.h"
 #include <memory>
@@ -15,20 +19,8 @@
 #include <string>
 #include <utility>
 namespace llvm {
-class MCAsmInfo;
-}
-namespace llvm {
-class MCInstPrinter;
-}
-namespace llvm {
-class MCInstrInfo;
-}
-namespace llvm {
-class MCSubtargetInfo;
-}
-namespace llvm {
 class TargetRegisterInfo;
-}
+} // namespace llvm
 
 using namespace llvm;
 
@@ -36,18 +28,21 @@ namespace winic {
 
 class LLVMEnvironment {
   public:
-    LLVMContext Ctx;
     Triple TargetTriple;
+    LLVMContext Ctx;
     std::unique_ptr<Module> Mod;
-    std::unique_ptr<TargetMachine> Machine;
     std::unique_ptr<MachineFunction> MF;
     std::unique_ptr<MachineModuleInfo> MMI;
+
     const TargetRegisterInfo *TRI;
-    MCRegisterInfo *MRI;
-    MCAsmInfo *MAI;
-    MCInstrInfo *MCII;
-    MCSubtargetInfo *MSTI;
-    MCInstPrinter *MIP;
+    // created by Target
+    std::unique_ptr<TargetMachine> Machine;
+    std::unique_ptr<MCRegisterInfo> MRI;
+    std::unique_ptr<MCAsmInfo> MAI;
+    std::unique_ptr<MCInstrInfo> MCII;
+    std::unique_ptr<MCSubtargetInfo> MSTI;
+    std::unique_ptr<MCInstPrinter> MIP;
+
     unsigned MaxReg;
     Triple::ArchType Arch;
 
