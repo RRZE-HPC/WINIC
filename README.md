@@ -20,16 +20,16 @@ To calculate throughput and latency WINIC needs the clock-frequency to be fixed 
 ## Available modes:
 ### LAT/TP:
 Measure latencies or throughputs.
-By default WINIC measures all available instructions and generates a .yaml file with the results. Additionally a `report_mode_timestamp.txt` is generated providing additional information about how the values were obtained and warnings about unusual results. The runtime of a full run strongly depends on the architecture.
+By default WINIC measures all available instructions and generates a .yaml file with the results. Additionally a `report_mode_timestamp` is generated providing additional information about how the values were obtained and warnings about unusual results. The runtime of a full run strongly depends on the architecture.
 
-|Mode|Arch|Approx. Time|
+|Architectrure|Runtime TP|Runtime LAT|
 |----|----|----|
-|TP|x86|1h|
-|LAT|x86|1.5h|
-|TP|RISCV|7min|
-|LAT|RISCV|10min|
+|x86|23 min|40 min|
+|AArch64|23 min|17 min|
+|RISCV|8 min|9 min|
 
-To measure only a range of opcodes, use `--minOpcode` and `--maxOpcode`.
+
+To measure only a range of opcodes, use `--minOpcode` and `--maxOpcode`. This is mostly useful for debugging and development.
 
 To measure single instructions add one or more `-i <LLVM_INSTRUCTION_NAME>` options.
 
@@ -52,7 +52,7 @@ WINIC automatically uses helper instructions to:
 - break dependencies between instructions to measure throughput
 - introduce dependencies between instructions to measure latency
 
-All uses of helper instructions are logged in `report_timestamp.txt`.\
+All uses of helper instructions are logged in `report_timestamp`.\
 If an instruction would need a helper but none can be found, WINIC will fail and report "ERROR_NO_HELPER".\
 WINIC can only use instructions as helper if they were measured in the current run which is a problem when trying to measure single instructions.
 The solution is to first do a full run and look up the dependencies of the instruction in the report, then the measurement can be reproduced by supplying all dependencies alongside the instruction using the `-i <LLVM_INSTRUCTION_NAME>` option. \
