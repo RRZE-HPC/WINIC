@@ -40,6 +40,35 @@ ASM:    [op0: reg(rw)]   [op1: imm(r)]
 
 - The constraint `op0 == op1` merges the two operands into a single read/write register in the assembly format.
 
+## LLVM Name Decoding Example
+
+### Instruction: `VFMADD132PDZ256mbkz`
+```
+VFMADD {132|213|231}  {P|S}  {D|S}  { |Y|Z}  {128|256| }  {m|r} {b| }  {k|kz| }
+                  |     |      |       |          |         |     |       |
+Operand Order   <-+     |      |       |          |         |     |       |
+Packed/Scalar   <-------+      |       |          |         |     |       |
+Single/Double   <--------------+       |          |         |     |       |
+AVX Width       <----------------------+          |         |     |       |
+Vector Size     <---------------------------------+         |     |       |
+Memory/Register <-------------------------------------------+     |       |
+Broadcast       <-------------------------------------------------+       |
+Masking/Zeroing <---------------------------------------------------------+
+```
+
+### Example Mapping
+- `VFMADD132PDZ256mbkz`
+  - **132** → Operand order  
+  - **P** → Packed  
+  - **D** → Double precision  
+  - **Z** → AVX-512 (ZMM registers)  
+  - **256** → 256-bit vector width  
+  - **m** → Memory as 3rd operand  
+  - **b** → Broadcast  
+  - **kz** → Masked destination with zeroing  
+
+
+
 ## Error Code reference
 
 | ErrorCode               | Type    | Allows Manual Correction|Explanation|
