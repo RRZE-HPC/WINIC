@@ -18,14 +18,13 @@
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <cstddef>
 #include <initializer_list>
-#include <llvm/IR/Value.h>
-#include <llvm/MC/MCRegisterInfo.h>
 #include <memory>
 #include <optional>
 

@@ -12,17 +12,16 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
+namespace winic {
 class LLVMEnvironment;
+}
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
 #endif
-
-using namespace llvm;
 
 static bool dbgToFile = true;
 static bool showProgress = true;

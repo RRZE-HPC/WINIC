@@ -1,15 +1,21 @@
 #ifndef IOSYSTEM_H
 #define IOSYSTEM_H
 
+#include "ErrorCode.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/YAMLTraits.h"
-#include <ErrorCode.h>
-#include <Globals.h>
-#include <WINIC.h>
-#include <llvm/ADT/StringRef.h>
+#include "llvm/Support/raw_ostream.h"
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
+namespace llvm {
+class MCInstrDesc;
+}
 
 namespace winic {
+struct LatMeasurement;
+struct TPMeasurement;
 // serializable structs for yaml output
 
 /**
@@ -58,7 +64,7 @@ static std::vector<IOInstruction> outputDatabase;
  * \param Desc The instruction descriptor.
  * \return The corresponding asm-style operand number.
  */
-unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc);
+unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const llvm::MCInstrDesc &Desc);
 
 /**
  * \brief Creates an IOInstruction from an opcode.

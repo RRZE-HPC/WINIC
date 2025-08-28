@@ -10,17 +10,15 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/MC/MCInst.h"
-#include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Triple.h"
 #include <AssemblyFile.h>
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <csignal>
-#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -35,7 +33,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
-#include <string>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -45,10 +43,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-// #include "X86RegisterInfo.h"
-// #include "MCTargetDesc/X86MCTargetDesc.h"
-// #include "MCTargetDesc/X86BaseInfo.h"
 
 namespace llvm {
 class MCInstrDesc;

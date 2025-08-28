@@ -1,15 +1,28 @@
 #include "IOSystem.h"
 
+#include "LLVMEnvironment.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include <CustomDebug.h>
 #include <ErrorCode.h>
 #include <Globals.h>
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <exception>
+#include <initializer_list>
 #include <iostream>
+#include <memory>
+#include <set>
 #include <string>
+#include <system_error>
 
 namespace winic {
 

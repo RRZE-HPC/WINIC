@@ -6,7 +6,6 @@
 #include "Globals.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegister.h"
-#include "llvm/MC/MCRegisterInfo.h"
 #include <list>
 #include <map>
 #include <set>
@@ -18,10 +17,9 @@
 
 namespace llvm {
 class MCInstrDesc;
-}
-struct Template;
+class MCRegisterClass;
+} // namespace llvm
 
-using namespace llvm;
 namespace winic {
 
 /**
