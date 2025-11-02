@@ -16,6 +16,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Triple.h"
 #include <AssemblyFile.h>
+#include <MCTargetDesc/X86MCTargetDesc.h>
 #include <algorithm>
 #include <chrono>
 #include <csignal>
@@ -1144,9 +1145,6 @@ int run(int argc, char **argv) {
                 std::cout << str(throughputDatabase[opcode]) << std::endl;
             }
         }
-        // update output database with new values
-        for (auto &[opcode, result] : throughputDatabase)
-            if (result.ec == SUCCESS) updateDatabaseEntryTP(result);
 
     } else if (*lat) {
         out(*ios, "Mode: Latency");
@@ -1174,16 +1172,7 @@ int run(int argc, char **argv) {
                 std::cout << m.toStringWithBounds() << std::endl;
             }
         }
-        // update database with new values
-        for (LatMeasurement result : latencyDatabase) {
-            ErrorCode EC = updateDatabaseEntryLAT(result);
-            if (EC != SUCCESS) {
-                std::string msg =
-                    str("failed to update database entry for ", result, ": ", ecToString(EC));
-                out(*ios, msg);
-                std::cerr << msg << std::endl;
-            }
-        }
+
     } else if (*man) {
         auto [EC, times] =
             measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
@@ -1202,8 +1191,10 @@ int run(int argc, char **argv) {
         std::cout << cyclesPerInstruction << " (clock cycles)\n";
     }
     if (*tp || *lat) {
+
         // save database
         if (databasePath != "/dev/null") {
+            // load database if it exists or create new one
             if (std::filesystem::exists(databasePath)) {
                 out(*ios, "Loading existing database: ", databasePath);
                 ErrorCode EC = loadYaml(databasePath);
@@ -1217,6 +1208,30 @@ int run(int argc, char **argv) {
                 }
             } else
                 out(*ios, "Creating new database: ", databasePath);
+
+            // update output database with new TP values
+            for (auto &[opcode, result] : throughputDatabase) {
+                if (result.ec != SUCCESS) continue;
+                ErrorCode EC = updateDatabaseEntryTP(result);
+                if (EC != SUCCESS) {
+                    std::string msg =
+                        str("failed to update database entry for ", result, ": ", ecToString(EC));
+                    out(*ios, msg);
+                    std::cerr << msg << std::endl;
+                }
+            }
+
+            // update database with new LAT values
+            for (LatMeasurement result : latencyDatabase) {
+                if (result.ec != SUCCESS) continue;
+                ErrorCode EC = updateDatabaseEntryLAT(result);
+                if (EC != SUCCESS) {
+                    std::string msg =
+                        str("failed to update database entry for ", result, ": ", ecToString(EC));
+                    out(*ios, msg);
+                    std::cerr << msg << std::endl;
+                }
+            }
             out(*ios, "Saving database to: ", databasePath);
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
