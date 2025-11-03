@@ -106,6 +106,11 @@ ErrorCode loadYaml(std::string Path);
  */
 ErrorCode saveYaml(std::string Path);
 
+/**
+ * \brief Removes entries from the database if they have no TP or LAT values
+ */
+void stripOutputDatabase();
+
 } // namespace winic
 
 LLVM_YAML_IS_SEQUENCE_VECTOR(winic::IOOperand)

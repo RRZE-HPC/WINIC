@@ -1231,7 +1231,6 @@ int run(int argc, char **argv) {
 
             // update database with new LAT values
             for (LatMeasurement result : latencyDatabase) {
-                if (result.ec != SUCCESS) continue;
                 ErrorCode EC = updateDatabaseEntryLAT(result);
                 if (EC != SUCCESS) {
                     std::string msg =

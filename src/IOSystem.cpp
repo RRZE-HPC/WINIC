@@ -207,6 +207,7 @@ ErrorCode loadYaml(std::string Path) {
 }
 
 ErrorCode saveYaml(std::string Path) {
+    stripOutputDatabase();
     std::error_code ec;
     llvm::raw_fd_ostream fout(Path, ec);
     if (ec) {
@@ -222,6 +223,22 @@ ErrorCode saveYaml(std::string Path) {
         return E_FILE;
     }
     return SUCCESS;
+}
+
+void stripOutputDatabase() {
+    std::vector<IOInstruction> strippedDatabase;
+    for (auto &inst : outputDatabase) {
+        bool hasValue = false;
+        if (inst.throughput.has_value()) hasValue = true;
+        for (auto &lat : inst.latencies) {
+            if (lat.min.has_value() || lat.max.has_value()) {
+                hasValue = true;
+                break;
+            }
+        }
+        if (hasValue) strippedDatabase.push_back(inst);
+    }
+    outputDatabase = strippedDatabase;
 }
 
 } // namespace winic
