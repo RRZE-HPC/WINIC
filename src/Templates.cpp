@@ -55,14 +55,10 @@ init:
 .type functionName, @function
 .align 32
 functionName:
-        push      rbp
-        mov       rbp, rsp
-
-        xor       i, i
-        test      N, N
-
 )",
     R"(
+        xor       i, i
+        test      N, N
         jle       done_functionName
 loop_functionName:
         inc       i
@@ -73,8 +69,6 @@ loop_functionName:
 done_functionName:
 )",
     R"(
-        mov  rsp, rbp
-        pop rbp
         ret
 .size functionName, .-functionName
 )",
