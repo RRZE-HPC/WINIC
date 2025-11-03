@@ -1,8 +1,9 @@
-from .parsing import *
 import yaml
 
 
 def count_ranges(database):
+    from .parsing import parse_WINIC_instruction
+
     # parse database
     with open(database, "r") as file:
         raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
@@ -47,24 +48,36 @@ def count_instr_different_sublatencies(database):
     with open(database, "r") as file:
         raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
     db = yaml.safe_load(raw_content)
-    c_has_value = 0
-    c_different_value = 0
+    different_latencies_ranges = []
+    different_latencies_exact = []
     # Go through each instruction
     for db_entry in db:
-        m_instr = parse_WINIC_instruction(db_entry)
-        latency_values = set()
+        latencies = db_entry.get("operandLatencies", None)
+        min_values = set()
+        has_range = False
 
         # add latency values to set
-        for lat in m_instr.latencies:
-            if lat.cyclesMin is not None:
-                latency_values.add(lat.cyclesMin)
+        for lat in latencies:
+            min = lat.get("latencyMin", None)
+            max = lat.get("latencyMax", None)
+            if min is not None and max is not None:
+                min_values.add(min)
+                if min != max:
+                    has_range = True
 
-        # If we have at least two different latencies
-        if len(latency_values) >= 1:
-            c_has_value += 1
-        if len(latency_values) >= 2:
-            c_different_value += 1
-            # print(f"Instruction with multiple latencies: {db_entry['llvmName']}")
-            # print(f"Latencies: {latency_values}")
+        # Check if there are at least two different latency values
+        if len(min_values) >= 2:
+            # distinguish instructions with ranges and ones without
+            if has_range:
+                different_latencies_ranges.append(db_entry.get("llvmName", None))
+            else:
+                different_latencies_exact.append(db_entry.get("llvmName", None))
 
-    print(f"{c_different_value} of {c_has_value} instructions have at least two different latency values")
+    print(
+        f"{len(different_latencies_ranges)} instructions have at least two different latency values, but also have some range as result"
+    )
+    print(
+        f"{len(different_latencies_exact)} instructions have at least two different latency values, and have only exact values"
+    )
+    print(f"List of instructions with different sub-latencies and ranges: {different_latencies_ranges}")
+    print(f"List of instructions with different sub-latencies and no ranges: {different_latencies_exact}")
