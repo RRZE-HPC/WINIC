@@ -58,11 +58,18 @@ def _parse_uops_latency(lat: ET.Element) -> Latency:
     try:
         startOp = int(lat.attrib["start_op"])
         targetOp = int(lat.attrib["target_op"])
-        cycles = int(lat.attrib["cycles"])
+        if "cycles" in lat.attrib:
+            cycles = int(lat.attrib["cycles"])
+            return Latency(startOp, targetOp, cycles, cycles)
+        if "min_cycles" in lat.attrib and "max_cycles" in lat.attrib :
+            cycles_min = int(lat.attrib["min_cycles"])
+            cycles_max = int(lat.attrib["max_cycles"])
+            return Latency(startOp, targetOp, cycles_min, cycles_max)
+        print('unreachable, uops entry has neither field "cycels" nor "min_cycles" and "max_cycles')
+        return None
     except KeyError:
         # happens e.g. on latency values regarding memory
         return None
-    return Latency(startOp, targetOp, cycles, cycles)
 
 
 def _parse_uops_instruction(entry: ET.Element, arch: str):
