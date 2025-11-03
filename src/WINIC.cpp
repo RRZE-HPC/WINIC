@@ -243,10 +243,18 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
         " InitName: ", InitName);
     std::string clangPath = CLANG_PATH;
     std::string oPath = "/dev/shm/temp.so";
-    std::string extraOptions = "";
-    if (getEnv().Arch == llvm::Triple::riscv64) extraOptions += "-march=rv64gcv";
-    std::string command = clangPath + " " + extraOptions.data() +
-                          " -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
+    std::string cpu = getEnv().Machine->getTargetCPU().data();
+    std::string archOption;
+    if (getEnv().Arch == llvm::Triple::riscv64 && cpu.find("generic") != std::string::npos) {
+        // generic riscv64 will fail to assemble benchmarks, use very
+        // permissive -march flag as workaround
+        cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
+        archOption = str("-march=", cpu);
+    } else {
+        archOption = str("-mcpu=", cpu);
+    }
+    std::string command = clangPath + " " + archOption.data() +
+                          " -nostdlib -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
                           " 2> assembler_out.log";
     if (system(command.data()) != 0) return {E_ASSEMBLY, {}};
 
