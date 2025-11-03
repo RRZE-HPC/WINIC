@@ -2,6 +2,7 @@
 #define CUSTOM_DEBUG_H
 
 #include <iostream>
+#include <map>
 #include <set>
 #include <sstream>
 #include <stddef.h>
@@ -30,6 +31,33 @@ template <typename T> inline std::ostream &operator<<(std::ostream &OS, const st
         if (i + 1 < V.size()) OS << ", ";
     }
     OS << "]";
+    return OS;
+}
+
+// override operator<< for any std::set
+template <typename T> inline std::ostream &operator<<(std::ostream &OS, const std::set<T> &S) {
+    OS << "set{";
+    size_t count = 0;
+    for (const auto &elem : S) {
+        OS << elem;
+        if (count + 1 < S.size()) OS << ", ";
+        count++;
+    }
+    OS << "}";
+    return OS;
+}
+
+// override operator<< for any std:map
+template <typename K, typename V>
+inline std::ostream &operator<<(std::ostream &OS, const std::map<K, V> &M) {
+    OS << "map{";
+    size_t count = 0;
+    for (const auto &pair : M) {
+        OS << pair.first << ": " << pair.second;
+        if (count + 1 < M.size()) OS << ", ";
+        count++;
+    }
+    OS << "}";
     return OS;
 }
 
