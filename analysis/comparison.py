@@ -240,15 +240,16 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
                         )
                     except StopIteration:
                         continue
-                    if m_lat.cyclesMin <= u_lat.cyclesMin and u_lat.cyclesMin <= m_lat.cyclesMax:
+                    # accept if WINIC range is in uops range
+                    if m_lat.cyclesMin <= u_lat.cyclesMin and m_lat.cyclesMax >= u_lat.cyclesMax:
                         data_match.append(True)
                         outputLines.append(
-                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: sameVal\n"
+                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}-{u_lat.cyclesMax}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: sameVal\n"
                         )
                     else:
                         data_match.append(False)
                         outputLines.append(
-                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: differentVal\n"
+                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}-{u_lat.cyclesMax}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: differentVal\n"
                         )
                 if len(data_match) == 0:
                     c.noUopsDataC += 1
