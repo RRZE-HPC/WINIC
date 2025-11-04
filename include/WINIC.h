@@ -114,9 +114,11 @@ getTPHelperInstruction(unsigned Opcode);
  *
  * \param Opcode The opcode to measure.
  * \param Frequency CPU frequency in GHz.
+ * \param RegInitValue Value to initialize registers with.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
-std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency);
+std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency,
+                                                        long RegInitValue);
 
 /**
  * \brief Measures the latency of the provided instruction chain.
@@ -127,20 +129,23 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
  * \param Measurements List of latency measurements to perform.
  * \param LoopCount Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
+ * \param RegInitValue Value to initialize registers with.
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
                                             unsigned LoopCount, double Frequency,
-                                            unsigned RegInitValue = 4);
+                                            long RegInitValue = 4);
 
 /**
  * \brief Calls measureThroughput in a subprocess to recover from segfaults during benchmarking.
  *
  * \param Opcode The opcode to measure.
  * \param Frequency CPU frequency in GHz.
+ * \param RegInitValue Value to initialize registers with.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
-std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency);
+std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
+                                                          long RegInitValue = 4);
 
 /**
  * \brief Calls measureLatency in a subprocess to recover from segfaults during benchmarking.
@@ -148,11 +153,12 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
  * \param Measurements List of latency measurements to perform.
  * \param LoopCount Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
+ * \param RegInitValue Value to initialize registers with.
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
                                                  unsigned LoopCount, double Frequency,
-                                                 unsigned RegInitValue = 4);
+                                                 long RegInitValue = 4);
 
 /**
  * \brief Calls runManual in a subprocess to recover from segfaults during benchmarking.
@@ -194,15 +200,17 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency);
  *
  * \param Opcodes List of opcodes to measure.
  * \param Frequency CPU frequency in GHz.
+ * \param RegInitValue Value to initialize registers with.
  */
-void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency);
+void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegInitValue = 4);
 
 /**
  * \brief Builds the latency database by measuring all relevant instructions.
  *
  * \param Frequency CPU frequency in GHz.
+ * \param RegInitValue Value to initialize registers with.
  */
-void buildLatDatabase(double Frequency);
+void buildLatDatabase(double Frequency, long RegInitValue = 4);
 
 /**
  * \brief Main entry point for the WINIC program.

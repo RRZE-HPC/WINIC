@@ -43,7 +43,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
                                                    std::set<MCRegister> UsedRegisters = {},
-                                                   unsigned RegInitValue = 4);
+                                                   long RegInitValue = 4);
 
 /**
  * \brief Generates a throughput benchmark for a given opcode.
@@ -53,13 +53,14 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
  * \param UsedRegisters Set of registers to avoid using.
  * \param HelperConstraints Constraints for the helper instruction.
  * \param HelperOpcode Opcode of the helper instruction.
+ * \param RegInitValue Value to initialize registers with.
  * \return Pair of ErrorCode and generated AssemblyFile.
  */
 std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
                                                   unsigned UnrollCount,
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                  unsigned HelperOpcode);
+                                                  unsigned HelperOpcode, long RegInitValue = 4);
 
 /**
  * \brief Generates the inner loop for a throughput measurement.
@@ -163,7 +164,7 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
  * \param Value The value to initialize the register with, current maximum 15.
  * \return Assembly code string for register initialization or empty string on error.
  */
-std::string genSetRegister(MCRegister Reg, unsigned Value);
+std::string genSetRegister(MCRegister Reg, long Value);
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.

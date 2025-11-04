@@ -220,7 +220,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   unsigned UnrollCount,
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                  unsigned HelperOpcode) {
+                                                  unsigned HelperOpcode, long RegInitValue) {
     dbg(__func__, "Opcode: ", Opcode, " Name: ", getEnv().MCII->getName(Opcode).str(),
         " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
         " UsedRegisters.size(): ", UsedRegisters.size(),
@@ -283,7 +283,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
             if (!inst.getOperand(i).isReg()) continue;
             MCRegister reg = inst.getOperand(i).getReg();
             if (initialized.find(reg) == initialized.end()) {
-                rio << genSetRegister(reg, 4);
+                rio << genSetRegister(reg, RegInitValue);
                 initialized.insert(reg);
             }
         }
@@ -561,7 +561,7 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     return {SUCCESS, result};
 }
 
-std::string genSetRegister(MCRegister Reg, unsigned Value) {
+std::string genSetRegister(MCRegister Reg, long Value) {
     std::string result;
     llvm::raw_string_ostream os(result);
     // a way to move the immediate into the register, may also be a chain of instructions
@@ -576,15 +576,16 @@ std::string genSetRegister(MCRegister Reg, unsigned Value) {
     switch (getEnv().Arch) {
     case llvm::Triple::x86_64: {
         Solution solution1;
-        solution1.inst.setOpcode(X86::MOV64ri32); // GR64
+        solution1.inst.setOpcode(X86::MOV64ri); // GR64
         solution1.inst.addOperand(MCOperand::createReg(Reg));
         solution1.inst.addOperand(MCOperand::createImm(Value));
         solutions.emplace_back(solution1);
         Solution solution2;
-        solution2.inst.setOpcode(X86::MOVDI2PDIrr); // VR128
-        solution2.inst.addOperand(MCOperand::createReg(Reg)); // the xmm register to move to
-        solution2.inst.addOperand(MCOperand::createReg(X86::EAX)); // the register to move from
-        solution2.dependencyReg = X86::EAX; // expects value in EAX, there has to be a solution to move it there
+        solution2.inst.setOpcode(X86::MOVDI2PDIrr);                // VR128
+        solution2.inst.addOperand(MCOperand::createReg(Reg));      // the xmm register to move to
+        solution2.inst.addOperand(MCOperand::createReg(X86::RAX)); // the register to move from
+        solution2.dependencyReg =
+            X86::RAX; // expects value in RAX, there has to be a solution to move it there
         solutions.emplace_back(solution2);
         Solution solution3;
         solution3.inst.setOpcode(X86::VBROADCASTSDYrr); // VR256
