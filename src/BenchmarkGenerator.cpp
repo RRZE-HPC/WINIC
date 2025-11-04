@@ -582,11 +582,22 @@ std::string genSetRegister(MCRegister Reg, unsigned Value) {
         solutions.emplace_back(solution1);
         Solution solution2;
         solution2.inst.setOpcode(X86::MOVDI2PDIrr); // VR128
-        solution2.inst.addOperand(MCOperand::createReg(Reg));
-        solution2.inst.addOperand(MCOperand::createReg(X86::EAX));
-        solution2.inst.addOperand(MCOperand::createImm(Value));
-        solution2.dependencyReg = X86::EAX;
+        solution2.inst.addOperand(MCOperand::createReg(Reg)); // the xmm register to move to
+        solution2.inst.addOperand(MCOperand::createReg(X86::EAX)); // the register to move from
+        solution2.dependencyReg = X86::EAX; // expects value in EAX, there has to be a solution to move it there
         solutions.emplace_back(solution2);
+        Solution solution3;
+        solution3.inst.setOpcode(X86::VBROADCASTSDYrr); // VR256
+        solution3.inst.addOperand(MCOperand::createReg(Reg));
+        solution3.inst.addOperand(MCOperand::createReg(X86::XMM0));
+        solution3.dependencyReg = X86::XMM0;
+        solutions.emplace_back(solution3);
+        Solution solution4;
+        solution4.inst.setOpcode(X86::VBROADCASTSDZrr); // VR512
+        solution4.inst.addOperand(MCOperand::createReg(Reg));
+        solution4.inst.addOperand(MCOperand::createReg(X86::XMM0));
+        solution4.dependencyReg = X86::XMM0;
+        solutions.emplace_back(solution4);
         break;
     }
     case llvm::Triple::aarch64: {
