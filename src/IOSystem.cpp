@@ -20,6 +20,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <system_error>
@@ -97,19 +98,21 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
                            [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
     if (it != outputDatabase.end()) {
         dbg(__func__, "update ", name, " throughput: ", lowerTP, " ", upperTP);
-        // Found entry, update it:
-        it->throughput = lowerTP;
-        it->throughputMin = lowerTP;
-        it->throughputMax = upperTP;
+        // Found entry, update it if the new measurement did not have an error
+        if (!isError(M.ec)) {
+            it->throughput = lowerTP;
+            it->throughputMin = lowerTP;
+            it->throughputMax = upperTP;
+        }
     } else {
         dbg(__func__, "insert ", name, " throughput: ", lowerTP, " ", upperTP);
         // Not found, insert
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
         if (isError(M.ec)) {
-            opInst.throughput = 0;
-            opInst.throughputMin = 0;
-            opInst.throughputMax = 0;
+            opInst.throughput = std::nullopt;
+            opInst.throughputMin = std::nullopt;
+            opInst.throughputMax = std::nullopt;
         } else {
             opInst.throughput = lowerTP;
             opInst.throughputMin = lowerTP;
@@ -168,9 +171,11 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     std::optional<double> max =
         isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.upperBound));
     if (latencyEntry != instruction->latencies.end()) {
-        // Found entry, update it:
-        latencyEntry->min = min;
-        latencyEntry->max = max;
+        // Found entry, update it if the new measurement did not have an error
+        if (!isError(M.ec)) {
+            latencyEntry->min = min;
+            latencyEntry->max = max;
+        }
     } else {
         // no entry with this src target combination, add it
         IOLatency lat;
@@ -181,7 +186,9 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         instruction->latencies.insert(instruction->latencies.end(), lat);
     }
     // take maximum latency value as instruction latency
-    instruction->latency = std::max(instruction->latency, max);
+    instruction->latency = 0;
+    for (IOLatency lat : instruction->latencies)
+        instruction->latency = std::max(instruction->latency, lat.max);
 
     return SUCCESS;
 }
