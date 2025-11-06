@@ -33,9 +33,10 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <regex>
 #include <sstream>
-#include <string.h>
 #include <string>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -119,7 +120,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     }
     asmFile << Assembly.generateAssembly();
     asmFile.close();
-    if (dbgToFile) {
+    if (outputASM) {
         std::string debugPath =
             std::filesystem::current_path().string() + "/asm/" + Assembly.getName() + ".s";
         std::ofstream debugFile(debugPath);
@@ -138,7 +139,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     //  std::string compiler = CLANG_PATH;
     //  std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " +
     // oPath;
-    //  if (dbgToFile)
+    //  if (outputASM)
     //      command += " 2> assembler_out.log";
     //  else
     //      command += " 2> /dev/null";
@@ -148,7 +149,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     pid_t pid = fork();
     if (pid == 0) { // Child
         int fd;
-        if (dbgToFile) {
+        if (outputASM) {
             fd = open("assembler_out.log", O_WRONLY | O_TRUNC | O_CREAT, 0644);
             if (fd == -1) {
                 perror("open assembler_out.log failed");
@@ -1019,6 +1020,8 @@ int run(int argc, char **argv) {
     unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
     bool noReport = false;
+    bool forceASMOutput = false;
+    bool forceAnyASMOutput = false;
     std::string databasePath = "";
     std::string regInitValueString = "";
     auto *tp = app.add_subcommand("TP", "Throughput");
@@ -1026,9 +1029,16 @@ int run(int argc, char **argv) {
     tp->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(tpInstOpt);
     tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(tpInstOpt);
     tp->add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
+    tp->add_flag("--outputASM", forceASMOutput,
+                 "Force WINIC to write every benchmark generated to asm/")
+        ->default_val(false);
+    tp->add_flag("--iKnowWhatImDoing", forceAnyASMOutput,
+                 "Force WINIC to write every benchmark generated to asm/ no matter how many. "
+                 "WARNING use with care!")
+        ->default_val(false);
     tp->add_option("--regInit", regInitValueString,
-                    "Value to set registers to before benchmark. Accepts decimal, octal with "
-                    "prefix 0 or hexadecimal with prefix 0x")
+                   "Value to set registers to before benchmark. Accepts decimal, octal with "
+                   "prefix 0 or hexadecimal with prefix 0x")
         ->default_val("4");
     tp->add_option("-o,--output", databasePath,
                    "Path to the .yaml file to save the results to. If the file already exists new "
@@ -1042,6 +1052,13 @@ int run(int argc, char **argv) {
     lat->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
     lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
     lat->add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
+    lat->add_flag("--outputASM", forceASMOutput,
+                  "Force WINIC to write every benchmark generated to asm/")
+        ->default_val(false);
+    lat->add_flag("--iKnowWhatImDoing", forceAnyASMOutput,
+                  "Force WINIC to write every benchmark generated to asm/ no matter how many. "
+                  "WARNING use with care!")
+        ->default_val(false);
     lat->add_option("--regInit", regInitValueString,
                     "Value to set registers to before benchmark. Accepts decimal, octal with "
                     "prefix 0 or hexadecimal with prefix 0x")
@@ -1096,7 +1113,6 @@ int run(int argc, char **argv) {
     out(*ios, "Timestamp: ", timestamp);
     out(*ios, "Command: ", ss.str());
     out(*ios, "Frequency: ", frequency, " GHz");
-    dbgToFile = false;
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
@@ -1107,16 +1123,6 @@ int run(int argc, char **argv) {
     }
     out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
     if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
-
-    std::vector<unsigned> opcodes;
-    for (auto instrName : instrNames) {
-        unsigned opcode = getEnv().getOpcode(instrName.data());
-        if (opcode == std::numeric_limits<unsigned>::max()) {
-            std::cerr << "No instruction with name \"" << instrName << "\"" << std::endl;
-            exit(1);
-        }
-        opcodes.emplace_back(opcode);
-    }
 
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions;
@@ -1131,94 +1137,105 @@ int run(int argc, char **argv) {
     for (auto name : skipInstructions)
         opcodeBlacklist.insert(getEnv().getOpcode(name));
 
-    if (*tp) {
-        out(*ios, "Mode: Throughput");
-        if (getEnv().Arch == Triple::ArchType::x86_64) {
-            // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for
-            // interleaving with other instructions
-            unsigned opcodeTest = getEnv().getOpcode("TEST64rr");
-            auto [EC, lowerTP1, upperTP1] =
-                measureInSubprocess(opcodeTest, frequency, regInitValue);
-            throughputDatabase[opcodeTest] = {opcodeTest, EC, lowerTP1, upperTP1};
-            priorityTPHelper.emplace_back(opcodeTest);
-
-            unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
-            auto [EC2, lowerTP2, upperTP2] =
-                measureInSubprocess(opcodeMov, frequency, regInitValue);
-            throughputDatabase[opcodeMov] = {opcodeMov, EC2, lowerTP2, upperTP2};
-            priorityTPHelper.emplace_back(opcodeMov);
+    std::vector<unsigned> opcodes;
+    if (*tp || *lat) {
+        // process instruction names or regexes
+        for (auto instrName : instrNames) {
+            if (instrName.find_first_of(".*+?[]()|") != std::string::npos) {
+                // this is a regex, add all matching opcodes
+                std::regex rgx(instrName);
+                std::vector<std::string> matchedNames;
+                for (unsigned opcode = 0; opcode < getEnv().MCII->getNumOpcodes(); opcode++) {
+                    std::string name = getEnv().MCII->getName(opcode).data();
+                    try {
+                        if (std::regex_match(name, rgx)) {
+                            opcodes.emplace_back(opcode);
+                            matchedNames.emplace_back(name);
+                            dbg(__func__, "Adding opcode ", opcode, " with name ", name,
+                                " matching regex ", instrName);
+                        }
+                    } catch (std::regex_error &e) {
+                        std::cerr << "Invalid regex \"" << instrName << "\": " << e.what()
+                                  << std::endl;
+                        exit(1);
+                    }
+                }
+                out(*ios, "Instructions added by regex \"", instrName, "\": ", matchedNames.size());
+                out(std::cout, "Instructions added by regex \"", instrName,
+                    "\": ", matchedNames.size());
+            } else {
+                unsigned opcode = getEnv().getOpcode(instrName.data());
+                if (opcode == std::numeric_limits<unsigned>::max()) {
+                    std::cerr << "No instruction with name \"" << instrName << "\"" << std::endl;
+                    exit(1);
+                }
+                opcodes.emplace_back(opcode);
+            }
         }
+
+        // add all opcodes if no instructions were specified
         if (opcodes.empty()) {
             out(*ios, "No instructions specified, measuring all instructions from opcode ",
                 minOpcode, " to ", maxOpcode);
             for (unsigned opcode = minOpcode; opcode < maxOpcode; opcode++) {
-                // skip instructions which are not supported on this platform
+                // skip instructions in blacklist
                 if (opcodeBlacklist.find(opcode) != opcodeBlacklist.end()) {
                     throughputDatabase[opcode].ec = S_MANUALLY;
                     continue;
                 }
                 opcodes.emplace_back(opcode);
             }
-
-            buildTPDatabase(opcodes, frequency, regInitValue);
-        } else {
-            showProgress = false;
-            dbgToFile = true;
-
-            prepAsmDir();
-            buildTPDatabase(opcodes, frequency, regInitValue);
-            for (auto opcode : opcodes) {
-                if (throughputDatabase.find(opcode) == throughputDatabase.end())
-                    continue; // should not happen
-                std::cout << str(throughputDatabase[opcode]) << std::endl;
-            }
         }
 
-    } else if (*lat) {
-        out(*ios, "Mode: Latency");
+        // decide on output verbosity
+        showProgress = opcodes.size() >= 10;
+        outputASM = opcodes.size() < 10 || forceASMOutput;
+        if (opcodes.size() >= 100 && outputASM && !forceAnyASMOutput) {
+            out(std::cerr, "ABORTED: You are about to measure more than 100 instructions with ASM "
+                           "lot of files. If you are sure you want to do this use "
+                           "--iKnowWhatImDoing to override this check.");
+            exit(1);
+        }
+        if (outputASM) prepAsmDir();
 
-        // example chain ADC16ri8 CMP16ri8
-        // ADC32i32 PCMPESTRIrri CVTSI2SDrr TODO debug
-        if (opcodes.empty()) {
-            out(*ios, "No instructions specified, measuring all instructions from opcode ",
-                minOpcode, " to ", maxOpcode);
-            latencyDatabase = genLatMeasurements(minOpcode, maxOpcode, opcodeBlacklist);
-            buildLatDatabase(frequency, regInitValue);
-        } else {
-            showProgress = false;
-            dbgToFile = true;
-            prepAsmDir();
+        if (*tp) {
+            out(*ios, "Mode: Throughput");
+            if (getEnv().Arch == Triple::ArchType::x86_64) {
+                // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for
+                // interleaving with other instructions
+                unsigned opcodeTest = getEnv().getOpcode("TEST64rr");
+                auto [EC, lowerTP1, upperTP1] =
+                    measureInSubprocess(opcodeTest, frequency, regInitValue);
+                throughputDatabase[opcodeTest] = {opcodeTest, EC, lowerTP1, upperTP1};
+                priorityTPHelper.emplace_back(opcodeTest);
+
+                unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
+                auto [EC2, lowerTP2, upperTP2] =
+                    measureInSubprocess(opcodeMov, frequency, regInitValue);
+                throughputDatabase[opcodeMov] = {opcodeMov, EC2, lowerTP2, upperTP2};
+                priorityTPHelper.emplace_back(opcodeMov);
+            }
+            buildTPDatabase(opcodes, frequency, regInitValue);
+        } else if (*lat) {
+            out(*ios, "Mode: Latency");
             for (auto opcode : opcodes) {
                 auto measurements = genLatMeasurements(opcode, opcode + 1, {});
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
                                        measurements.end());
             }
             buildLatDatabase(frequency, regInitValue);
+        }
+
+        // write results to console
+        if (opcodes.size() < 10) {
             for (auto m : latencyDatabase) {
                 if (std::find(opcodes.begin(), opcodes.end(), m.opcode) == opcodes.end())
                     continue; // skip prio helpers
                 std::cout << m.toStringWithBounds() << std::endl;
             }
+            for (auto [opcode, measurement] : throughputDatabase)
+                std::cout << str(measurement) << std::endl;
         }
-
-    } else if (*man) {
-        auto [EC, times] =
-            measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
-        if (EC != SUCCESS) {
-            std::cout << "failed for reason: " << ecToString(EC) << "\n";
-            return 1;
-        }
-        for (auto time : times) {
-            std::cout << time << " ";
-        }
-        double minTime = *std::min_element(times.begin(), times.end());
-        std::cout << " min: " << minTime << "\n";
-
-        // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
-        double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
-        std::cout << cyclesPerInstruction << " (clock cycles)\n";
-    }
-    if (*tp || *lat) {
 
         // save database
         if (databasePath != "/dev/null") {
@@ -1263,6 +1280,24 @@ int run(int argc, char **argv) {
             ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
+    }
+
+    if (*man) {
+        auto [EC, times] =
+            measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
+        if (EC != SUCCESS) {
+            std::cout << "failed for reason: " << ecToString(EC) << "\n";
+            return 1;
+        }
+        for (auto time : times) {
+            std::cout << time << " ";
+        }
+        double minTime = *std::min_element(times.begin(), times.end());
+        std::cout << " min: " << minTime << "\n";
+
+        // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
+        double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
+        std::cout << cyclesPerInstruction << " (clock cycles)\n";
     }
 
     gettimeofday(&end, NULL);

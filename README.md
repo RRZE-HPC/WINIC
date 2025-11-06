@@ -31,9 +31,17 @@ By default WINIC measures all available instructions and generates a .yaml file 
 
 To measure only a range of opcodes, use `--minOpcode` and `--maxOpcode`. This is mostly useful for debugging and development.
 
-To measure single instructions add one or more `-i <LLVM_INSTRUCTION_NAME>` options.
+To measure single instructions add one or more `-i <LLVM_INSTRUCTION_NAME>` options. WINIC now also supports regular expressions to specify groups of instructions.
+To measure e.g. the latency of all variants of SSE/AVX fused-multiply-add instructions use:
+```bash
+winic -f <frequency> LAT -o file.yaml -i VFMADD.* 
+```
 
-By default x87 floating point instructions are excluded, as they are deprecated and consume a lot of time on architectures that emulate them. Use the `--x87FP` flag to measure them.
+By default all registers used by the benchmark kernels are initialized to a hardcoded value (currently 4). Specify `--regInit <initValue>` to use another value instead. This option takes decimal, octal values with prefix `0` or hexadecimal values with prefix `0x`.
+
+For running custom benchmarks WINIC writes the files generated to `asm/` if the total number of instructions is 10 or less. To force WINIC to output any number of instructions use the `--outputASM` flag. WARNING: using this option on full runs will generate thousands of files.
+
+By default x87 floating point instructions are excluded, as they are deprecated and consume a lot of time on architectures that emulate them. Use the `--x87FP` flag to include them.
 
 ### MAN
 In manual mode, WINIC can execute arbitrary altered benchmark functions.
@@ -45,7 +53,12 @@ winic -f <frequency> MAN --path file.s --funcName tp --nInst 12
 There are always cases where WINIC doesn't produce correct data. To do a custom benchmark for an instruction, first run WINIC in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
 
 ## Updating existing database
-By default TP and LAT mode generate a `db_{TIMESTAMP}.yaml` file with the results. Use `-o/--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones, all other values will be left unchanged. This works with single instructions as well as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
+By default TP and LAT mode generate a `db_{TIMESTAMP}.yaml` file with the results. Use `-o/--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones according to the following rules:
+- all new non-null values will overwrite existing values
+- new null values will not overwrite existing values
+- all existing values will be left unchanged if no new value was generated
+
+Updating the database works with single instructions as well as full TP/LAT runs. A standard workflow therefore would be to do a TP run generating a database and then a LAT run updating it.
 
 ## Helper instructions
 WINIC automatically uses helper instructions to:
