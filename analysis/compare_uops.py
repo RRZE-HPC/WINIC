@@ -89,7 +89,8 @@ def is_same(uopsInst: Instruction, LLVMInst: Instruction):
 # compare the results with uops data.
 def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
     # parse measured instructions
-    from .parsing import parse_uops_database, parse_WINIC_instruction
+    from .parsing.parse_winic import parse_WINIC_instruction
+    from .parsing.parse_uops import parse_uops_database
 
     with open(database, "r") as file:
         raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
@@ -117,7 +118,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
                 continue
             llvm_name = db_entry["llvmName"]
 
-            m_cycles = m_instr.throughput_lower
+            m_cycles = m_instr.throughputs[0].cyclesMin
             # find uops instsruction
             u_matches: List[Instruction] = []
             for u_instr in uops_instructions:
@@ -130,15 +131,15 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
             else:
                 # one or multiple matches
                 data_match = [
-                    0.92 * m_instr.throughput_lower <= u_instr.throughput_lower <= 1.09 * m_instr.throughput_upper
+                    0.92 * m_instr.throughputs[0].cyclesMin <= u_instr.throughputs[0].cyclesMin <= 1.09 * m_instr.throughputs[0].cyclesMax
                     for u_instr in u_matches
                 ]
-                debug([(u_inst.throughput_lower, m_cycles) for u_inst in u_matches])
+                debug([(u_inst.throughputs[0].cyclesMin, m_cycles) for u_inst in u_matches])
                 debug(data_match)
 
                 if False in data_match:
                     outputLines.append(
-                        f"{llvm_name}: {u_matches[0].uopsName} uops: {u_matches[0].throughput_lower}, WINIC: {m_cycles}, classify: differentVal(s)\n"
+                        f"{llvm_name}: {u_matches[0].uopsName} uops: {u_matches[0].throughputs[0].cyclesMin}, WINIC: {m_cycles}, classify: differentVal(s)\n"
                     )
                     if len(data_match) == 1:
                         c.uniqueMatchDiffValueC += 1
@@ -147,7 +148,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
 
                 else:
                     outputLines.append(
-                        f"{llvm_name}: {u_matches[0].uopsName} uops: {u_matches[0].throughput_lower}, WINIC: {m_cycles}, classify: matchingVal(s)\n"
+                        f"{llvm_name}: {u_matches[0].uopsName} uops: {u_matches[0].throughputs[0].cyclesMin}, WINIC: {m_cycles}, classify: matchingVal(s)\n"
                     )
                     if len(data_match) == 1:
                         c.uniqueMatchSameValueC += 1
@@ -331,12 +332,12 @@ def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], output_pat
             # compare
             if mode == "TP" or mode == "BOTH":
                 if not equal_tolerance(entry1["throughputMin"], entry2["throughputMin"]):
-                    output += f"{entry1["llvmName"]} tpLower {entry1["throughputMin"]} -> {entry2["throughputMin"]}\n"
+                    output += f"{entry1['llvmName']} tpLower {entry1['throughputMin']} -> {entry2['throughputMin']}\n"
                     c_changes, c_from_none, c_to_none = update_counters(
                         entry1["throughputMin"], entry2["throughputMin"], c_changes, c_from_none, c_to_none
                     )
                 if not equal_tolerance(entry1["throughputMax"], entry2["throughputMax"]):
-                    output += f"{entry1["llvmName"]} tpUpper {entry1["throughputMax"]} -> {entry2["throughputMax"]}\n"
+                    output += f"{entry1['llvmName']} tpUpper {entry1['throughputMax']} -> {entry2['throughputMax']}\n"
                     c_changes, c_from_none, c_to_none = update_counters(
                         entry1["throughputMax"], entry2["throughputMax"], c_changes, c_from_none, c_to_none
                     )

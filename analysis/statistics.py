@@ -2,7 +2,7 @@ import yaml
 
 
 def count_ranges(database):
-    from .parsing import parse_WINIC_instruction
+    from .parsing.parse_winic import parse_WINIC_instruction
 
     # parse database
     with open(database, "r") as file:
@@ -14,8 +14,8 @@ def count_ranges(database):
     lat_exact_c = 0
     for db_entry in db:
         m_instr = parse_WINIC_instruction(db_entry)
-        if m_instr.throughput_lower != None:
-            if m_instr.throughput_lower != m_instr.throughput_upper:
+        if m_instr.throughputs[0].cyclesMin != None:
+            if m_instr.throughputs[0].cyclesMin != m_instr.throughputs[0].cyclesMax:
                 tp_range_c += 1
             else:
                 tp_exact_c += 1

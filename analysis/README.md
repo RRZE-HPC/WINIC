@@ -10,7 +10,7 @@ to generate the necessary files for this script collection. A llvm build directo
 
 Then run 
 ```bash
-python -m analysis.cli compare <db.yaml> <arch> --output plot.svg
+python -m analysis.cli compare uops <arch> <db.yaml> --output plot.svg
 ```
 to compare a WINIC database to uops.info. A plot with the results will be written to plot.svg
 
@@ -39,26 +39,27 @@ python -m analysis.cli setup <llvm_build_dir> [--step dump|uops|ref|all] [--forc
 - `--force`: By default a step will be skipped if the files it produces already exist. This flag will overwrite existing files.
 
 
-### db-diff
+### diff
 Generate a diff between two WINIC YAML files.
 
 **Usage:**
 ```bash
-python -m analysis.cli db-diff <db1.yaml> <db2.yaml> [--mode TP|LAT|BOTH] [--output <file>]
+python -m analysis.cli diff <db1.yaml> <db2.yaml> [--mode TP|LAT|BOTH] [--output <file>]
 ```
 - `db1`, `db2`: Paths to the WINIC database files.
 - `--mode`: Compare throughput (`TP`), latency (`LAT`), or both (`BOTH`). Default: BOTH.
 - `--output`: Write a detailed diff report to a file.
 
 ### compare
-Compare a database against values from uops.info and plot the results. This is only available for x86 since uops.info only has x86 data.
+Compare a database against values from uops.info and plot the results. This is only available for x86 since uops.info only has x86 data. (Comparison with the Neoverse-V2 opt guide coming soon)
 
 **Usage:**
 ```bash
-python -m analysis.cli compare <db.yaml> <arch> [--mode TP|LAT|BOTH] [--output <file>]
+python -m analysis.cli compare <source> <arch> <db.yaml> [--mode TP|LAT|BOTH] [--output <file>]
 ```
+- `source`: Source to compare to, currently only `uops` is supported 
+- `arch`: Architecture name (see supported list below).
 - `db`: Path to the database file.
-- `arch`: Uops architecture name (see supported list below).
 - `--mode`: Compare throughput, latency, or both. Default: BOTH.
 - `--output`: Plot results to a file.
 

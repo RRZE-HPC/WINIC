@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Literal
 import os
 
@@ -63,16 +63,22 @@ class Latency:
     cyclesMin: int
     cyclesMax: int
 
+@dataclass
+class Throughput:
+    cyclesMin: float
+    cyclesMax: float
+
 
 @dataclass
 class Instruction:
-    asmName: str
-    operands: List[Operand]
-    throughput_lower: float
-    throughput_upper: float
-    latencies: List[Latency]
-    uopsName: str
-    roundc: bool  # AVX512 roundc
+    asmName: str = ""
+    operands: List[Operand] = field(default_factory=list)
+    throughputs: List[Throughput] = field(default_factory=list)
+    # throughput_lower: float = 0.0
+    # throughput_upper: float = 0.0
+    latencies: List[Latency] = field(default_factory=list)
+    uopsName: str= ""
+    roundc: bool = False  # AVX512 roundc
 
 
 # AI generated

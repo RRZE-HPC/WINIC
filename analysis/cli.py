@@ -1,12 +1,12 @@
 import os
-from .comparison import db_diff, compare
+from .compare_uops import db_diff, compare
 from .plotting import *
 from .setup import *
 from .statistics import *
 import argparse
 
 # this file was mostly AI generated
-ARCHES = [
+UOPS_ARCHES = [
     "CON",
     "WOL",
     "NHM",
@@ -35,6 +35,10 @@ ARCHES = [
     "ZEN2",
     "ZEN3",
     "ZEN4",
+]
+
+DOCS_ARCHES = [
+    "V2",
 ]
 
 ARCH_NAMES = {
@@ -66,6 +70,7 @@ ARCH_NAMES = {
     "ZEN2": "Zen 2",
     "ZEN3": "Zen 3",
     "ZEN4": "Zen 4",
+    "V2": "Neoverse v2",
 }
 
 
@@ -84,21 +89,32 @@ def main():
         help="Specify which setup step to run",
     )
 
-    # db_diff command
-    diff_parser = subparsers.add_parser("db-diff", help="Generate a diff between two databases")
+    # diff command
+    diff_parser = subparsers.add_parser("diff", help="Generate a diff between two databases")
     diff_parser.add_argument("db1", help="Path to first database YAML file")
     diff_parser.add_argument("db2", help="Path to second database YAML file")
     diff_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
     diff_parser.add_argument("--output", default="", help="File to write a detailed diff report to")
 
-    arch_help = "Architecture name. Supported: " + ", ".join([f"{arch}: {ARCH_NAMES[arch]}" for arch in ARCHES])
+    arch_help = "Architecture name. Supported: " + ", ".join([f"{arch}: {ARCH_NAMES[arch]}" for arch in UOPS_ARCHES])
 
     # compare command
     compare_parser = subparsers.add_parser("compare", help="Compare database and plot results")
-    compare_parser.add_argument("db", help="Path to database YAML file")
-    compare_parser.add_argument("arch", choices=ARCHES, help=arch_help)
-    compare_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    compare_parser.add_argument("--output", default="", help="Plot results to file")
+    sub_compare_parser = compare_parser.add_subparsers(dest="compare_source")
+
+    # compare to ups
+    uops_c_parser = sub_compare_parser.add_parser("uops", help="Compare to results from uops.info")
+    uops_c_parser.add_argument("arch", choices=UOPS_ARCHES, help=arch_help)
+    uops_c_parser.add_argument("db", help="Path to database YAML file")
+    uops_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    uops_c_parser.add_argument("--output", default="", help="Plot results to file")
+
+    # compare to docs
+    docs_c_parser = sub_compare_parser.add_parser("docs", help="Compare to documentation")
+    docs_c_parser.add_argument("arch", choices=DOCS_ARCHES, help=arch_help)
+    docs_c_parser.add_argument("db", help="Path to database YAML file")
+    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    docs_c_parser.add_argument("--output", default="", help="Plot results to file")
 
     # plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots out of hardcoded data")
@@ -107,6 +123,10 @@ def main():
 
     # stat command
     stat_parser = subparsers.add_parser("stat", help="Show statistics for a WINIC database")
+    stat_parser.add_argument("db", help="Path to database YAML file")
+
+    # parse command
+    stat_parser = subparsers.add_parser("neo", help="Compare to neoverse optimization guide")
     stat_parser.add_argument("db", help="Path to database YAML file")
 
     args = parser.parse_args()
@@ -126,22 +146,28 @@ def main():
                 gen_quick_reference_files(f"{ref_dir}/X86.json", f"{ref_dir}/X86/", args.force)
                 gen_quick_reference_files(f"{ref_dir}/AArch64.json", f"{ref_dir}/AArch64/", args.force)
                 gen_quick_reference_files(f"{ref_dir}/RISCV.json", f"analysis/reference-files/RISCV/", args.force)
-        case "db-diff":
+        case "diff":
             db_diff(args.db1, args.db2, args.mode, args.output)
         case "compare":
-            lat_res = None
-            tp_res = None
-            if args.mode == "LAT" or args.mode == "BOTH":
-                print("Processing Latency")
-                lat_res = compare(args.db, "lat", args.arch)
-            if args.mode == "TP" or args.mode == "BOTH":
-                print("Processing Throughput")
-                tp_res = compare(args.db, "tp", args.arch)
-            if args.output != "":
-                output_dir = os.path.dirname(args.output)
-                if output_dir and not os.path.exists(output_dir):
-                    os.makedirs(output_dir, exist_ok=True)
-                plot(lat_res, tp_res, args.output, args.mode)
+            if args.compare_source == "docs":
+                from .compare_v2 import compare_winic_v2
+                compare_winic_v2(args.db, args.mode, args.output)
+            else:
+                if args.arch == "V2":
+                    print("C")
+                lat_res = None
+                tp_res = None
+                if args.mode == "LAT" or args.mode == "BOTH":
+                    print("Processing Latency")
+                    lat_res = compare(args.db, "lat", args.arch)
+                if args.mode == "TP" or args.mode == "BOTH":
+                    print("Processing Throughput")
+                    tp_res = compare(args.db, "tp", args.arch)
+                if args.output != "":
+                    output_dir = os.path.dirname(args.output)
+                    if output_dir and not os.path.exists(output_dir):
+                        os.makedirs(output_dir, exist_ok=True)
+                    plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
             plot(None, None, args.path, args.mode)
         case "stat":
