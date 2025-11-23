@@ -13,21 +13,25 @@ LDFLAGS += -I$(LLVM_PROJECT)/llvm/lib/Target/X86
 LDFLAGS += -I$(BUILD)/lib/Target/X86
 LDFLAGS += -I$(LLVM_PROJECT)/llvm/lib/Target/AArch64
 LDFLAGS += -I$(BUILD)/lib/Target/AArch64
+LDFLAGS += -I$(LLVM_PROJECT)/llvm/lib/Target/RISCV
+LDFLAGS += -I$(BUILD)/lib/Target/RISCV
 
 # Add Clang include directories
 # LDFLAGS += -I$(LLVM_PROJECT)/llvm/include
 LDFLAGS += -I$(BUILD)/include
+LDFLAGS += -Iinclude-third-party
 
 IWYU = ./build-iwyu/bin/include-what-you-use
-SRC_FILES = LLVMBench BenchmarkGenerator LLVMEnvironment AssemblyFile Templates ErrorCode CustomDebug Globals
+SRC_FILES = WINIC BenchmarkGenerator LLVMEnvironment AssemblyFile Templates ErrorCode CustomDebug IOSystem Globals
 # run include-what-you-use for the given source file
 iwyu:
-	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/LLVMBench.cpp $(LDFLAGS)
+	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/WINIC.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/BenchmarkGenerator.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/LLVMEnvironment.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/AssemblyFile.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/ErrorCode.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/CustomDebug.cpp $(LDFLAGS)
+	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/IOSystem.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/Globals.cpp $(LDFLAGS)
 
 clean:
