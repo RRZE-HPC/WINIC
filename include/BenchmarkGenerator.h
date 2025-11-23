@@ -164,7 +164,12 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
  * \param Value The value to initialize the register with, current maximum 15.
  * \return Assembly code string for register initialization or empty string on error.
  */
-std::string genSetRegister(MCRegister Reg, long Value);
+std::string genSetRegister(MCRegister Reg, uint64_t Value);
+
+/**
+ * \brief Prints information about all register classes.
+ */
+void printRegClassInfo();
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.

@@ -93,6 +93,13 @@ class LLVMEnvironment {
     std::string regToString(MCRegister Reg);
 
     /**
+     * \brief Converts a register to its asm string representation.
+     * \param Reg The register to convert.
+     * \return String representation of the register.
+     */
+    std::string getRegAsmName(MCRegister Reg);
+
+    /**
      * \brief Converts a register class to its string representation.
      * \param RegClass The register class to convert.
      * \return String representation of the register class.
@@ -105,6 +112,12 @@ class LLVMEnvironment {
      * \return String representation of the register class.
      */
     std::string regClassToString(unsigned RegClassID);
+
+    /**
+     *  \brief print all register classes and their registers. Useful to find the correct class to
+     * use for a RegInitTamplate
+     */
+    void printRegClassInfo();
 
     /**
      * \brief Gets the opcode for an instruction by name.

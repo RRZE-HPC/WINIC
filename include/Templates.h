@@ -1,7 +1,10 @@
 #ifndef TEMPLATES_H
 #define TEMPLATES_H
 
+#include "llvm/MC/MCRegister.h"
 #include "llvm/TargetParser/Triple.h"
+#include <cstdint>
+#include <list>
 #include <set>
 #include <string>
 
@@ -9,18 +12,29 @@ using std::string;
 
 namespace winic {
 
+struct RegInitTemplate {
+    string templateString;
+    unsigned targetRegisterClassID;
+    std::optional<llvm::MCRegister> dependencyReg;
+
+  public:
+    string fillRegInitTemplate(llvm::MCRegister Reg, uint64_t Imm);
+};
+
 /**
  * a template provides all code necessary in addition to the loop code to build an assembly file.
- * usedRegister contains all registers used by the template (like for the loop itself). Those should
- * not be used by the benchmark generators.
+ * usedRegister contains all registers used by the template (like for the loop itself), that should
+ * not be used inside the loop body.
  * regInitTemplates hold templates to initialize registers with a given value,
  */
 struct Template {
     string prefix, preInit, postInit, preLoop, beginLoop, midLoop, endLoop, postLoop, suffix;
     std::set<string> usedRegisters;
+    std::list<RegInitTemplate> regInitTemplates;
 
     Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-             string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters);
+             string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
+             std::list<RegInitTemplate> RegInitTemplates);
 
   private:
     void trimLeadingNewline(string &Str);

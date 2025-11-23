@@ -1,19 +1,51 @@
 #include "Templates.h"
+#include "Globals.h"
 
+#include "MCTargetDesc/AArch64MCTargetDesc.h"
+#include "MCTargetDesc/RISCVMCTargetDesc.h"
+#include "MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Triple.h"
+#include <cstdint>
+#include <iostream>
+#include <optional>
 #include <set>
+#include <sstream>
 #include <stdlib.h>
+
+// AI
+static void replaceAll(std::string &Str, const std::string &From, const std::string &To) {
+    if (From.empty()) return; // avoid infinite loop
+
+    size_t startPos = 0;
+    while ((startPos = Str.find(From, startPos)) != std::string::npos) {
+        Str.replace(startPos, From.length(), To);
+        startPos += To.length(); // move past the replacement
+    }
+}
+// AI
+static size_t countOccurrences(const std::string &str, const std::string &sub) {
+    if (sub.empty()) return 0; // avoid infinite loop
+
+    size_t count = 0;
+    size_t pos = 0;
+    while ((pos = str.find(sub, pos)) != std::string::npos) {
+        ++count;
+        pos += sub.length(); // move past this occurrence
+    }
+    return count;
+}
 
 namespace winic {
 
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-                   string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters)
+                   string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
+                   std::list<RegInitTemplate> RegInitTemplates)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
       preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
       postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
-      usedRegisters(std::move(UsedRegisters)) {
-    // for readability of this file strings have a leading newline
+      usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)) {
+    // for readability of this file, strings have a leading newline
     // this gets removed here
     trimLeadingNewline(this->prefix);
     trimLeadingNewline(this->preInit);
@@ -23,12 +55,34 @@ Template::Template(string Prefix, string PreInit, string PostInit, string PreLoo
     trimLeadingNewline(this->endLoop);
     trimLeadingNewline(this->postLoop);
     trimLeadingNewline(this->suffix);
+    for (auto &regInitTemplate : this->regInitTemplates)
+        trimLeadingNewline(regInitTemplate.templateString);
 }
 
 void Template::trimLeadingNewline(string &Str) {
     if (!Str.empty() && Str[0] == '\n') {
         Str.erase(0, 1);
     }
+}
+
+string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, uint64_t Imm) {
+    std::string result = this->templateString;
+    // replace imm occurences. If multiple are found the immediate is split up into n segments it is
+    // assumed the lowest 64/n bits have to go first.
+    unsigned split = countOccurrences(this->templateString, "imm");
+    for (unsigned splitPart = 0; splitPart < split; splitPart++) {
+        std::stringstream ss;
+        // extract the current segment of the immediate and convert it to hex
+        unsigned segmentBits = 64 / split;
+        uint64_t mask = (segmentBits == 64) ? ~0ULL : (1ULL << (64 / split)) - 1;
+        ss << std::hex << ((Imm >> (splitPart * 64 / split)) & mask);
+        std::string hexString = ss.str();
+        unsigned index = result.find("imm");
+        result.replace(index, 3, "0x" + hexString);
+    }
+    // insert register
+    replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
+    return result;
 }
 
 Template X86Template = {
@@ -74,7 +128,36 @@ done_functionName:
 )",
     R"(
 .section .note.GNU-stack,"",@progbits
-)", {"edi", "r8d", "rbp", "rsp"}};
+)",
+    {"edi", "r8d", "rbp", "rsp"},
+    {{
+         R"(
+    movabs	reg, imm
+    )",
+         llvm::X86::GR64RegClassID,
+         std::nullopt,
+     },
+     {
+         R"(
+    movd	reg, rax
+    )",
+         llvm::X86::VR128RegClassID,
+         X86::RAX,
+     },
+     {
+         R"(
+    vbroadcastsd	reg, xmm0
+    )",
+         llvm::X86::VR256RegClassID,
+         X86::XMM0,
+     },
+     {
+         R"(
+    vbroadcastsd	reg, xmm0
+    )",
+         llvm::X86::VR512RegClassID,
+         X86::XMM0,
+     }}};
 
 Template AArch64Template = {
     R"(
@@ -150,7 +233,25 @@ done_functionName:
 .size functionName, .-functionName
 )",
     R"(
-)", {"x4"}};
+)",
+    {"x4"},
+    {{
+         R"(
+    movk	reg, #imm, lsl #0
+	movk	reg, #imm, lsl #16
+	movk	reg, #imm, lsl #32
+	movk	reg, #imm, lsl #48
+    )",
+         llvm::AArch64::GPR64RegClassID,
+         std::nullopt,
+     },
+     {
+         R"(
+    fmov	reg, x0
+    )",
+         llvm::AArch64::FPR64RegClassID,
+         llvm::AArch64::X0,
+     }}};
 
 Template RISCVTemplate = {
     R"(
@@ -253,7 +354,29 @@ done_functionName:
 .size functionName, .-functionName
 )",
     R"(
-)", {"x5", "x6", "x7", "x10"}}; // t0, t1, t2, a0 (can't use abi names here)
+)",
+    {"x5", "x6", "x7", "x10"}, // t0, t1, t2, a0 (can't use abi names here)
+    {{
+         R"(
+    li	reg, imm
+    )",
+         llvm::RISCV::GPRRegClassID,
+         std::nullopt,
+     },
+     {
+         R"(
+    fmv.d.x	reg, x11
+    )",
+         llvm::RISCV::FPR64RegClassID,
+         RISCV::X11,
+     },
+     {
+         R"(
+    vmv.v.x	reg, x11
+    )",
+         llvm::RISCV::VRRegClassID,
+         RISCV::X11,
+     }}};
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {

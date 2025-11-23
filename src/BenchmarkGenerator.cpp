@@ -23,10 +23,14 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Triple.h"
 #include <algorithm>
+#include <cfloat>
 #include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <initializer_list>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace winic {
 
@@ -561,93 +565,14 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     return {SUCCESS, result};
 }
 
-std::string genSetRegister(MCRegister Reg, long Value) {
+std::string genSetRegister(MCRegister Reg, uint64_t Value) {
     std::string result;
     llvm::raw_string_ostream os(result);
-    // a way to move the immediate into the register, may also be a chain of instructions
-    struct Solution {
-        MCInst inst;
-        // set this if another register is needed for staging
-        std::optional<MCRegister> dependencyReg;
-    };
-    // instructions in this list are tried in order
-    std::vector<Solution> solutions;
-
-    switch (getEnv().Arch) {
-    case llvm::Triple::x86_64: {
-        Solution solution1;
-        solution1.inst.setOpcode(X86::MOV64ri); // GR64
-        solution1.inst.addOperand(MCOperand::createReg(Reg));
-        solution1.inst.addOperand(MCOperand::createImm(Value));
-        solutions.emplace_back(solution1);
-        Solution solution2;
-        solution2.inst.setOpcode(X86::MOVDI2PDIrr);                // VR128
-        solution2.inst.addOperand(MCOperand::createReg(Reg));      // the xmm register to move to
-        solution2.inst.addOperand(MCOperand::createReg(X86::RAX)); // the register to move from
-        solution2.dependencyReg =
-            X86::RAX; // expects value in RAX, there has to be a solution to move it there
-        solutions.emplace_back(solution2);
-        Solution solution3;
-        solution3.inst.setOpcode(X86::VBROADCASTSDYrr); // VR256
-        solution3.inst.addOperand(MCOperand::createReg(Reg));
-        solution3.inst.addOperand(MCOperand::createReg(X86::XMM0));
-        solution3.dependencyReg = X86::XMM0;
-        solutions.emplace_back(solution3);
-        Solution solution4;
-        solution4.inst.setOpcode(X86::VBROADCASTSDZrr); // VR512
-        solution4.inst.addOperand(MCOperand::createReg(Reg));
-        solution4.inst.addOperand(MCOperand::createReg(X86::XMM0));
-        solution4.dependencyReg = X86::XMM0;
-        solutions.emplace_back(solution4);
-        break;
-    }
-    case llvm::Triple::aarch64: {
-        Solution solution1;
-        solution1.inst.setOpcode(AArch64::MOVZXi); // GPR64
-        solution1.inst.addOperand(MCOperand::createReg(Reg));
-        solution1.inst.addOperand(MCOperand::createImm(Value));
-        solution1.inst.addOperand(MCOperand::createImm(0));
-        solutions.emplace_back(solution1);
-        Solution solution2;
-        solution2.inst.setOpcode(AArch64::MOVID); // FPR64
-        solution2.inst.addOperand(MCOperand::createReg(Reg));
-        solution2.inst.addOperand(MCOperand::createImm(Value));
-        solutions.emplace_back(solution2);
-        break;
-    }
-    case llvm::Triple::riscv64: {
-        Solution solution1;
-        solution1.inst.setOpcode(RISCV::ADDI); // GPR
-        solution1.inst.addOperand(MCOperand::createReg(Reg));
-        solution1.inst.addOperand(MCOperand::createReg(RISCV::X0));
-        solution1.inst.addOperand(MCOperand::createImm(Value));
-        solutions.emplace_back(solution1);
-        Solution solution2;
-        solution2.inst.setOpcode(RISCV::FMV_W_X); // FPR32
-        solution2.inst.addOperand(MCOperand::createReg(Reg));
-        solution2.inst.addOperand(MCOperand::createReg(RISCV::X10));
-        solution1.inst.addOperand(MCOperand::createImm(Value));
-        solution2.dependencyReg = RISCV::X10;
-        solutions.emplace_back(solution2);
-        Solution solution3;
-        solution3.inst.setOpcode(RISCV::VMV_V_I); // VR
-        solution3.inst.addOperand(MCOperand::createReg(Reg));
-        solution3.inst.addOperand(MCOperand::createImm(Value));
-        solutions.emplace_back(solution3);
-        break;
-    }
-    default:
-        return "";
-    }
-
-    for (Solution solution : solutions) {
-        // find register class of move operation
-        const MCInstrDesc &desc = getEnv().MCII->get(solution.inst.getOpcode());
-        unsigned movClassID = desc.operands()[0].RegClass;
-        MCRegisterClass movClass = getEnv().MRI->getRegClass(movClassID);
+    for (RegInitTemplate regTemplate : getTemplate(getEnv().Arch).regInitTemplates) {
+        MCRegisterClass movClass = getEnv().MRI->getRegClass(regTemplate.targetRegisterClassID);
         if (!getEnv().regInRegClass(Reg, movClass)) {
-            // this can not be used by mov directly, check if the register has any superregister
-            // that can be used by the mov
+            // this can not be used by the template directly, check if the register has any
+            // superregister that can be used by the template
             for (MCRegister superReg : getEnv().TRI->superregs(Reg)) {
                 auto [EC, cl] = getEnv().getRegClass(superReg);
                 if (EC != SUCCESS) continue;
@@ -657,16 +582,17 @@ std::string genSetRegister(MCRegister Reg, long Value) {
                     return genSetRegister(superReg, Value);
                 }
             }
-            continue; // solution cannot initialize this register
+            continue; // template cannot initialize this register
         }
-        if (solution.dependencyReg) {
+
+        if (regTemplate.dependencyReg) {
             // this instruction needs another register to be initialized first
-            std::string dependencyString = genSetRegister(solution.dependencyReg.value(), Value);
+            std::string dependencyString = genSetRegister(regTemplate.dependencyReg.value(), Value);
             if (dependencyString == "") return "";
             os << dependencyString;
         }
-        getEnv().MIP->printInst(&solution.inst, 0, "", *getEnv().MSTI, os);
-        os << "\n";
+        // insert immediate and register into template
+        os << regTemplate.fillRegInitTemplate(Reg, Value);
         return result;
     }
     return "";

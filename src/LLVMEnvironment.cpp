@@ -139,7 +139,14 @@ std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getRegClass(MCRegister Re
     return {E_GENERIC, {}};
 }
 
-std::string LLVMEnvironment::regToString(MCRegister Reg) { return TRI->getName(Reg); }
+std::string LLVMEnvironment::regToString(MCRegister Reg) { return TRI->getRegAsmName(Reg).data(); }
+
+std::string LLVMEnvironment::getRegAsmName(MCRegister Reg) {
+    std::string regName;
+    llvm::raw_string_ostream rss(regName);
+    MIP->printRegName(rss, Reg);
+    return regName;
+}
 
 std::string LLVMEnvironment::regClassToString(MCRegisterClass RegClass) {
     return MRI->getRegClassName(&RegClass);
@@ -154,8 +161,19 @@ unsigned LLVMEnvironment::getOpcode(std::string InstructionName) {
     for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i)
         if (MCII->getName(i) == InstructionName) return i;
 
-    dbg(__func__, "Instruction not found: ", InstructionName);
+    std::cout << "Instruction not found: " << InstructionName;
     return std::numeric_limits<unsigned>::max();
+}
+
+void LLVMEnvironment::printRegClassInfo() {
+    for (unsigned i = 0; i < MRI->getNumRegClasses(); i++) {
+        MCRegisterClass regClass = MRI->getRegClass(i);
+        std::vector<std::string> regs;
+        for (int j = 0; j < regClass.getNumRegs(); j++) {
+            regs.push_back(regToString(regClass.getRegister(j)));
+        }
+        dbg(__func__, MRI->getRegClassName(&regClass), ": ", regs);
+    }
 }
 
 std::set<MCRegister> LLVMEnvironment::getPossibleUses(unsigned Opcode) {
