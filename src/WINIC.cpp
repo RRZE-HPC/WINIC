@@ -750,7 +750,7 @@ void buildLatDatabase(double Frequency, long RegInitValue) {
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
     std::set<DependencyType> completedTypes;
-    unsigned loopCount = 1e5;
+    unsigned loopCount = 1e6; // loop count, 1e5 seems to be unreliable for LAT
 
     // classify measurements by operand combination, measure if trivial
     if (showProgress) std::cout << "phase1: trivial measurements\n";
