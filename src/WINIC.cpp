@@ -36,7 +36,6 @@
 #include <regex>
 #include <sstream>
 #include <string>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -508,7 +507,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
             chainString += std::to_string(time) + " ";
         }
         dbg(__func__, "anomaly detected during measurement: ", chainString.data());
-        return {E_GENERIC, -1};
+        return {ec, -1};
     }
     if (warning != NO_ERROR_CODE) return {warning, cycles};
     return {SUCCESS, cycles};
