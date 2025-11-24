@@ -310,6 +310,19 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     return {SUCCESS, assemblyFile};
 }
 
+/**
+ * \brief check if the operand is read from and not written to
+ * \param Opcode Opcode of the instruction
+ * \param OpIndex Index of the operand to check
+ * \returns true if the operand at OpIndex is only read from
+ */
+static bool isUseOnly(unsigned Opcode, unsigned OpIndex) {
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    if (OpIndex < desc.getNumDefs()) return false; // this is not a use at all
+    const MCOperandInfo &opInfo = desc.operands()[OpIndex];
+    return !(opInfo.Constraints & (1 << MCOI::TIED_TO)); // this is not tied to a def
+}
+
 std::pair<ErrorCode, std::list<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
@@ -327,6 +340,7 @@ genTPLoop(std::vector<unsigned> Opcodes,
         // constrain all other instructions of this opcode to use the same use registers as the
         // first one
         for (unsigned opIndex = desc.getNumDefs(); opIndex < desc.getNumOperands(); opIndex++) {
+            if (!isUseOnly(opcode, opIndex)) continue;
             auto op = desc.operands()[opIndex];
             if (op.OperandType == MCOI::OPERAND_REGISTER)
                 ConstraintsVector[i].insert({opIndex, refInst.getOperand(opIndex).getReg()});
@@ -372,14 +386,40 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
     return {E_GENERIC, 0};
 }
 
+/**
+ * Expand a constraint map to properly constrain all operands marked as tied to one of the
+ * constained operands. Look at the "LLVM operand layout" section in DEV.md if this does not make
+ * sense to you. E.g. if op1 is tied to op0 and we set a constraint for op1, genInst will not
+ * correctly set op0 as it processes operands in order. Invoking this beforehand fixes this problem.
+ */
+static std::map<unsigned, MCRegister>
+expandConstraints(unsigned Opcode, std::map<unsigned, MCRegister> Constraints) {
+    std::map<unsigned, MCRegister> newConstraints;
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    for (auto constraint : Constraints) {
+        dbg(__func__, "processing constraint index ", constraint.first);
+        const MCOperandInfo &opInfo = desc.operands()[constraint.first];
+        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
+            // constraint sets an operand that is tied to another operand, constrain that one, too
+            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+            dbg(__func__, "it is tied to ", tiedToOp);
+            newConstraints[tiedToOp] = constraint.second;
+        }
+        // keep all previous constraints
+        newConstraints[constraint.first] = constraint.second;
+    }
+    return newConstraints;
+}
+
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
                                      std::set<MCRegister> &UsedRegisters, unsigned Immediate) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     unsigned numOperands = desc.getNumOperands();
-    std::set<MCRegister> localUsedRegisters;
 
+    Constraints = expandConstraints(Opcode, Constraints);
     // make sure fixed registers are not used anywhere else than they are supposed to by adding
     // them to usedRegisters beforehand
+    std::set<MCRegister> localUsedRegisters;
     for (auto c : Constraints)
         localUsedRegisters.insert(c.second);
 
@@ -393,10 +433,11 @@ std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegis
         // see MCInstrDesc.h:41
         if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
             // this operand must be identical to another operand
-            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            inst.addOperand(inst.getOperand(tiedToOp));
-            if (inst.getOperand(tiedToOp).isReg()) {
-                MCRegister reg = inst.getOperand(tiedToOp).getReg();
+            unsigned tiedToOpIndex = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+            MCOperand &tiedToOp = inst.getOperand(tiedToOpIndex);
+            inst.addOperand(tiedToOp);
+            if (tiedToOp.isReg()) {
+                MCRegister reg = tiedToOp.getReg();
                 localUsedRegisters.insert(reg);
             }
         } else {
