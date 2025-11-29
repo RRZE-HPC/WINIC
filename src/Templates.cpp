@@ -251,6 +251,13 @@ done_functionName:
     )",
          llvm::AArch64::FPR64RegClassID,
          llvm::AArch64::X0,
+     },
+     {
+         R"(
+    dup	reg.d, x0
+    )",
+         llvm::AArch64::ZPRRegClassID,
+         llvm::AArch64::X0,
      }}};
 
 Template RISCVTemplate = {
