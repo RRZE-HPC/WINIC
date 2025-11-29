@@ -1,7 +1,7 @@
-from .globals import *
-from .parsing.parse_neoverse_opt_guide import parse_neoverse_opt_guide
-
+from analysis.globals import *
+from analysis.parsing.parse_neoverse_opt_guide import parse_neoverse_opt_guide
 import yaml
+from matplotlib import pyplot as plt
 
 # this does not use additional LLVM information as the opt guide does not provide enough info per instruction anyway
 
@@ -82,3 +82,67 @@ def compare_winic_v2(database, mode, out_file):
     # print(f"{exact_matches=}")
     # print(f"{w_unmatched=}")
     # print(f"{a_unmatched=}")
+    c_possible_val = 0
+    c_impossible_val = 0
+    for name in exact_matches:
+        w_inst = w_inst_map.get(name)
+        a_inst = a_inst_map.get(name)
+        # latencies
+        for lat in w_inst.latencies:
+            if lat_possible_in(lat, a_inst):
+                c_possible_val += 1
+            else:
+                c_impossible_val += 1
+                print(f"inst: {w_inst} has impossible value {lat} when compared to {a_inst}")
+        # throughputs
+        for tp in w_inst.throughputs:
+            if tp_possible_in(tp, a_inst):
+                c_possible_val += 1
+            else:
+                c_impossible_val += 1
+                print(f"inst: {w_inst} has impossible value {tp} when compared to {a_inst}")
+    print(f"{c_possible_val=}")
+    print(f"{c_impossible_val=}")
+    fig, ax = plt.subplots()
+    values = [c_possible_val, c_impossible_val]
+    bars = ax.bar(
+        ["values backed by opt guide", "values not possible according to opt guide"],
+        values,
+        # colors=["green", "red"],
+        # autopct='%1.1f%%',
+    )
+    for bar, value in zip(bars, values):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,   # X position (center of bar)
+            bar.get_height(),                    # Y position (top of bar)
+            f"{value}",                          # Text to display
+            ha='center', va='bottom'             # Align text
+        )
+    # ax.text(ha='center')
+    plt.title("Neoverse-V2: WINIC results vs V2 optimization guide")
+    plt.legend()
+    plt.savefig("WINIC_v2_optguide.png")
+
+
+# if the latency is a range, check that there is at least one value or range in ref_inst that allows any value in that range. (with a tolerance of 10%)
+# this is the weakest condition possible to classify a value as "correct" assuming the reg_inst represents the truth
+def lat_possible_in(lat: Latency, ref_inst: Instruction):
+    if any(x is None for x in [lat, lat.cyclesMin, lat.cyclesMax]):
+        return True
+    for ref_lat in ref_inst.latencies:
+        if any(x is None for x in [ref_lat, ref_lat.cyclesMin, ref_lat.cyclesMax]):
+            continue
+        if not lat.cyclesMax < ref_lat.cyclesMin * 0.9 or lat.cyclesMin > ref_lat.cyclesMax * 1.1:
+            return True
+    return False
+
+
+def tp_possible_in(tp: Throughput, ref_inst: Instruction):
+    if any(x is None for x in [tp, tp.cyclesMin, tp.cyclesMax]):
+        return True
+    for ref_tp in ref_inst.throughputs:
+        if any(x is None for x in [ref_tp, ref_tp.cyclesMin, ref_tp.cyclesMax]):
+            continue
+        if not tp.cyclesMax < ref_tp.cyclesMin * 0.9 or tp.cyclesMin > ref_tp.cyclesMax * 1.1:
+            return True
+    return False
