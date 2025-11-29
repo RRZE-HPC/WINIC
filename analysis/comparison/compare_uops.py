@@ -1,4 +1,4 @@
-from .globals import *
+from analysis.globals import *
 from typing import List, Literal
 from pprint import pprint
 import os
@@ -50,7 +50,7 @@ dbgUopsInstructionString = ""
 
 def is_same(uopsInst: Instruction, LLVMInst: Instruction):
     global dbgInstruction
-    if dbgInstruction != "" and dbgUopsInstructionString not in uopsInst.uopsName:
+    if dbgInstruction != "" and dbgUopsInstructionString not in uopsInst.sourceName:
         return False
     if not is_same_asm_name(LLVMInst.asmName, uopsInst.asmName):
         if dbgInstruction != "":
@@ -89,8 +89,8 @@ def is_same(uopsInst: Instruction, LLVMInst: Instruction):
 # compare the results with uops data.
 def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
     # parse measured instructions
-    from .parsing.parse_winic import parse_WINIC_instruction
-    from .parsing.parse_uops import parse_uops_database
+    from analysis.parsing.parse_winic import parse_WINIC_instruction
+    from analysis.parsing.parse_uops import parse_uops_database
 
     with open(database, "r") as file:
         raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
@@ -131,7 +131,9 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
             else:
                 # one or multiple matches
                 data_match = [
-                    0.92 * m_instr.throughputs[0].cyclesMin <= u_instr.throughputs[0].cyclesMin <= 1.09 * m_instr.throughputs[0].cyclesMax
+                    0.92 * m_instr.throughputs[0].cyclesMin
+                    <= u_instr.throughputs[0].cyclesMin
+                    <= 1.09 * m_instr.throughputs[0].cyclesMax
                     for u_instr in u_matches
                 ]
                 debug([(u_inst.throughputs[0].cyclesMin, m_cycles) for u_inst in u_matches])
@@ -139,7 +141,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
 
                 if False in data_match:
                     outputLines.append(
-                        f"{llvm_name}: {u_matches[0].uopsName} uops: {u_matches[0].throughputs[0].cyclesMin}, WINIC: {m_cycles}, classify: differentVal(s)\n"
+                        f"{llvm_name}: {u_matches[0].sourceName} uops: {u_matches[0].throughputs[0].cyclesMin}, WINIC: {m_cycles}, classify: differentVal(s)\n"
                     )
                     if len(data_match) == 1:
                         c.uniqueMatchDiffValueC += 1
@@ -148,7 +150,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
 
                 else:
                     outputLines.append(
-                        f"{llvm_name}: {u_matches[0].uopsName} uops: {u_matches[0].throughputs[0].cyclesMin}, WINIC: {m_cycles}, classify: matchingVal(s)\n"
+                        f"{llvm_name}: {u_matches[0].sourceName} uops: {u_matches[0].throughputs[0].cyclesMin}, WINIC: {m_cycles}, classify: matchingVal(s)\n"
                     )
                     if len(data_match) == 1:
                         c.uniqueMatchSameValueC += 1
@@ -185,7 +187,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
                         c.dbEmptyValueC += 1
                 continue
 
-            # if u_instr.uopsName != "VDIVPD (XMM, K, XMM, XMM)":
+            # if u_instr.sourceName != "VDIVPD (XMM, K, XMM, XMM)":
             #     continue
             # one or multiple matches
             for m_lat in m_instr.latencies:
@@ -245,12 +247,12 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
                     if m_lat.cyclesMin <= u_lat.cyclesMin and m_lat.cyclesMax >= u_lat.cyclesMax:
                         data_match.append(True)
                         outputLines.append(
-                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}-{u_lat.cyclesMax}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: sameVal\n"
+                            f"{llvm_name}: {u_instr.sourceName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}-{u_lat.cyclesMax}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: sameVal\n"
                         )
                     else:
                         data_match.append(False)
                         outputLines.append(
-                            f"{llvm_name}: {u_instr.uopsName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}-{u_lat.cyclesMax}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: differentVal\n"
+                            f"{llvm_name}: {u_instr.sourceName} {u_lat.startOpIndex} -> {u_lat.targetOpIndex} uops: {u_lat.cyclesMin}-{u_lat.cyclesMax}, WINIC: {m_lat.cyclesMin}-{m_lat.cyclesMax}, classify: differentVal\n"
                         )
                 if len(data_match) == 0:
                     c.noUopsDataC += 1

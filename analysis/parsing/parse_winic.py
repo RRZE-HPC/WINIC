@@ -1,5 +1,5 @@
-from ..globals import *
-from .parse_llvm import parse_LLVM_instruction
+from analysis.globals import *
+from analysis.parsing.parse_llvm import parse_LLVM_instruction
 from pprint import pprint
 
 

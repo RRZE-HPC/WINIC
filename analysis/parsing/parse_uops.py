@@ -1,11 +1,13 @@
-from ..globals import *
+from analysis.globals import *
 from typing import List
 import os
 import xml.etree.ElementTree as ET
 
+
 # --- uops parsing --- #
 def _parse_uops_operand(op: ET.Element) -> Operand:
     from .helper import get_register_width
+
     index = int(op.attrib["idx"]) if "idx" in op.attrib else None
     type = op.attrib["type"] if "type" in op.attrib else None
     if index is None:
@@ -72,7 +74,7 @@ def _parse_uops_instruction(entry: ET.Element, arch: str):
     uopsName = entry.attrib["string"] if "string" in entry.attrib else ""
     roundc = bool(int(entry.attrib["roundc"])) if "roundc" in entry.attrib else False
 
-    return Instruction(uopsAsm, operands, [Throughput(throughput, throughput)], latencies, uopsName, roundc)
+    return Instruction("uops", uopsName, uopsAsm, operands, [Throughput(throughput, throughput)], latencies, roundc)
 
 
 def parse_uops_database(arch: str) -> List[Instruction]:

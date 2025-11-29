@@ -1,8 +1,8 @@
+from .globals import dict_to_file
 import os
 import json
 import subprocess
 import urllib.request
-from .globals import dict_to_file
 
 
 def gen_tblgen_dumps(llvm_dir, llvm_project_dir, force=False):

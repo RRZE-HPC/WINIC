@@ -2,7 +2,7 @@ import yaml
 
 
 def count_ranges(database):
-    from .parsing.parse_winic import parse_WINIC_instruction
+    from analysis.parsing.parse_winic import parse_WINIC_instruction
 
     # parse database
     with open(database, "r") as file:

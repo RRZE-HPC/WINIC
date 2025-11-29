@@ -63,21 +63,33 @@ class Latency:
     cyclesMin: int
     cyclesMax: int
 
+    def __post_init__(self):
+        self.startOpIndex = int(self.startOpIndex) if self.startOpIndex is not None else None
+        self.targetOpIndex = int(self.targetOpIndex) if self.targetOpIndex is not None else None
+        self.cyclesMin = int(self.cyclesMin) if self.cyclesMin is not None else None
+        self.cyclesMax = int(self.cyclesMax) if self.cyclesMax is not None else None
+
+
 @dataclass
 class Throughput:
     cyclesMin: float
     cyclesMax: float
 
+    def __post_init__(self):
+        self.cyclesMin = float(self.cyclesMin) if self.cyclesMin is not None else None
+        self.cyclesMax = float(self.cyclesMax) if self.cyclesMax is not None else None
+
 
 @dataclass
 class Instruction:
+    source: Literal["winic", "uops", "docs", "exegesis"] = "winic"
+    sourceName: str = ""
     asmName: str = ""
     operands: List[Operand] = field(default_factory=list)
     throughputs: List[Throughput] = field(default_factory=list)
     # throughput_lower: float = 0.0
     # throughput_upper: float = 0.0
     latencies: List[Latency] = field(default_factory=list)
-    uopsName: str= ""
     roundc: bool = False  # AVX512 roundc
 
 

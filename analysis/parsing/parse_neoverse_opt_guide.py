@@ -1,5 +1,4 @@
-from ..globals import *
-
+from analysis.globals import *
 import pdfplumber
 from typing import List
 from dataclasses import replace
@@ -98,8 +97,8 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
             lat_string = entry.execLat
             if "(" in lat_string:
                 # case e.g. "3(1)"
-                lat1 = int(lat_string[0 : lat_string.find("(")].strip())
-                lat2 = int(lat_string[lat_string.find("(") + 1 : lat_string.find(")")])
+                lat1 = lat_string[0 : lat_string.find("(")].strip()
+                lat2 = lat_string[lat_string.find("(") + 1 : lat_string.find(")")]
                 inst.latencies.append(Latency(None, None, lat1, lat1))
                 inst.latencies.append(Latency(None, None, lat2, lat2))
             elif "," in lat_string:

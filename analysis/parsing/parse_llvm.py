@@ -1,4 +1,4 @@
-from ..globals import *
+from analysis.globals import *
 from typing import List, Literal
 import os
 import re
@@ -86,6 +86,7 @@ def _get_immidiate_width(imm: str):
 
 def _identify_LLVM_operand(opName):
     from .helper import get_register_width
+
     if opName == "EFLAGS":
         return ("flags", None)
     if opName in llvm_DAGOperands:
@@ -206,6 +207,7 @@ def parse_LLVM_instruction(LLVMName) -> Instruction:
         operand = Operand(index, type, width, read, write, suppressed, regList)
         operandList.append(operand)
         index += 1
-    return Instruction(inst["AsmString"], operandList, [], [], "", roundc)
+    return Instruction("winic", LLVMName, inst["AsmString"], operandList, [], [], roundc)
+
 
 _loadInstructions("X86")
