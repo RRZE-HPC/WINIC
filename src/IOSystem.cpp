@@ -167,9 +167,9 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
             return Lat.sourceOperand == useIndexString && Lat.targetOperand == defIndexString;
         });
     std::optional<double> min =
-        isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.lowerBound));
+        isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.lowerBound * 10) / 10);
     std::optional<double> max =
-        isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.upperBound));
+        isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.upperBound * 10) / 10);
     if (latencyEntry != instruction->latencies.end()) {
         // Found entry, update it if the new measurement did not have an error
         if (!isError(M.ec)) {
