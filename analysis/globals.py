@@ -31,13 +31,14 @@ class Counters:
 # --- unified datastructures --- #
 @dataclass
 class Operand:
-    index: int
-    type: Literal["reg", "imm", "flags"]
-    width: int
-    read: bool
-    write: bool
-    suppressed: bool
-    regList: list
+    index: int = -1
+    type: Literal["reg", "imm", "mem", "mask", "flags"] = "reg"
+    width: int = -1
+    read: bool = False
+    write: bool = False
+    suppressed: bool = False
+    regList: list = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)  # a key: * means this datapoint can match any value of the key
 
     # note that the index is not relevant when comparing operands as it cannot be guaranteed
     # to be the same for an instruction parsed from uops and one parsed from LLVM
@@ -60,14 +61,14 @@ class Operand:
 class Latency:
     startOpIndex: int
     targetOpIndex: int
-    cyclesMin: int
-    cyclesMax: int
+    cyclesMin: float
+    cyclesMax: float
 
     def __post_init__(self):
         self.startOpIndex = int(self.startOpIndex) if self.startOpIndex is not None else None
         self.targetOpIndex = int(self.targetOpIndex) if self.targetOpIndex is not None else None
-        self.cyclesMin = int(self.cyclesMin) if self.cyclesMin is not None else None
-        self.cyclesMax = int(self.cyclesMax) if self.cyclesMax is not None else None
+        self.cyclesMin = float(self.cyclesMin) if self.cyclesMin is not None else None
+        self.cyclesMax = float(self.cyclesMax) if self.cyclesMax is not None else None
 
 
 @dataclass
@@ -82,7 +83,7 @@ class Throughput:
 
 @dataclass
 class Instruction:
-    source: Literal["winic", "uops", "docs", "exegesis"] = "winic"
+    source: Literal["winic", "uops", "docs", "exegesis", "osaca"] = "winic"
     sourceName: str = ""
     asmName: str = ""
     operands: List[Operand] = field(default_factory=list)
@@ -90,8 +91,22 @@ class Instruction:
     # throughput_lower: float = 0.0
     # throughput_upper: float = 0.0
     latencies: List[Latency] = field(default_factory=list)
+    metadata: dict[str, bool] = field(default_factory=dict)  # additional info like AVX zeroing
     roundc: bool = False  # AVX512 roundc
 
+
+# returns true if the metadata of the instructions does not conflict
+def same_metadata(inst1: Instruction, inst2: Instruction):
+    for k, v in inst1.metadata.items():
+        if k in inst2.metadata.keys() and inst2.metadata[k] != v:
+            return False
+    return len(inst1.metadata) == len(inst2.metadata)
+
+def has_lat(inst: Instruction) -> bool:
+    return any(v.cyclesMin is not None for v in inst.latencies )
+
+def has_tp(inst: Instruction) -> bool:
+    return any(v.cyclesMin is not None for v in inst.throughputs)
 
 # AI generated
 def progress_bar(current, total, bar_length=40, prefix="Progress", suffix=""):
@@ -105,6 +120,41 @@ def progress_bar(current, total, bar_length=40, prefix="Progress", suffix=""):
     print(f"\r{prefix}: |{bar}| {int(percent*100)}% {suffix}", end="", flush=True)
     if current >= total:
         print()  # Move to next line when done
+
+
+# combine multiple databases, try to get as many non-null lat/tp values
+def combine_dbs(dbs: List[List[Instruction]]) -> List[Instruction]:
+    print(f"combining {len(dbs)} databases")
+    if len(dbs) == 1:
+        return dbs[0]
+    combined: dict[str, Instruction] = {}
+    contributions = [0 for _ in range(len(dbs))]
+    count = 0
+    for db in dbs:
+        for inst in db:
+            contributed = 0
+            name = inst.sourceName
+            if name not in combined:
+                contributed = 1
+                combined[name] = inst
+            else:
+                # assume only one value
+                lat = combined[name].latencies
+                if any(v.cyclesMin is not None for v in inst.latencies):
+                    if len(lat) == 0 or lat[0].cyclesMin is None:
+                        print(f"Updating latencies for {name} from db {count}")
+                        contributed = 1
+                        combined[name].latencies = inst.latencies
+                tp = combined[name].throughputs
+                if any(v.cyclesMin is not None for v in inst.throughputs):
+                    if len(tp) == 0 or tp[0].cyclesMin is None:
+                        print(f"Updating throughputs for {name} from db {count}")
+                        combined[name].throughputs = inst.throughputs
+                        contributed = 1
+            contributions[count] += contributed
+        count += 1
+    print(f"contributions per db: {contributions}")
+    return combined.values()
 
 
 # -----some json/yaml helper functions-----

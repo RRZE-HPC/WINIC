@@ -2,6 +2,7 @@ from analysis.globals import *
 import pdfplumber
 from typing import List
 from dataclasses import replace
+import pickle
 
 
 # parses strings like "3" or "1/12" to floats
@@ -15,20 +16,19 @@ def _parse_fraction_or_value(input: str) -> float:
         return float(input)
 
 
-def parse_neoverse_opt_guide() -> List[Instruction]:
+@dataclass
+class TableEntry:
+    instGroup: str
+    name: str
+    execLat: str
+    execTP: str
+    pipelines: str
+    notes: str
+
+
+def _extract_from_pdf():
     manual_path = "analysis/reference-files/arm_neoverse_v2_software_optimization_guide_109898_0300_01_en.pdf"
-
-    @dataclass
-    class TableEntry:
-        instGroup: str
-        name: str
-        execLat: str
-        execTP: str
-        pipelines: str
-        notes: str
-
     table_entries: List[TableEntry] = []
-
     with pdfplumber.open(manual_path) as pdf:
         table_settings = {
             "vertical_strategy": "lines",
@@ -62,6 +62,29 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
         for line in table_lines:
             if len(line) == 6:  # ignore tables that dont have instructions in them
                 table_entries.append(TableEntry(line[0], line[1], line[2], line[3], line[4], line[5]))
+    return table_entries
+
+
+def parse_neoverse_opt_guide() -> List[Instruction]:
+    if os.path.exists("cache.pkl"):
+        with open("cache.pkl", "rb") as f:
+            try:
+                table_entries = pickle.load(f)
+            except Exception:
+                table_entries = _extract_from_pdf()
+                with open("cache.pkl", "wb") as f2:
+                    pickle.dump(table_entries, f2, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        table_entries = _extract_from_pdf()
+        with open("cache.pkl", "wb") as f2:
+            pickle.dump(table_entries, f2, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # propagate instruction group field
+    lastEntry: TableEntry = table_entries[0]
+    for entry in table_entries[1:]:
+        if entry.instGroup in ["", None]:
+            entry.instGroup = lastEntry.instGroup
+        lastEntry = entry
 
     # some lines have "INST1, INST2" -> make them separate lines
     unique_entries = [
@@ -72,7 +95,7 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
     ]
 
     # some instructions have INST(2) -> separate them into INST and INST2
-    temp = []
+    temp: List[TableEntry] = []
     for entry in unique_entries:
         if "(2)" in entry.name:
             base = entry.name.split("(")[0]
@@ -89,6 +112,7 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
         if entry.name is None:
             print(f"look at {entry}")
             continue
+        inst.source = "docs"
         inst.asmName = entry.name
 
         # if table cell has instructions on multiple lines, parser generates lines without values for all but the first one
@@ -181,14 +205,3 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
 
     # print(instructions)
     return instructions
-
-
-# if os.path.exists("analysis/reference-files/temp.txt"):
-# for page in pdf.pages:
-#     text += page.extract_text() + "\n"
-
-# with open("analysis/reference-files/temp.txt", "w") as f:
-#     f.writelines(table)
-# else:
-#     with open("analysis/reference-files/temp.txt", "w") as f:
-#         text = f.read()

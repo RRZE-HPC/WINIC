@@ -5,7 +5,6 @@ from analysis.setup import *
 from analysis.statistics import *
 import argparse
 
-# this file was mostly AI generated
 UOPS_ARCHES = [
     "CON",
     "WOL",
@@ -39,6 +38,7 @@ UOPS_ARCHES = [
 
 DOCS_ARCHES = [
     "V2",
+    "ZEN4"
 ]
 
 ARCH_NAMES = {
@@ -117,9 +117,16 @@ def main():
     docs_c_parser.add_argument("--output", default="", help="Plot results to file")
 
     # compare to exegesis
-    docs_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm.exegesis output")
+    docs_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm-exegesis output")
     docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
-    docs_c_parser.add_argument("db_exegesis", help="Path to exegesis YAML file")
+    docs_c_parser.add_argument("db_exegesis", nargs="+",     help="Paths to exegesis YAML files")
+    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    docs_c_parser.add_argument("--output", default="", help="Plot results to file")
+
+    # compare to osaca
+    docs_c_parser = sub_compare_parser.add_parser("osaca", help="Compare to osaca database")
+    docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
+    docs_c_parser.add_argument("db_osaca", help="Path to exegesis YAML file")
     docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
     docs_c_parser.add_argument("--output", default="", help="Plot results to file")
 
@@ -131,10 +138,7 @@ def main():
     # stat command
     stat_parser = subparsers.add_parser("stat", help="Show statistics for a WINIC database")
     stat_parser.add_argument("db", help="Path to database YAML file")
-
-    # parse command
-    stat_parser = subparsers.add_parser("neo", help="Compare to neoverse optimization guide")
-    stat_parser.add_argument("db", help="Path to database YAML file")
+    stat_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
 
     args = parser.parse_args()
 
@@ -157,30 +161,33 @@ def main():
             db_diff(args.db1, args.db2, args.mode, args.output)
         case "compare":
             if args.compare_source == "docs":
-                from analysis.comparison.compare_v2 import compare_winic_v2
-                compare_winic_v2(args.db, args.mode, args.output)
+                if args.arch == "V2":
+                    from analysis.comparison.compare_v2 import compare_winic_v2
+                    compare_winic_v2(args.db, args.mode, args.output)
+                elif args.arch == "ZEN4":
+                    from analysis.comparison.compare_zen4_sheet import compare_winic_zen4_sheet
+                    compare_winic_zen4_sheet(args.db, args.mode, args.output)
             elif args.compare_source == "exegesis":
                 from analysis.comparison.compare_exegesis import compare_winic_exegesis
+                if  isinstance(args.db_exegesis, str):
+                    args.db_exegesis = [args.exegesis]
+                print(f"args.db_exegesis is {args.db_exegesis}")
                 compare_winic_exegesis(args.db_winic, args.db_exegesis, args.mode, args.output)
-            else:
-                lat_res = None
-                tp_res = None
-                if args.mode == "LAT" or args.mode == "BOTH":
-                    print("Processing Latency")
-                    lat_res = compare(args.db, "lat", args.arch)
-                if args.mode == "TP" or args.mode == "BOTH":
-                    print("Processing Throughput")
-                    tp_res = compare(args.db, "tp", args.arch)
+            elif args.compare_source == "osaca":
+                from analysis.comparison.compare_osaca import compare_winic_osaca
+                compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.output)
+            elif args.compare_source == "uops":
+                compare(args.db, args.mode, args.arch)
                 if args.output != "":
                     output_dir = os.path.dirname(args.output)
                     if output_dir and not os.path.exists(output_dir):
                         os.makedirs(output_dir, exist_ok=True)
-                    plot(lat_res, tp_res, args.output, args.mode)
+                    # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
             plot(None, None, args.path, args.mode)
         case "stat":
-            count_ranges(args.db)
-            count_instr_different_sublatencies(args.db)
+            count_ranges(args.db, args.verbose)
+            count_instr_different_sublatencies(args.db, args.verbose)
 
 
 if __name__ == "__main__":

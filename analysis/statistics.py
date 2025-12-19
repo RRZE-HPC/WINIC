@@ -1,9 +1,7 @@
 import yaml
 
 
-def count_ranges(database):
-    from analysis.parsing.parse_winic import parse_WINIC_instruction
-
+def count_ranges(database, pr: bool = False):
     # parse database
     with open(database, "r") as file:
         raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
@@ -12,18 +10,20 @@ def count_ranges(database):
     tp_exact_c = 0
     lat_range_c = 0
     lat_exact_c = 0
+    instrs_with_range = []
     for db_entry in db:
-        m_instr = parse_WINIC_instruction(db_entry)
-        if m_instr.throughputs[0].cyclesMin != None:
-            if m_instr.throughputs[0].cyclesMin != m_instr.throughputs[0].cyclesMax:
+        # m_instr = parse_WINIC_instruction(db_entry,"X86")
+        if db_entry["throughputMin"] != None:
+            if db_entry["throughputMin"] != db_entry["throughputMax"]:
                 tp_range_c += 1
             else:
                 tp_exact_c += 1
 
-        for lat_entry in m_instr.latencies:
-            if lat_entry.cyclesMin != None:
-                if lat_entry.cyclesMin != lat_entry.cyclesMax:
+        for lat_entry in db_entry["operandLatencies"]:
+            if lat_entry["latencyMin"] != None:
+                if lat_entry["latencyMin"] != lat_entry["latencyMax"]:
                     lat_range_c += 1
+                    instrs_with_range.append(db_entry["llvmName"])
                 else:
                     lat_exact_c += 1
 
@@ -32,19 +32,17 @@ def count_ranges(database):
     tp_exact_perc = 100 * tp_exact_c / total_tp_c
     lat_exact_perc = 100 * lat_exact_c / total_lat_c
 
+    if pr:
+        print(instrs_with_range)
     print(f"{total_tp_c} total TP values")
     print(f"{tp_exact_c} ({tp_exact_perc:.2f}%) exact TP values")
     print(f"{tp_range_c} ({100-tp_exact_perc:.2f}%) TP ranges")
     print(f"{total_lat_c} total LAT values")
     print(f"{lat_exact_c} ({lat_exact_perc:.2f}%) exact LAT values")
     print(f"{lat_range_c} ({100-lat_exact_perc:.2f}%) LAT ranges")
-    # print(f"{lat_range_counter=}")
-    # print(f"{lat_exact_counter=}")
-    # print(f"proportion TP ranges: {tp_range_counter/(tp_range_counter+tp_exact_counter):.2f}")
-    # print(f"proportion LAT ranges: {lat_range_counter/(lat_range_counter+lat_exact_counter):.2f}")
 
 
-def count_instr_different_sublatencies(database):
+def count_instr_different_sublatencies(database, pr: bool = False):
     with open(database, "r") as file:
         raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
     db = yaml.safe_load(raw_content)
@@ -79,5 +77,6 @@ def count_instr_different_sublatencies(database):
     print(
         f"{len(different_latencies_exact)} instructions have at least two different latency values, and have only exact values"
     )
-    print(f"List of instructions with different sub-latencies and ranges: {different_latencies_ranges}")
-    print(f"List of instructions with different sub-latencies and no ranges: {different_latencies_exact}")
+    if pr:
+        print(f"List of instructions with different sub-latencies and ranges: {different_latencies_ranges}")
+        print(f"List of instructions with different sub-latencies and no ranges: {different_latencies_exact}")

@@ -9,7 +9,7 @@ llvm_DAGOperands = {}
 
 
 # TODO implement support for aarch and RISCV
-def _loadInstructions(arch: Literal["X86"]):
+def _loadInstructions(arch: Literal["X86", "AArch64"]):
     global llvm_instructions
     global llvm_DAGOperands
     with open(os.path.join(script_dir, "reference-files", arch + ".json"), "r", encoding="utf-8") as f:
@@ -85,7 +85,7 @@ def _get_immidiate_width(imm: str):
 
 
 def _identify_LLVM_operand(opName):
-    from .helper import get_register_width
+    from analysis.parsing.helper import get_register_width
 
     if opName == "EFLAGS":
         return ("flags", None)
@@ -100,19 +100,21 @@ def _identify_LLVM_operand(opName):
     return ("reg", get_register_width(registers[0]))
 
 
-def parse_LLVM_instruction(LLVMName) -> Instruction:
+def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
     global llvm_DAGOperands
     global llvm_instructions
+    if len(llvm_instructions) == 0:
+        _loadInstructions("X86")
     # idk why some are missing
     if LLVMName not in llvm_instructions:
         return None
 
-    inst = llvm_instructions[LLVMName]
-    inOperandList = inst["InOperandList"]["args"]
-    outOperandList = inst["OutOperandList"]["args"]
-    constraints: str = inst["Constraints"]
-    defs = inst["Defs"]
-    uses = inst["Uses"]
+    l_inst = llvm_instructions[LLVMName]
+    inOperandList = l_inst["InOperandList"]["args"]
+    outOperandList = l_inst["OutOperandList"]["args"]
+    constraints: str = l_inst["Constraints"]
+    defs = l_inst["Defs"]
+    uses = l_inst["Uses"]
     # convert operands
     operandList: List[Operand] = []
     index = 1
@@ -207,7 +209,109 @@ def parse_LLVM_instruction(LLVMName) -> Instruction:
         operand = Operand(index, type, width, read, write, suppressed, regList)
         operandList.append(operand)
         index += 1
-    return Instruction("winic", LLVMName, inst["AsmString"], operandList, [], [], roundc)
+    inst = Instruction("winic", LLVMName, l_inst["AsmString"], operandList, [], [], {}, roundc)
+    inst.metadata["zeroing"] = "{z}" in l_inst["AsmString"]
+    # join to also find "AVX512Ii8" etc.
+    inst.metadata["AVX512"] = "AVX512" in "".join(l_inst["!superclasses"]) + "".join(l_inst["!locs"])
+    return inst
 
 
-_loadInstructions("X86")
+# does not parse pseudo instructions
+# normal operands get indices, defs/uses dont get indices
+def parse_LLVM_AArch64_instruction(LLVMName: str, shapeHint: str = "") -> Instruction:
+    from analysis.parsing.helper import get_aarch_operands
+
+    global llvm_DAGOperands
+    global llvm_instructions
+    if len(llvm_instructions) == 0:
+        _loadInstructions("AArch64")
+    # idk why some are missing
+    if LLVMName not in llvm_instructions:
+        return None
+
+    l_inst = llvm_instructions[LLVMName]
+    if l_inst["AsmString"] == "":
+        return None
+    inOperandList = l_inst["InOperandList"]["args"]
+    outOperandList = l_inst["OutOperandList"]["args"]
+    constraints: str = l_inst["Constraints"]
+    defs = l_inst["Defs"]
+    uses = l_inst["Uses"]
+    # convert operands
+    operandList: List[Operand] = []
+    index = 1
+    for op in outOperandList:
+        if op is None:
+            return None
+        for operand in get_aarch_operands(op[0]["def"], shapeHint):
+            operand.index = index
+            operand.read = False
+            operand.write = True
+            operandList.append(operand)
+            index += 1
+    for op in inOperandList:
+        if op is None:
+            return None
+        # process constraints
+        wasConstrained = False
+        for constraint in constraints.split(","):
+            if op[1] is None:
+                print("op[1] None")
+                return None
+            if op[1] not in _get_constraints_items(constraint):
+                continue
+            wasConstrained = True
+            # we have to set "read" to True in corresponding def
+            dstOp = _get_other_constraint_side(constraint, op[1])
+            if dstOp is None:
+                continue
+            defIndex = next((i + 1 for i, defOp in enumerate(outOperandList) if defOp[1] == dstOp), None)
+            if defIndex is None:
+                return None
+            for operand in operandList:
+                if operand.index == defIndex:
+                    operand.read = True
+                    break
+        if wasConstrained:
+            continue  # do not have to add operand an additional time
+        for operand in get_aarch_operands(op[0]["def"], shapeHint):
+            if operand is None:
+                continue
+            operand.index = index
+            operand.read = True
+            operand.write = False
+            operandList.append(operand)
+            index += 1
+
+    # process defs and uses
+    for d in defs:
+        for operand in get_aarch_operands(d["def"], shapeHint):
+            if operand is None:
+                return None
+            operand.write = True
+            operand.read = True if d in uses else False
+            operandList.append(operand)
+            index += 1
+    for d in uses:
+        if d in defs:
+            continue  # already added
+        for operand in get_aarch_operands(d["def"], shapeHint):
+            if operand is None:
+                return None
+            operand.write = False
+            operand.read = True
+            operandList.append(operand)
+            index += 1
+    inst = Instruction("winic", LLVMName, l_inst["AsmString"], operandList, [], [], {})
+    return inst
+
+
+if __name__ == "__main__":
+    import yaml
+
+    with open("ISC/a_v2/old/winic_v2_r4.yaml", "r") as f:
+        raw_content = f.read().replace("\t", "    ")  # yaml does not like tabs
+    db = yaml.safe_load(raw_content)
+    _loadInstructions("AArch64")
+    for inst in db:
+        parse_LLVM_AArch64_instruction(inst["llvmName"])

@@ -1,3 +1,4 @@
+import copy
 from analysis.globals import *
 from typing import List, Literal
 from pprint import pprint
@@ -87,7 +88,7 @@ def is_same(uopsInst: Instruction, LLVMInst: Instruction):
 
 
 # compare the results with uops data.
-def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
+def compare_each_value(database, type: Literal["lat", "tp"], arch: str) -> Counters:
     # parse measured instructions
     from analysis.parsing.parse_winic import parse_WINIC_instruction
     from analysis.parsing.parse_uops import parse_uops_database
@@ -112,7 +113,7 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
             if m_cycles == None:
                 c.dbEmptyValueC += 1
                 continue
-            m_instr = parse_WINIC_instruction(db_entry)
+            m_instr = parse_WINIC_instruction(db_entry, "X86")
             if m_instr is None:
                 c.internalErrorC += 1
                 continue
@@ -286,6 +287,104 @@ def compare(database, type: Literal["lat", "tp"], arch: str) -> Counters:
         f"{(total_matching)*100/(total_matching+total_non_matching):.2f}% of values are the same (excluding missing matches)"
     )
     return c
+
+
+def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counters:
+    from analysis.comparison.helper import CompareCounters, get_stats, count_instrs_with_values, compare_lists
+
+    # parse measured instructions
+    from analysis.parsing.parse_winic import parse_WINIC_instruction
+    from analysis.parsing.parse_uops import parse_uops_database
+
+    with open(database, "r") as file:
+        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+    db = yaml.safe_load(raw_content)
+    uops_instructions = parse_uops_database(march)
+    print(f"{len(uops_instructions)=}")
+    w_instructions = [parse_WINIC_instruction(db_entry, "X86") for db_entry in db]
+    print(w_instructions[:10])
+    # compare_lists(w_instructions, uops_instructions, mode, "loose")
+    counters = CompareCounters()
+    c_no_match = 0
+    c_multiple_matches = 0
+    c_one_match = 0
+
+    progress = 0
+    outputLines = []
+    w_instructions = []
+    for db_entry in db:
+        # progress += 1
+        # progress_bar(progress, len(db))
+        # if c.dbProgressC % 1000 == 0:
+        #     print(c.dbProgressC)
+        llvm_name = db_entry["llvmName"]
+        if dbgInstruction != "" and llvm_name != dbgInstruction:
+            continue
+
+        w_instr = parse_WINIC_instruction(db_entry, "X86")
+        if w_instr is None:
+            continue
+        w_instructions.append(w_instr)
+
+        # find uops instsruction
+        u_matches: List[Instruction] = []
+        for u_instr in uops_instructions:
+            if is_same(u_instr, w_instr):
+                u_matches.append(u_instr)
+
+        if len(u_matches) == 0:
+            # outputLines.append(f"no_match: {llvm_name}\n")
+            c_no_match += 1
+            continue
+        elif len(u_matches) > 1:
+            # outputLines.append(f"multiple_matches: {llvm_name}\n")
+            c_multiple_matches += 1
+            # loose mode: create one instruction containing all unique values of all matches
+            n_inst = copy.deepcopy(u_matches[0])
+            n_inst.throughputs.clear()
+            n_inst.latencies.clear()
+            lat_seen = []
+            tp_seen = []
+            for c in u_matches:
+                for lat in c.latencies:
+                    l_tuple = (lat.cyclesMin, lat.cyclesMax)
+                    if l_tuple not in lat_seen:
+                        lat_seen.append(l_tuple)
+                        n_inst.latencies.append(lat)
+                for tp in c.throughputs:
+                    l_tuple = (tp.cyclesMin, tp.cyclesMax)
+                    if l_tuple not in tp_seen:
+                        tp_seen.append(l_tuple)
+                        n_inst.throughputs.append(tp)
+            u_matches = [n_inst]
+            # continue
+        c_one_match += 1
+        u_instr = u_matches[0]
+
+        counters = get_stats(w_instr, u_instr, counters, "BOTH", True)
+
+    for line in outputLines:
+        print(line)
+
+    print("match stats:")
+    print(f"\t{c_no_match=}")
+    print(f"\t{c_multiple_matches=}")
+    print(f"\t{c_one_match=}")
+    print("instruction stats:")
+    c_tp_obtained, c_lat_obtained = count_instrs_with_values(w_instructions)
+    print(f"{c_lat_obtained=}")
+    print(f"{c_tp_obtained=}\n")
+    c_total_lat = counters.c_lat_full + counters.c_lat_partial + counters.c_lat_no
+    c_total_tp = counters.c_tp_full + counters.c_tp_partial + counters.c_tp_no
+    if c_total_lat != 0:
+        print(f"\t{counters.c_lat_full=}, {counters.c_lat_full*100/c_total_lat:.2f}%")
+        print(f"\t{counters.c_lat_partial=}, {counters.c_lat_partial*100/c_total_lat:.2f}%")
+        print(f"\t{counters.c_lat_no=}, {counters.c_lat_no*100/c_total_lat:.2f}%\n")
+    if c_total_tp != 0:
+        print(f"\t{counters.c_tp_full=}, {counters.c_tp_full*100/c_total_tp:.2f}%")
+        print(f"\t{counters.c_tp_partial=}, {counters.c_tp_partial*100/c_total_tp:.2f}%")
+        print(f"\t{counters.c_tp_no=}, {counters.c_tp_no*100/c_total_tp:.2f}%")
+    return 0
 
 
 def equal_tolerance(val1, val2):

@@ -1,14 +1,20 @@
 from analysis.globals import *
-from analysis.parsing.parse_llvm import parse_LLVM_instruction
+from analysis.parsing.parse_llvm import parse_LLVM_x86_instruction, parse_LLVM_AArch64_instruction
 from pprint import pprint
 
 
-def parse_WINIC_instruction(dbEntry) -> Instruction:
-    instruction = parse_LLVM_instruction(dbEntry["llvmName"])
+def parse_WINIC_instruction(dbEntry, arch: Literal["X86", "AArch64"]) -> Instruction:
+    if arch == "X86":
+        instruction = parse_LLVM_x86_instruction(dbEntry["llvmName"])
+    else:
+        shape = ""
+        if "." in dbEntry["name"]:  # e.g. fsqrt.8h
+            shape = dbEntry["name"][-1]
+        #  parse_instruction has to add the shape to applicable operands. we have to do it this way as llvm does not store that info per operand
+        instruction = parse_LLVM_AArch64_instruction(dbEntry["llvmName"], shape)
     if instruction is None:
         return None
-    # instruction.throughputs[0].cyclesMin = dbEntry.get("throughputMin", None)
-    # instruction.throughputs[0].cyclesMax = dbEntry.get("throughputMax", None)
+
     instruction.throughputs.append(Throughput(dbEntry.get("throughputMin", None), dbEntry.get("throughputMax", None)))
     operand_latencies = dbEntry.get("operandLatencies", {})
     for lat in operand_latencies:
