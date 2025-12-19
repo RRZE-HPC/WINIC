@@ -3,19 +3,27 @@
 set -e
 
 BUILD_DIR=""
+BUILD_LIBPFM=0
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        --dir) 
+        --dir)
             BUILD_DIR="-$2"
-            shift 
+            shift
+            ;;
+        --libpfm)
+            BUILD_LIBPFM=1
             ;;
         --help)
-            qecho "Usage: $0 [--dir buildDirIdentifier]"
-            exit 0 
+            qecho "Usage: $0 [--dir buildDirIdentifier] [--libpfm]"
+            exit 0
             ;;
-        *) echo "Unknown parameter passed: $1, Usage: $0 [--dir buildDirIdentifier]"; exit 1 ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            echo "Usage: $0 [--dir buildDirIdentifier] [--libpfm]"
+            exit 1
+            ;;
     esac
     shift
 done
@@ -29,6 +37,24 @@ else
     git sparse-checkout init --cone
     git sparse-checkout set llvm clang third-party cmake
     cd ..
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# build libfpm
+LIBPFM_DIR="libpfm4$BUILD_DIR"
+if [[ "$BUILD_LIBPFM" -eq 1 ]]; then
+    mkdir -p $LIBPFM_DIR
+    cd $LIBPFM_DIR
+    # clone libpfm (yes we clone for each platform bc libpfm makefile does not support separate build dirs)
+    if [ -d "libpfm4" ]; then
+        echo "libpfm4 already cloned." 
+    else
+        echo "Cloning libpfm..."
+        git clone --branch=v4.13.0 https://github.com/wcohen/libpfm4.git
+    fi
+    cd libpfm4
+    make -j
+    cd ../..
 fi
 
 BUILD_DIR="build$BUILD_DIR"
@@ -48,10 +74,17 @@ else
     cmake -S ../llvm-project/llvm -B . \
     -DLLVM_ENABLE_PROJECTS=clang \
     -DLLVM_TARGETS_TO_BUILD="X86;AArch64;RISCV" \
+    -DLLVM_ENABLE_LIBPFM=ON \
+    -DCMAKE_C_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
+    -DCMAKE_CXX_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
+    -DCMAKE_LIBRARY_PATH="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib" \
+    -DCMAKE_EXE_LINKER_FLAGS="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib -lpfm" \
+    -DLLVM_ENABLE_LIBPFM=ON \
     -DCMAKE_BUILD_TYPE=Release
 
     cmake --build . -- -j "$NUM_PROCS"
 fi
+
 
 mkdir -p ../$BUILD_DIR && cd ../$BUILD_DIR
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release \
