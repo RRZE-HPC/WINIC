@@ -104,7 +104,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
  * constraints. Returns ERROR_NO_HELPER if a helper is needed but none can be found.
  */
 std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
-getTPHelperInstruction(unsigned Opcode);
+getTPHelperInstruction(unsigned Opcode, long Immediate);
 
 /**
  * \brief Measures the throughput of the instruction with the given opcode.
@@ -115,10 +115,11 @@ getTPHelperInstruction(unsigned Opcode);
  * \param Opcode The opcode to measure.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
+ * \param Immediate Immediate value to use during measurements.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
 std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency,
-                                                        long RegInitValue);
+                                                        long RegInitValue, long Immediate);
 
 /**
  * \brief Measures the latency of the provided instruction chain.
@@ -130,11 +131,12 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
  * \param LoopCount Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
+ * \param Immediate Immediate value to use during measurements.
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
                                             unsigned LoopCount, double Frequency,
-                                            long RegInitValue = 4);
+                                            long RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureThroughput in a subprocess to recover from segfaults during benchmarking.
@@ -142,10 +144,11 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
  * \param Opcode The opcode to measure.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
+ * \param Immediate Immediate value to use during measurements.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
 std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
-                                                          long RegInitValue = 4);
+                                                          long RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureLatency in a subprocess to recover from segfaults during benchmarking.
@@ -158,7 +161,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
  */
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
                                                  unsigned LoopCount, double Frequency,
-                                                 long RegInitValue = 4);
+                                                 long RegInitValue, long Immediate);
 
 /**
  * \brief Calls runManual in a subprocess to recover from segfaults during benchmarking.
@@ -191,9 +194,11 @@ bool isVariant(unsigned A, unsigned B);
  *
  * \param Measurement The latency measurement to test.
  * \param Frequency CPU frequency in GHz.
+ * \param RegInit Register initialization value for the test.
+ * \param Immediate Immediate value to use in the test instruction.
  * \return Error code indicating the result.
  */
-ErrorCode canMeasure(LatMeasurement Measurement, double Frequency);
+ErrorCode canMeasure(LatMeasurement Measurement, double Frequency, long RegInit, long Immediate);
 
 /**
  * \brief Measures the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied.
@@ -201,16 +206,18 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency);
  * \param Opcodes List of opcodes to measure.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
+ * \param Immediate Immediate value to use during measurements.
  */
-void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegInitValue = 4);
+void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegInitValue, long Immediate);
 
 /**
  * \brief Builds the latency database by measuring all relevant instructions.
  *
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
+ * \param Immediate Immediate value to use during measurements.
  */
-void buildLatDatabase(double Frequency, long RegInitValue = 4);
+void buildLatDatabase(double Frequency, long RegInitValue, long Immediate);
 
 /**
  * \brief Main entry point for the WINIC program.

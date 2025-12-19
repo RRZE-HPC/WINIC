@@ -111,7 +111,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
                                                    std::set<MCRegister> UsedRegisters,
-                                                   long RegInitValue) {
+                                                   long RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(),
         " TargetInstrCount: ", *TargetInstrCount, " UsedRegisters.size(): ", UsedRegisters.size());
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
@@ -150,7 +150,7 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
                 UsedRegisters.insert(op.getRegister());
         }
 
-        auto [EC, instruction] = genInst(m.opcode, constraints, UsedRegisters);
+        auto [EC, instruction] = genInst(m.opcode, constraints, UsedRegisters, Immediate);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         instructions.emplace_back(instruction);
     }
@@ -224,7 +224,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   unsigned UnrollCount,
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                  unsigned HelperOpcode, long RegInitValue) {
+                                                  unsigned HelperOpcode, long RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode, " Name: ", getEnv().MCII->getName(Opcode).str(),
         " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
         " UsedRegisters.size(): ", UsedRegisters.size(),
@@ -247,14 +247,14 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
     ErrorCode EC;
     if (HelperOpcode != MAX_UNSIGNED) {
         std::tie(EC, instructions) = genTPLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
-                                               *TargetInstrCount, UsedRegisters);
+                                               *TargetInstrCount, UsedRegisters, Immediate);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated, dont include
         // helper instructions
         *TargetInstrCount = UnrollCount * instructions.size() / 2;
     } else {
         // ho helper
-        std::tie(EC, instructions) = genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters);
+        std::tie(EC, instructions) = genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters, Immediate);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = UnrollCount * instructions.size();
@@ -326,14 +326,14 @@ static bool isUseOnly(unsigned Opcode, unsigned OpIndex) {
 std::pair<ErrorCode, std::list<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
-          std::set<MCRegister> &UsedRegisters) {
+          std::set<MCRegister> &UsedRegisters, long Immediate) {
     std::list<MCInst> instructions;
     for (unsigned i = 0; i < Opcodes.size(); i++) {
         unsigned opcode = Opcodes[i];
         const MCInstrDesc &desc = getEnv().MCII->get(opcode);
         // this is the first generated instruction, all other instructions will use the
         // same registers as this one if they are only read
-        auto [EC, refInst] = genInst(opcode, ConstraintsVector[i], UsedRegisters);
+        auto [EC, refInst] = genInst(opcode, ConstraintsVector[i], UsedRegisters, Immediate);
         if (EC != SUCCESS) return {EC, instructions};
         instructions.push_back(refInst);
 
@@ -352,7 +352,7 @@ genTPLoop(std::vector<unsigned> Opcodes,
         // generation)
         std::list<MCInst> tempInstructions;
         for (unsigned j = 0; j < Opcodes.size(); j++) {
-            auto [EC, inst] = genInst(Opcodes[j], ConstraintsVector[j], UsedRegisters);
+            auto [EC, inst] = genInst(Opcodes[j], ConstraintsVector[j], UsedRegisters, Immediate);
             if (EC == E_NO_REGISTERS) return {SUCCESS, instructions}; // shorter loops are ok
             if (EC != SUCCESS) return {EC, {instructions}};
             tempInstructions.push_back(inst);

@@ -43,7 +43,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
 std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
                                                    std::set<MCRegister> UsedRegisters = {},
-                                                   long RegInitValue = 4);
+                                                   long RegInitValue = 4, long Immediate = 7);
 
 /**
  * \brief Generates a throughput benchmark for a given opcode.
@@ -60,7 +60,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
                                                   unsigned UnrollCount,
                                                   std::set<MCRegister> UsedRegisters,
                                                   std::map<unsigned, MCRegister> HelperConstraints,
-                                                  unsigned HelperOpcode, long RegInitValue = 4);
+                                                  unsigned HelperOpcode, long RegInitValue, long Immediate);
 
 /**
  * \brief Generates the inner loop for a throughput measurement.
@@ -78,7 +78,7 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
 std::pair<ErrorCode, std::list<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
-          std::set<MCRegister> &UsedRegisters);
+          std::set<MCRegister> &UsedRegisters, long Immediate);
 
 /**
  * \brief Generates a constraint (operand -> Register) to make an instruction use/def a specific
@@ -108,7 +108,7 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
  * \return Pair of ErrorCode and generated MCInst instruction.
  */
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate = 7);
+                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate);
 
 /**
  * \brief Finds the supermost register for a given register.
