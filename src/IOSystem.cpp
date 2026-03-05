@@ -10,6 +10,7 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include <AssemblyFile.h>
 #include <CustomDebug.h>
 #include <ErrorCode.h>
 #include <Globals.h>
@@ -215,6 +216,10 @@ ErrorCode loadYaml(std::string Path) {
 
 ErrorCode saveYaml(std::string Path) {
     stripOutputDatabase();
+    // remove tabs from mnemonics
+    for (IOInstruction &inst : outputDatabase){
+        inst.name = replaceAllInstances(inst.name, "\t", "   ");
+    }
     std::error_code ec;
     llvm::raw_fd_ostream fout(Path, ec);
     if (ec) {

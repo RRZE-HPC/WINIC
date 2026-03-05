@@ -59,7 +59,7 @@ def _operand_similarity(operands1: List[Operand], operands2: List[Operand], debu
 
 def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], out_file):
     with open(db_winic, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db = yaml.safe_load(raw_content)
 
     # find osaca arch

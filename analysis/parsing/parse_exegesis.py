@@ -5,7 +5,7 @@ import yaml
 
 def parse_exegesis(input_path: str) -> List[Instruction]:
     with open(input_path, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
 
     inputs = [yaml.safe_load(m) for m in raw_content.split("---")[1:]]
     instruction_map: dict[str, Instruction] = {}

@@ -6,7 +6,7 @@ import yaml
 
 def compare_winic_exegesis(db_winic, db_exegesis, mode: Literal["TP", "LAT", "BOTH"], out_file):
     with open(db_winic, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db = yaml.safe_load(raw_content)
 
     o_instructions: List[Instruction] = combine_dbs([parse_exegesis(d) for d in db_exegesis])

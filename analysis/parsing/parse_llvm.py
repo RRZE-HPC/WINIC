@@ -310,7 +310,7 @@ if __name__ == "__main__":
     import yaml
 
     with open("ISC/a_v2/old/winic_v2_r4.yaml", "r") as f:
-        raw_content = f.read().replace("\t", "    ")  # yaml does not like tabs
+        raw_content = f.read()
     db = yaml.safe_load(raw_content)
     _loadInstructions("AArch64")
     for inst in db:

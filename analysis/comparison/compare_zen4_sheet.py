@@ -8,7 +8,7 @@ import yaml
 
 def compare_winic_zen4_sheet(database, mode: Literal["TP", "LAT", "BOTH"], out_file):
     with open(database, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db = yaml.safe_load(raw_content)
 
     # parse instructions from zen4 csv

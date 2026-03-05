@@ -94,7 +94,7 @@ def compare_each_value(database, type: Literal["lat", "tp"], arch: str) -> Count
     from analysis.parsing.parse_uops import parse_uops_database
 
     with open(database, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db = yaml.safe_load(raw_content)
     uops_instructions = parse_uops_database(arch)
 
@@ -297,7 +297,7 @@ def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counter
     from analysis.parsing.parse_uops import parse_uops_database
 
     with open(database, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db = yaml.safe_load(raw_content)
     uops_instructions = parse_uops_database(march)
     print(f"{len(uops_instructions)=}")
@@ -407,10 +407,10 @@ def update_counters(old, new, c_changes, c_from_none, c_to_none):
 
 def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], output_path=""):
     with open(database1, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db1 = yaml.safe_load(raw_content)
     with open(database2, "r") as file:
-        raw_content = file.read().replace("\t", "    ")  # Replace tabs with 4 spaces
+        raw_content = file.read()
     db2 = yaml.safe_load(raw_content)
     output = ""
     c_changes = 0
