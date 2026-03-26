@@ -78,7 +78,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
  */
 std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned Runs,
                                                     unsigned NumInst, int LoopCount,
-                                                    double Frequency, std::string FunctionName,
+                                                    std::string FunctionName,
                                                     std::string InitName = "");
 
 /**
@@ -93,8 +93,7 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
  * \return Pair of error code and cycles per instruction.
  */
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount, double Frequency,
-                                             bool Throughput);
+                                             unsigned NumInst, unsigned LoopCount, bool Throughput);
 
 /**
  * \brief Finds a helper instruction for throughput measurement if needed.
@@ -118,8 +117,8 @@ getTPHelperInstruction(unsigned Opcode, long Immediate);
  * \param Immediate Immediate value to use during measurements.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
-std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency,
-                                                        long RegInitValue, long Immediate);
+std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
+                                                        long Immediate);
 
 /**
  * \brief Measures the latency of the provided instruction chain.
@@ -135,8 +134,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, double Frequency,
-                                            long RegInitValue, long Immediate);
+                                            unsigned LoopCount, long RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureThroughput in a subprocess to recover from segfaults during benchmarking.
@@ -147,8 +145,8 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
  * \param Immediate Immediate value to use during measurements.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
-std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
-                                                          long RegInitValue, long Immediate);
+std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long RegInitValue,
+                                                          long Immediate);
 
 /**
  * \brief Calls measureLatency in a subprocess to recover from segfaults during benchmarking.
@@ -160,8 +158,8 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
-                                                 unsigned LoopCount, double Frequency,
-                                                 long RegInitValue, long Immediate);
+                                                 unsigned LoopCount, long RegInitValue,
+                                                 long Immediate);
 
 /**
  * \brief Calls runManual in a subprocess to recover from segfaults during benchmarking.
@@ -175,9 +173,10 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
  * \param InitName (Optional) Name of the initialization function.
  * \return Pair of error code and a vector of measured times.
  */
-std::pair<ErrorCode, std::vector<double>>
-measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
-                    double Frequency, std::string FunctionName, std::string InitName = "");
+std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath, unsigned Runs,
+                                                              unsigned NumInst, unsigned LoopCount,
+                                                              std::string FunctionName,
+                                                              std::string InitName = "");
 
 /**
  * \brief Checks if two opcodes are variants of the same instruction with different operands.
@@ -198,7 +197,7 @@ bool isVariant(unsigned A, unsigned B);
  * \param Immediate Immediate value to use in the test instruction.
  * \return Error code indicating the result.
  */
-ErrorCode canMeasure(LatMeasurement Measurement, double Frequency, long RegInit, long Immediate);
+ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate);
 
 /**
  * \brief Measures the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied.
@@ -208,7 +207,7 @@ ErrorCode canMeasure(LatMeasurement Measurement, double Frequency, long RegInit,
  * \param RegInitValue Value to initialize registers with.
  * \param Immediate Immediate value to use during measurements.
  */
-void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegInitValue, long Immediate);
+void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Immediate);
 
 /**
  * \brief Builds the latency database by measuring all relevant instructions.
@@ -217,7 +216,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegIn
  * \param RegInitValue Value to initialize registers with.
  * \param Immediate Immediate value to use during measurements.
  */
-void buildLatDatabase(double Frequency, long RegInitValue, long Immediate);
+void buildLatDatabase(long RegInitValue, long Immediate);
 
 /**
  * \brief Main entry point for the WINIC program.

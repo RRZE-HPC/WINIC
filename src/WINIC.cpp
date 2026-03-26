@@ -237,11 +237,10 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
 
 std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned Runs,
                                                     unsigned NumInst, int LoopCount,
-                                                    double Frequency, std::string FunctionName,
+                                                    std::string FunctionName,
                                                     std::string InitName) {
     dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
-        " LoopCount: ", LoopCount, " Frequency: ", Frequency, " FunctionName: ", FunctionName,
-        " InitName: ", InitName);
+        " LoopCount: ", LoopCount, " FunctionName: ", FunctionName, " InitName: ", InitName);
     std::string clangPath = CLANG_PATH;
     std::string oPath = "/dev/shm/temp.so";
     std::string cpu = getEnv().Machine->getTargetCPU().data();
@@ -294,7 +293,7 @@ std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned 
 }
 
 std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount, double Frequency,
+                                             unsigned NumInst, unsigned LoopCount,
                                              bool Throughput) {
     dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime,
         " NumInst: ", NumInst, " LoopCount: ", LoopCount);
@@ -302,7 +301,8 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
     // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
-    double cyclesPerInstruction = (instRuntime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
+    double cyclesPerInstruction =
+        (instRuntime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopCount);
     if (instRuntime * 2 > UnrolledRuntime * 1.1) {
         // Execution time increases overproportional when unrolling, which should not happen.
         // This is unlikely to be a good measurement, report an error and let the user measure it
@@ -320,7 +320,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     // with helper TEST64rr In those cases the unrolled time should not be used for correction.
     // This is why the following check is only enabled for throughput
     if (Throughput && instRuntime * 2 > UnrolledRuntime) {
-        cyclesPerInstruction = (Runtime / 1e6) * (Frequency * 1e9) / (NumInst * LoopCount);
+        cyclesPerInstruction = (Runtime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopCount);
     }
     return {SUCCESS, cyclesPerInstruction};
 }
@@ -331,8 +331,8 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     // first check if this instruction needs a helper
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
-    auto [ec1, inst1] = genInst(Opcode, {}, usedRegs,  Immediate);
-    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs,  Immediate);
+    auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate);
+    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate);
     std::list<DependencyType> dependencies = getDependencies(inst1, inst2);
     if (dependencies.empty()) return {SUCCESS, MAX_UNSIGNED, {}}; // no helper needed
     if (dependencies.size() > 1) {
@@ -378,7 +378,8 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
                 // ax so it can't be used as helper
                 std::set<MCRegister> tmpUsedRegs;
                 auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate);
-                auto [ec2, helperInst] = genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
+                auto [ec2, helperInst] =
+                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
                 if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
                 if (!getDependencies(inst, helperInst).empty()) continue;
                 helperOpcode = possibleHelper;
@@ -399,7 +400,8 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
             if (opIndex != -1) helperConstraints.insert({(unsigned)opIndex, useReg});
             std::set<MCRegister> tmpUsedRegs;
             auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate);
-            auto [ec2, helperInst] = genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
+            auto [ec2, helperInst] =
+                genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
             if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
             if (!getDependencies(inst, helperInst).empty()) continue;
             helperOpcode = possibleHelper;
@@ -410,9 +412,9 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     return {SUCCESS, helperOpcode, helperConstraints};
 }
 
-std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double Frequency,
-                                                        long RegInitValue, long Immediate) {
-    dbg(__func__, "Opcode: ", Opcode, " Frequency: ", Frequency);
+std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
+                                                        long Immediate) {
+    dbg(__func__, "Opcode: ", Opcode);
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst = 12;
@@ -438,7 +440,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
     double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
     double time2 = *std::min_element(benchResults["tp2"].begin(), benchResults["tp2"].end());
 
-    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, Frequency, true);
+    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, true);
     if (EC != SUCCESS) {
         std::string msg =
             str("Anomaly detected when unrolling: time: ", time1, " timeUnrolled: ", time2);
@@ -469,10 +471,9 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, double 
 }
 
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, double Frequency,
-                                            long RegInitValue, long Immediate) {
+                                            unsigned LoopCount, long RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
-        " Frequency: ", Frequency, "Immediate: ", Immediate);
+        "Immediate: ", Immediate);
 
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
@@ -496,7 +497,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     double time1 = *std::min_element(benchResults["lat"].begin(), benchResults["lat"].end());
     double time2 = *std::min_element(benchResults["lat2"].begin(), benchResults["lat2"].end());
     double cycles;
-    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, Frequency, false);
+    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, false);
     if (ec != SUCCESS) {
         std::string chainString = "";
         for (auto m : Measurements) {
@@ -513,8 +514,8 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     return {SUCCESS, cycles};
 }
 
-std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, double Frequency,
-                                                          long RegInitValue, long Immediate) {
+std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long RegInitValue,
+                                                          long Immediate) {
     // allocate memory to communicate result
     double *sharedLowerBound = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -538,7 +539,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
         ErrorCode ec;
         double lower;
         double upper;
-        std::tie(ec, lower, upper) = measureThroughput(Opcode, Frequency, RegInitValue, Immediate);
+        std::tie(ec, lower, upper) = measureThroughput(Opcode, RegInitValue, Immediate);
 
         *sharedLowerBound = lower;
         *sharedUpperBound = upper;
@@ -575,8 +576,8 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, doubl
 }
 
 std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
-                                                 unsigned LoopCount, double Frequency,
-                                                 long RegInitValue, long Immediate) {
+                                                 unsigned LoopCount, long RegInitValue,
+                                                 long Immediate) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -594,7 +595,7 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     if (pid == 0) { // Child process
         ErrorCode ec;
         double res;
-        std::tie(ec, res) = measureLatency(Measurements, LoopCount, Frequency, RegInitValue, Immediate);
+        std::tie(ec, res) = measureLatency(Measurements, LoopCount, RegInitValue, Immediate);
 
         *sharedResult = res;
         *sharedEC = ec;
@@ -620,9 +621,10 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     }
 }
 
-std::pair<ErrorCode, std::vector<double>>
-measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
-                    double Frequency, std::string FunctionName, std::string InitName) {
+std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath, unsigned Runs,
+                                                              unsigned NumInst, unsigned LoopCount,
+                                                              std::string FunctionName,
+                                                              std::string InitName) {
     // allocate memory to communicate result
     double *sharedResults = static_cast<double *>(mmap(
         NULL, Runs * sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -640,8 +642,7 @@ measureInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned
     if (pid == 0) { // Child process
         ErrorCode EC;
         std::vector<double> res;
-        std::tie(EC, res) =
-            runManual(SPath, Runs, NumInst, LoopCount, Frequency, FunctionName, InitName);
+        std::tie(EC, res) = runManual(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
         *sharedEC = EC;
         for (unsigned i = 0; i < res.size() && i < Runs; i++)
             sharedResults[i] = res[i];
@@ -697,15 +698,14 @@ bool isVariant(unsigned A, unsigned B) {
 }
 
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
-ErrorCode canMeasure(LatMeasurement Measurement, double Frequency, long RegInit, long Immediate) {
-    auto [EC, lat] = measureInSubprocess({Measurement}, 2, Frequency, RegInit, Immediate);
+ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate) {
+    auto [EC, lat] = measureInSubprocess({Measurement}, 2, RegInit, Immediate);
     if (!isError(EC)) return SUCCESS;
     return EC;
 }
 
-void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegInitValue,
-                     long Immediate) {
-    dbg(__func__, "Opcodes.size(): ", Opcodes.size(), " Frequency: ", Frequency);
+void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Immediate) {
+    dbg(__func__, "Opcodes.size(): ", Opcodes.size());
     // mark instructions to be measured
     for (unsigned opcode : Opcodes)
         throughputDatabase[opcode].ec = NO_ERROR_CODE;
@@ -730,8 +730,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegIn
                 throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
                 continue;
             }
-            auto [EC, lowerTP, upperTP] =
-                measureInSubprocess(opcode, Frequency, RegInitValue, Immediate);
+            auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, RegInitValue, Immediate);
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
             throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
 
@@ -745,8 +744,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, double Frequency, long RegIn
     }
 }
 
-void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
-    dbg(__func__, "Frequency: ", Frequency);
+void buildLatDatabase(long RegInitValue, long Immediate) {
     out(*ios, "Number of measurements: ", latencyDatabase.size());
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
@@ -762,8 +760,7 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
-            auto [EC, lat] =
-                measureInSubprocess({measurement}, loopCount, Frequency, RegInitValue, Immediate);
+            auto [EC, lat] = measureInSubprocess({measurement}, loopCount, RegInitValue, Immediate);
             measurement.ec = EC;
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
@@ -838,7 +835,7 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
         while (itA != measurementsA.end()) {
             LatMeasurement *m = *(itA++);
             if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            ErrorCode EC = canMeasure(*m, Frequency, RegInitValue, Immediate);
+            ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
             if (EC == SUCCESS) {
                 smallestA = m;
                 break;
@@ -855,7 +852,7 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
         while (itB != measurementsB.end()) {
             LatMeasurement *m = *(itB++);
             if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            ErrorCode EC = canMeasure(*m, Frequency, RegInitValue, Immediate);
+            ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
             if (EC == SUCCESS) {
                 smallestB = m;
                 break;
@@ -870,8 +867,8 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
             continue;
         }
         // measure the combined latency of the two instructions as a baseline
-        auto [EC, lat] = measureInSubprocess({*smallestA, *smallestB}, loopCount, Frequency,
-                                             RegInitValue, Immediate);
+        auto [EC, lat] =
+            measureInSubprocess({*smallestA, *smallestB}, loopCount, RegInitValue, Immediate);
         if (isError(EC)) {
             out(*ios,
                 "\tcannot measure type. very unusual: both instructions can be executed "
@@ -908,8 +905,7 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
                 opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end() ||
                 mA->opcode == mB->opcode)
                 continue;
-            auto [EC, lat] =
-                measureInSubprocess({*mA, *mB}, loopCount, Frequency, RegInitValue, Immediate);
+            auto [EC, lat] = measureInSubprocess({*mA, *mB}, loopCount, RegInitValue, Immediate);
             if (isError(EC)) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
                     " was unsuccessful, EC: ", ecToString(EC));
@@ -968,8 +964,8 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
         // Use them to measure everything else
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
-            auto [EC, lat] = measureInSubprocess({*mA, *smallestB}, loopCount, Frequency,
-                                                 RegInitValue, Immediate);
+            auto [EC, lat] =
+                measureInSubprocess({*mA, *smallestB}, loopCount, RegInitValue, Immediate);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
@@ -984,8 +980,8 @@ void buildLatDatabase(double Frequency, long RegInitValue, long Immediate) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             // mB has to come first as the first instruction in the benchmark determines the name of
             // the debug .s file
-            auto [EC, lat] = measureInSubprocess({*mB, *smallestA}, loopCount, Frequency,
-                                                 RegInitValue, Immediate);
+            auto [EC, lat] =
+                measureInSubprocess({*mB, *smallestA}, loopCount, RegInitValue, Immediate);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
@@ -1129,6 +1125,8 @@ int run(int argc, char **argv) {
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
+    
+    clockFrequency = frequency;
     ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {
         std::cerr << "failed to set up environment: " << ecToString(ec) << std::endl;
@@ -1218,17 +1216,17 @@ int run(int argc, char **argv) {
                 // interleaving with other instructions
                 unsigned opcodeTest = getEnv().getOpcode("TEST64rr");
                 auto [EC, lowerTP1, upperTP1] =
-                    measureInSubprocess(opcodeTest, frequency, regInitValue, immValue);
+                    measureInSubprocess(opcodeTest, regInitValue, immValue);
                 throughputDatabase[opcodeTest] = {opcodeTest, EC, lowerTP1, upperTP1};
                 priorityTPHelper.emplace_back(opcodeTest);
 
                 unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
                 auto [EC2, lowerTP2, upperTP2] =
-                    measureInSubprocess(opcodeMov, frequency, regInitValue, immValue);
+                    measureInSubprocess(opcodeMov, regInitValue, immValue);
                 throughputDatabase[opcodeMov] = {opcodeMov, EC2, lowerTP2, upperTP2};
                 priorityTPHelper.emplace_back(opcodeMov);
             }
-            buildTPDatabase(opcodes, frequency, regInitValue, immValue);
+            buildTPDatabase(opcodes, regInitValue, immValue);
         } else if (*lat) {
             out(*ios, "Mode: Latency");
             for (auto opcode : opcodes) {
@@ -1236,7 +1234,7 @@ int run(int argc, char **argv) {
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
                                        measurements.end());
             }
-            buildLatDatabase(frequency, regInitValue, immValue);
+            buildLatDatabase(regInitValue, immValue);
         }
 
         // write results to console
@@ -1296,8 +1294,7 @@ int run(int argc, char **argv) {
     }
 
     if (*man) {
-        auto [EC, times] =
-            measureInSubprocess(sPath, 3, numInst, 1e6, frequency, funcName, initName);
+        auto [EC, times] = measureInSubprocess(sPath, 3, numInst, 1e6, funcName, initName);
         if (EC != SUCCESS) {
             std::cout << "failed for reason: " << ecToString(EC) << "\n";
             return 1;
