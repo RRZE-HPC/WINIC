@@ -218,6 +218,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     for (auto [benchFunctionName, benchFunctionPointer] : benchFunctionMap) {
         auto benchFunction = benchFunctionPointer;
         auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionName)];
+        dbg(__func__, "running ", benchFunctionName);
         for (unsigned i = 0; i < Runs; i++) {
             if (initFunction) (*initFunction)();
 
@@ -232,6 +233,10 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     }
 
     dlclose(handle);
+    for (auto [name, times] : benchtimes) {
+        dbg(__func__, "benchtimes for ", name, ": ", times);
+    }
+
     return {SUCCESS, benchtimes};
 }
 
@@ -1125,7 +1130,7 @@ int run(int argc, char **argv) {
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
-    
+
     clockFrequency = frequency;
     ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {

@@ -397,12 +397,10 @@ expandConstraints(unsigned Opcode, std::map<unsigned, MCRegister> Constraints) {
     std::map<unsigned, MCRegister> newConstraints;
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     for (auto constraint : Constraints) {
-        dbg(__func__, "processing constraint index ", constraint.first);
         const MCOperandInfo &opInfo = desc.operands()[constraint.first];
         if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
             // constraint sets an operand that is tied to another operand, constrain that one, too
             unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            dbg(__func__, "it is tied to ", tiedToOp);
             newConstraints[tiedToOp] = constraint.second;
         }
         // keep all previous constraints

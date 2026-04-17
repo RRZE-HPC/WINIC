@@ -2,6 +2,7 @@
 #define CUSTOM_DEBUG_H
 
 #include <iostream>
+#include <list>
 #include <map>
 #include <set>
 #include <sstream>
@@ -31,6 +32,13 @@ template <typename T> inline std::ostream &operator<<(std::ostream &OS, const st
         if (i + 1 < V.size()) OS << ", ";
     }
     OS << "]";
+    return OS;
+}
+
+// override operator<< for any std::list
+template <typename T> inline std::ostream &operator<<(std::ostream &OS, const std::list<T> &L) {
+    std::vector<T> vec(L.begin(), L.end());
+    OS << vec;
     return OS;
 }
 
