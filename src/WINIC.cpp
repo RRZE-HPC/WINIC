@@ -7,6 +7,7 @@
 #include "Globals.h"
 #include "IOSystem.h"
 #include "LLVMEnvironment.h"
+#include "version.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/MC/MCInst.h"
@@ -1019,6 +1020,7 @@ int run(int argc, char **argv) {
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
+    app.set_version_flag("-v,--version", WINIC_VERSION, "Show version");
 
     std::vector<std::string> instrNames;
     unsigned minOpcode = 0;

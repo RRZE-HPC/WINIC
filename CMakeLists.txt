@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(winic LANGUAGES CXX C)
+project(winic VERSION 0.1.0 LANGUAGES CXX C)
 
 # Require C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -86,4 +86,16 @@ target_compile_definitions(winic PRIVATE
 target_link_libraries(winic PRIVATE
   ${LLVM_LIBS}
   ${CLANG_LIBS}
+)
+
+# generate version header from template
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/version.h
+    @ONLY
+)
+
+# use generated headers
+target_include_directories(winic PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
