@@ -50,7 +50,12 @@ struct IOInstruction {
     std::optional<double> throughputMax; ///< Maximum throughput
 };
 
-static std::vector<IOInstruction> outputDatabase;
+struct IOFile {
+    std::string version;
+    std::vector<IOInstruction> instructions;
+};
+
+static IOFile ioFile;
 
 /**
  * \brief Converts an LLVM-style operand number to an asm-style operand number.
@@ -130,6 +135,7 @@ template <> struct MappingTraits<winic::IOOperand> {
         Io.mapRequired("write", Op.write);
     }
 };
+
 template <> struct MappingTraits<winic::IOLatency> {
     static void mapping(IO &Io, winic::IOLatency &Lat) {
         Io.mapRequired("sourceOperand", Lat.sourceOperand);
@@ -149,6 +155,13 @@ template <> struct MappingTraits<winic::IOInstruction> {
         Io.mapRequired("throughput", Inst.throughput);
         Io.mapRequired("throughputMin", Inst.throughputMin);
         Io.mapRequired("throughputMax", Inst.throughputMax);
+    }
+};
+
+template <> struct MappingTraits<winic::IOFile> {
+    static void mapping(IO &Io, winic::IOFile &File) {
+        Io.mapRequired("winicVersion", File.version);
+        Io.mapRequired("instructions", File.instructions);
     }
 };
 

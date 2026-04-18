@@ -1112,6 +1112,8 @@ int run(int argc, char **argv) {
     else if (*lat)
         setOutputToFile("report_LAT_" + timestamp);
 
+    out(*ios, "WINIC version ", WINIC_VERSION);
+
     if (databasePath != "/dev/null") {
         if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
         if (std::filesystem::exists(databasePath)) {

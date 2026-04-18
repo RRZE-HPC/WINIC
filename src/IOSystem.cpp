@@ -1,6 +1,7 @@
 #include "IOSystem.h"
 
 #include "LLVMEnvironment.h"
+#include "version.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCInst.h"
@@ -95,9 +96,9 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
     double lowerTP = std::round(M.lowerTP * 100) / 100;
     double upperTP = std::round(M.upperTP * 100) / 100;
     std::string name = getEnv().MCII->getName(M.opcode).str();
-    auto it = std::find_if(outputDatabase.begin(), outputDatabase.end(),
+    auto it = std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
                            [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    if (it != outputDatabase.end()) {
+    if (it != ioFile.instructions.end()) {
         dbg(__func__, "update ", name, " throughput: ", lowerTP, " ", upperTP);
         // Found entry, update it if the new measurement did not have an error
         if (!isError(M.ec)) {
@@ -119,7 +120,7 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
             opInst.throughputMin = lowerTP;
             opInst.throughputMax = upperTP;
         }
-        outputDatabase.push_back(opInst);
+        ioFile.instructions.push_back(opInst);
     }
     return SUCCESS;
 }
@@ -153,15 +154,15 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     if (M.type.defOp.isRegister())
         defIndexString = getEnv().MRI->getName(M.type.defOp.getRegister());
     auto instruction =
-        std::find_if(outputDatabase.begin(), outputDatabase.end(),
+        std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
                      [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    if (instruction == outputDatabase.end()) {
+    if (instruction == ioFile.instructions.end()) {
         // Not found, create first
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
-        outputDatabase.push_back(opInst);
+        ioFile.instructions.push_back(opInst);
     }
-    instruction = std::find_if(outputDatabase.begin(), outputDatabase.end(),
+    instruction = std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
                                [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
     auto latencyEntry = std::find_if(
         instruction->latencies.begin(), instruction->latencies.end(), [&](const IOLatency &Lat) {
@@ -202,7 +203,7 @@ ErrorCode loadYaml(std::string Path) {
     }
     llvm::yaml::Input yin(buffer->get()->getBuffer());
     try {
-        yin >> outputDatabase;
+        yin >> ioFile;
     } catch (const std::exception &e) {
         std::cerr << "YAML serialization error: " << e.what() << "\n";
         return E_FILE;
@@ -211,15 +212,24 @@ ErrorCode loadYaml(std::string Path) {
         std::cerr << "YAML parsing failed for file: " << Path << "\n";
         return E_FILE;
     }
+
+    if (ioFile.version != WINIC_VERSION) {
+        std::cout << str("WARNING: The database ", Path,
+                         " was created with a different version of WINIC. Database: ",
+                         ioFile.version, " Current: ", WINIC_VERSION)
+                  << std::endl;
+    }
     return SUCCESS;
 }
 
 ErrorCode saveYaml(std::string Path) {
     stripOutputDatabase();
     // remove tabs from mnemonics
-    for (IOInstruction &inst : outputDatabase){
+    for (IOInstruction &inst : ioFile.instructions) {
         inst.name = replaceAllInstances(inst.name, "\t", "   ");
     }
+    ioFile.version = WINIC_VERSION;
+
     std::error_code ec;
     llvm::raw_fd_ostream fout(Path, ec);
     if (ec) {
@@ -227,9 +237,9 @@ ErrorCode saveYaml(std::string Path) {
         return E_FILE;
     }
     llvm::yaml::Output yout(fout);
-    dbg(__func__, "writing ", outputDatabase.size(), " entries to ", Path);
+    dbg(__func__, "writing ", ioFile.instructions.size(), " entries to ", Path);
     try {
-        yout << outputDatabase;
+        yout << ioFile;
     } catch (const std::exception &e) {
         std::cerr << "YAML serialization error: " << e.what() << "\n";
         return E_FILE;
@@ -239,7 +249,7 @@ ErrorCode saveYaml(std::string Path) {
 
 void stripOutputDatabase() {
     std::vector<IOInstruction> strippedDatabase;
-    for (auto &inst : outputDatabase) {
+    for (IOInstruction &inst : ioFile.instructions) {
         bool hasValue = false;
         if (inst.throughput.has_value()) hasValue = true;
         for (auto &lat : inst.latencies) {
@@ -250,7 +260,7 @@ void stripOutputDatabase() {
         }
         if (hasValue) strippedDatabase.push_back(inst);
     }
-    outputDatabase = strippedDatabase;
+    ioFile.instructions = strippedDatabase;
 }
 
 } // namespace winic
