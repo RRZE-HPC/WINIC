@@ -69,7 +69,7 @@ std::string AssemblyFile::getInitNameFor(std::string BenchName) {
  */
 std::string AssemblyFile::generateAssembly() {
     if (arch == 0) {
-        std::cerr << "called generateAssembly on uninitialized AssemblyFile\n";
+        std::cerr << "called generateAssembly on uninitialized AssemblyFile" << std::endl;
         return "";
     }
     std::string result;

@@ -205,11 +205,11 @@ ErrorCode loadYaml(std::string Path) {
     try {
         yin >> ioFile;
     } catch (const std::exception &e) {
-        std::cerr << "YAML serialization error: " << e.what() << "\n";
+        std::cerr << "YAML serialization error: " << e.what() << std::endl;
         return E_FILE;
     }
     if (yin.error()) { // check for parse/serialization errors
-        std::cerr << "YAML parsing failed for file: " << Path << "\n";
+        std::cerr << "YAML parsing failed for file: " << Path << std::endl;
         return E_FILE;
     }
 
@@ -241,7 +241,7 @@ ErrorCode saveYaml(std::string Path) {
     try {
         yout << ioFile;
     } catch (const std::exception &e) {
-        std::cerr << "YAML serialization error: " << e.what() << "\n";
+        std::cerr << "YAML serialization error: " << e.what() << std::endl;
         return E_FILE;
     }
     return SUCCESS;

@@ -72,12 +72,12 @@ inline std::ostream &operator<<(std::ostream &OS, const std::map<K, V> &M) {
 template <typename... Args> static void dbg(const char *Func, Args &&...Arguments) {
     if (debug && functionBlacklist.find(Func) == functionBlacklist.end()) {
         std::cout << "[" << Func << "]: ";
-        (std::cout << ... << Arguments) << "\n" << std::flush;
+        (std::cout << ... << Arguments) << std::endl;
     }
 }
 
 template <typename... Args> static void out(std::ostream &Osteam, Args &&...Arguments) {
-    (Osteam << ... << Arguments) << "\n" << std::flush;
+    (Osteam << ... << Arguments) << std::endl;
 }
 
 // concatenate all arguments into a string

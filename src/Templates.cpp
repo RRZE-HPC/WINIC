@@ -397,9 +397,9 @@ Template getTemplate(llvm::Triple::ArchType Arch) {
         return RISCVTemplate;
     }
     default:
-        llvm::errs() << "Tried to get a template for an unsupported arch: "
-                     << llvm::Triple::getArchTypeName(Arch) << " archNumber: " << Arch
-                     << " this should not happen\n";
+        std::cerr << "Tried to get a template for an unsupported arch: "
+                  << llvm::Triple::getArchTypeName(Arch).str() << " archNumber: " << Arch
+                  << " this should not happen" << std::endl;
         exit(EXIT_FAILURE);
     }
 }

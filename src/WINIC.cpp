@@ -758,7 +758,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     unsigned loopCount = 1e6; // loop count, 1e5 seems to be unreliable for LAT
 
     // classify measurements by operand combination, measure if trivial
-    if (showProgress) std::cout << "phase1: trivial measurements\n";
+    if (showProgress) std::cout << "phase1: trivial measurements" << std::endl;
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
@@ -799,7 +799,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     // measurements of those types
     // e.g. if A is GR16 -> EFLAGS, B is EFLAGS -> GR16 and we can measure combinations of
     // instructions in A and B
-    if (showProgress) std::cout << "\nphase2: measurements with helpers\n";
+    if (showProgress) std::cout << "\nphase2: measurements with helpers" << std::endl;
     out(*ios, "\n\nReport on finding helpers for dependency types:");
     progress = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
@@ -1305,18 +1305,18 @@ int run(int argc, char **argv) {
     if (*man) {
         auto [EC, times] = measureInSubprocess(sPath, 3, numInst, 1e6, funcName, initName);
         if (EC != SUCCESS) {
-            std::cout << "failed for reason: " << ecToString(EC) << "\n";
+            std::cout << "failed for reason: " << ecToString(EC) << std::endl;
             return 1;
         }
         for (auto time : times) {
             std::cout << time << " ";
         }
         double minTime = *std::min_element(times.begin(), times.end());
-        std::cout << " min: " << minTime << "\n";
+        std::cout << " min: " << minTime << std::endl;
 
         // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
         double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
-        std::cout << cyclesPerInstruction << " (clock cycles)\n";
+        std::cout << cyclesPerInstruction << " (clock cycles)" << std::endl;
     }
 
     gettimeofday(&end, NULL);

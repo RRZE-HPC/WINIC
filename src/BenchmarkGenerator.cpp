@@ -220,11 +220,10 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
     return {SUCCESS, assemblyFile};
 }
 
-std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                  unsigned UnrollCount,
-                                                  std::set<MCRegister> UsedRegisters,
-                                                  std::map<unsigned, MCRegister> HelperConstraints,
-                                                  unsigned HelperOpcode, long RegInitValue, long Immediate) {
+std::pair<ErrorCode, AssemblyFile>
+genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount,
+               std::set<MCRegister> UsedRegisters, std::map<unsigned, MCRegister> HelperConstraints,
+               unsigned HelperOpcode, long RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode, " Name: ", getEnv().MCII->getName(Opcode).str(),
         " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
         " UsedRegisters.size(): ", UsedRegisters.size(),
@@ -254,7 +253,8 @@ std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *Tar
         *TargetInstrCount = UnrollCount * instructions.size() / 2;
     } else {
         // ho helper
-        std::tie(EC, instructions) = genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters, Immediate);
+        std::tie(EC, instructions) =
+            genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters, Immediate);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         // update TargetInstructionCount to actual number of instructions generated
         *TargetInstrCount = UnrollCount * instructions.size();
@@ -380,7 +380,7 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
                 if (getEnv().regInRegClass(RequiredRegister, desc.operands()[i].RegClass))
                     return {SUCCESS, i};
     } else {
-        errs() << "choose between use and def\n";
+        std::cerr << "choose between use and def" << std::endl;
         return {E_UNREACHABLE, 0};
     }
     return {E_GENERIC, 0};

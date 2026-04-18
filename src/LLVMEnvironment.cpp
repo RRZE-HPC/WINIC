@@ -69,7 +69,8 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
         LLVMInitializeRISCVAsmPrinter();
     } else {
         if (TargetTriple.getArch() != llvm::Triple::UnknownArch)
-            errs() << "unsupported architecture: " << TargetTriple.getArchName() << "\n";
+            std::cerr << "unsupported architecture: " << TargetTriple.getArchName().str()
+                      << std::endl;
         return E_UNSUPPORTED_ARCH;
     }
     // partially copied from InstrRefLDVTest.cpp InstrRefLDVTest.cpp
@@ -161,7 +162,6 @@ unsigned LLVMEnvironment::getOpcode(std::string InstructionName) {
     for (unsigned i = 0; i < MCII->getNumOpcodes(); ++i)
         if (MCII->getName(i) == InstructionName) return i;
 
-    std::cout << "Instruction not found: " << InstructionName;
     return std::numeric_limits<unsigned>::max();
 }
 
