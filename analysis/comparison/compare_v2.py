@@ -1,15 +1,13 @@
 from analysis.globals import *
 from analysis.comparison.helper import *
 from analysis.parsing.parse_neoverse_opt_guide import parse_neoverse_opt_guide
-import yaml
+from analysis.parsing.parse_winic import read_WINIC_db
 
 # this does not use additional LLVM information as the opt guide does not provide enough info per instruction anyway
 
 
 def compare_winic_v2(database, mode, out_file):
-    with open(database, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(database)
 
     # parse neoverse opt guide instructions
     o_instructions: List[Instruction] = parse_neoverse_opt_guide()

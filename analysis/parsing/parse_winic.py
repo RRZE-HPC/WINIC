@@ -1,6 +1,7 @@
 from analysis.globals import *
 from analysis.parsing.parse_llvm import parse_LLVM_x86_instruction, parse_LLVM_AArch64_instruction
 from pprint import pprint
+import yaml
 
 
 def parse_WINIC_instruction(dbEntry, arch: Literal["X86", "AArch64"]) -> Instruction:
@@ -46,3 +47,8 @@ def parse_WINIC_instruction(dbEntry, arch: Literal["X86", "AArch64"]) -> Instruc
             pprint(dbEntry, compact=True)
             exit(1)
     return instruction
+
+def read_WINIC_db(path: str):
+    with open(path, "r") as file:
+        raw_content = file.read()
+    return yaml.safe_load(raw_content)["instructions"]

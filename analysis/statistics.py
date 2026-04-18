@@ -1,11 +1,9 @@
 import yaml
-
+from analysis.parsing.parse_winic import read_WINIC_db
 
 def count_ranges(database, pr: bool = False):
     # parse database
-    with open(database, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(database)
     tp_range_c = 0
     tp_exact_c = 0
     lat_range_c = 0
@@ -43,9 +41,7 @@ def count_ranges(database, pr: bool = False):
 
 
 def count_instr_different_sublatencies(database, pr: bool = False):
-    with open(database, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(database)
     different_latencies_ranges = []
     different_latencies_exact = []
     # Go through each instruction

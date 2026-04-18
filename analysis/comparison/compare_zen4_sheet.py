@@ -1,15 +1,13 @@
 from analysis.globals import *
 from analysis.comparison.helper import *
 from analysis.parsing.parse_zen4_sheet import parse_zen4_sheet
-from analysis.parsing.parse_winic import parse_WINIC_instruction
-import yaml
+from analysis.parsing.parse_winic import parse_WINIC_instruction, read_WINIC_db
 
 # Naming scheme: w_xxx winic data, o_xxx other sources data
 
+
 def compare_winic_zen4_sheet(database, mode: Literal["TP", "LAT", "BOTH"], out_file):
-    with open(database, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(database)
 
     # parse instructions from zen4 csv
     o_instructions: List[Instruction] = parse_zen4_sheet()

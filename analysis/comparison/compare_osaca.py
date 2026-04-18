@@ -2,7 +2,7 @@ from pprint import pprint
 from analysis.globals import *
 from analysis.comparison.helper import *
 from analysis.parsing.parse_osaca import parse_osaca_database
-from analysis.parsing.parse_winic import parse_WINIC_instruction
+from analysis.parsing.parse_winic import parse_WINIC_instruction, read_WINIC_db
 import yaml
 import itertools
 
@@ -58,9 +58,7 @@ def _operand_similarity(operands1: List[Operand], operands2: List[Operand], debu
 
 
 def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], out_file):
-    with open(db_winic, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(db_winic)
 
     # find osaca arch
     with open(db_osaca, "r") as f:

@@ -1,9 +1,9 @@
 import copy
 from analysis.globals import *
+from analysis.parsing.parse_winic import read_WINIC_db
 from typing import List, Literal
 from pprint import pprint
 import os
-import yaml
 
 
 def is_same_asm_name(llvm_asm: str, uops_asm: str):
@@ -93,9 +93,7 @@ def compare_each_value(database, type: Literal["lat", "tp"], arch: str) -> Count
     from analysis.parsing.parse_winic import parse_WINIC_instruction
     from analysis.parsing.parse_uops import parse_uops_database
 
-    with open(database, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(database)
     uops_instructions = parse_uops_database(arch)
 
     c = Counters(0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -296,9 +294,7 @@ def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counter
     from analysis.parsing.parse_winic import parse_WINIC_instruction
     from analysis.parsing.parse_uops import parse_uops_database
 
-    with open(database, "r") as file:
-        raw_content = file.read()
-    db = yaml.safe_load(raw_content)
+    db = read_WINIC_db(database)
     uops_instructions = parse_uops_database(march)
     print(f"{len(uops_instructions)=}")
     w_instructions = [parse_WINIC_instruction(db_entry, "X86") for db_entry in db]
@@ -406,12 +402,8 @@ def update_counters(old, new, c_changes, c_from_none, c_to_none):
 
 
 def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], output_path=""):
-    with open(database1, "r") as file:
-        raw_content = file.read()
-    db1 = yaml.safe_load(raw_content)
-    with open(database2, "r") as file:
-        raw_content = file.read()
-    db2 = yaml.safe_load(raw_content)
+    db1 = read_WINIC_db(database1)
+    db2 = read_WINIC_db(database2)
     output = ""
     c_changes = 0
     c_to_none = 0
