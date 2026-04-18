@@ -439,7 +439,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long Re
                                             helperOpcode, RegInitValue, Immediate);
     if (ec != SUCCESS) return {ec, -1, -1};
     assembly.setName(getEnv().MCII->getName(Opcode).str());
-    std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
+    std::tie(ec, benchResults) = runBenchmark(assembly, n, nRuns);
     if (ec != SUCCESS) return {ec, -1, -1};
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
@@ -495,7 +495,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
     assembly.setName(Measurements.front().toCompactString());
-    std::tie(ec, benchResults) = runBenchmark(assembly, n, 3);
+    std::tie(ec, benchResults) = runBenchmark(assembly, n, nRuns);
     if (ec != SUCCESS) return {ec, -1};
 
     // take minimum of runs. "lat" and "lat2" is naming convention defined in
@@ -1057,6 +1057,9 @@ int run(int argc, char **argv) {
                    "/dev/null no file will be generated");
     tp->add_flag("--x87FP", includeX87FP, "Include x87 floating point instructions")
         ->default_val(false);
+    tp->add_option("--runs", nRuns,
+                   "Repeat each measurement multiple times and take the minimum runtime.")
+        ->default_val(3);
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
@@ -1084,6 +1087,9 @@ int run(int argc, char **argv) {
                     "/dev/null no file will be generated");
     lat->add_flag("--X87FP", includeX87FP, "Include x87 floating point instructions")
         ->default_val(false);
+    lat->add_option("--runs", nRuns,
+                    "Repeat each measurement multiple times and take the minimum runtime.")
+        ->default_val(3);
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;
@@ -1092,6 +1098,9 @@ int run(int argc, char **argv) {
     man->add_option("--funcName", funcName, "Function to benchmark")->required();
     man->add_option("-n,--nInst", numInst, "Number of instructions in loop")->required();
     man->add_option("--initName", initName, "Initialization function");
+    man->add_option("--runs", nRuns,
+                    "Repeat each measurement multiple times and take the minimum runtime.")
+        ->default_val(3);
 
     app.require_subcommand(1, 1);
     CLI11_PARSE(app, argc, argv)
@@ -1303,7 +1312,7 @@ int run(int argc, char **argv) {
     }
 
     if (*man) {
-        auto [EC, times] = measureInSubprocess(sPath, 3, numInst, 1e6, funcName, initName);
+        auto [EC, times] = measureInSubprocess(sPath, nRuns, numInst, 1e6, funcName, initName);
         if (EC != SUCCESS) {
             std::cout << "failed for reason: " << ecToString(EC) << std::endl;
             return 1;

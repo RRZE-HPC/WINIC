@@ -27,6 +27,7 @@ extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
 extern bool includeX87FP;
 extern double clockFrequency;
+extern unsigned nRuns;
 
 /**
  * \brief Sets the output stream to a file.

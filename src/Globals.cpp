@@ -13,6 +13,7 @@ std::unique_ptr<std::ofstream> fileStream;
 std::ostream *ios = &std::cout;
 bool includeX87FP;
 double clockFrequency;
+unsigned nRuns; // number of repititions for each benchmark
 
 void setOutputToFile(const std::string &Filename) {
     fileStream = std::make_unique<std::ofstream>(Filename);
