@@ -80,6 +80,15 @@ class Throughput:
         self.cyclesMin = float(self.cyclesMin) if self.cyclesMin is not None else None
         self.cyclesMax = float(self.cyclesMax) if self.cyclesMax is not None else None
 
+def val_eq(val1: Latency | Throughput, val2: Latency| Throughput, tolerance: float):
+        v_tolerance = max(val1.cyclesMin, val2.cyclesMin) * tolerance
+        if abs(val1.cyclesMin - val2.cyclesMin) > v_tolerance:
+            return False
+        
+        v_tolerance = max(val1.cyclesMax, val2.cyclesMax) * tolerance
+        if abs(val1.cyclesMax - val2.cyclesMax) > v_tolerance:
+            return False
+        
 
 @dataclass
 class Instruction:
@@ -123,38 +132,54 @@ def progress_bar(current, total, bar_length=40, prefix="Progress", suffix=""):
 
 
 # combine multiple databases, try to get as many non-null lat/tp values
-def combine_dbs(dbs: List[List[Instruction]]) -> List[Instruction]:
+def combine_dbs(dbs: List[List[Instruction]], mode: Literal["ReplaceNone", "FullMerge"]) -> List[Instruction]:
+    def eq(v1: float, v2: float):
+        v_tolerance = max(v1, v2) * 0.1
+        return abs(v1 - v2) < v_tolerance
     print(f"combining {len(dbs)} databases")
     if len(dbs) == 1:
         return dbs[0]
-    combined: dict[str, Instruction] = {}
-    contributions = [0 for _ in range(len(dbs))]
-    count = 0
-    for db in dbs:
-        for inst in db:
-            contributed = 0
-            name = inst.sourceName
-            if name not in combined:
-                contributed = 1
-                combined[name] = inst
-            else:
-                # assume only one value
-                lat = combined[name].latencies
-                if any(v.cyclesMin is not None for v in inst.latencies):
-                    if len(lat) == 0 or lat[0].cyclesMin is None:
-                        print(f"Updating latencies for {name} from db {count}")
-                        contributed = 1
-                        combined[name].latencies = inst.latencies
-                tp = combined[name].throughputs
-                if any(v.cyclesMin is not None for v in inst.throughputs):
-                    if len(tp) == 0 or tp[0].cyclesMin is None:
-                        print(f"Updating throughputs for {name} from db {count}")
-                        combined[name].throughputs = inst.throughputs
-                        contributed = 1
-            contributions[count] += contributed
-        count += 1
-    print(f"contributions per db: {contributions}")
-    return combined.values()
+    if mode == "ReplaceNone":
+        combined: dict[str, Instruction] = {}
+        contributions = [0 for _ in range(len(dbs))]
+        count = 0
+        for db in dbs:
+            for inst in db:
+                contributed = 0
+                name = inst.sourceName
+                if name not in combined:
+                    contributed = 1
+                    combined[name] = inst
+                else:
+                    # assume only one value
+                    lat = combined[name].latencies
+                    if any(v.cyclesMin is not None for v in inst.latencies):
+                        if len(lat) == 0 or lat[0].cyclesMin is None:
+                            print(f"Updating latencies for {name} from db {count}")
+                            contributed = 1
+                            combined[name].latencies = inst.latencies
+                    tp = combined[name].throughputs
+                    if any(v.cyclesMin is not None for v in inst.throughputs):
+                        if len(tp) == 0 or tp[0].cyclesMin is None:
+                            print(f"Updating throughputs for {name} from db {count}")
+                            combined[name].throughputs = inst.throughputs
+                            contributed = 1
+                contributions[count] += contributed
+            count += 1
+        print(f"contributions per db: {contributions}")
+        return combined.values()
+    if mode == "FullMerge":
+        combined: dict[str, Instruction] = {}
+        for db in dbs:
+            for inst in db:
+                name = inst.sourceName
+                if name not in combined:
+                    contributed = 1
+                    combined[name] = inst
+                else:
+                    for lat in inst.latencies:
+                        if not any(val_eq(l, lat) for l in combined[name].latencies):
+                            combined[name].latencies.append(lat)
 
 
 # -----some json/yaml helper functions-----
