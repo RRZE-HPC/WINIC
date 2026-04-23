@@ -167,11 +167,6 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
 std::string genSetRegister(MCRegister Reg, uint64_t Value);
 
 /**
- * \brief Prints information about all register classes.
- */
-void printRegClassInfo();
-
-/**
  * \brief Checks if an instruction is valid for benchmarking.
  * \param Desc The instruction descriptor.
  * \return ErrorCode indicating validity.
