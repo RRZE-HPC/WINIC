@@ -60,7 +60,6 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
 
         } else if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
             opOp.opClass = "immediate";
-            opOp.imd = std::make_optional("int");
             opOp.read = true;
             opOp.write = false;
         } else if (opInfo.OperandType == MCOI::OPERAND_MEMORY)
