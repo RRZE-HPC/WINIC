@@ -106,6 +106,7 @@ namespace winic {
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
+    if (Runs == 0) return {E_NO_RUNS, {}};
     dbg(__func__, "N: ", N, " Runs: ", Runs);
     std::string clangPath = CLANG_PATH;
     if (clangPath == "usr/bin/clang") {
@@ -479,7 +480,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long Re
 std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
                                             unsigned LoopCount, long RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
-        "Immediate: ", Immediate);
+        " Immediate: ", Immediate);
 
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
@@ -1060,6 +1061,9 @@ int run(int argc, char **argv) {
     tp->add_option("--runs", nRuns,
                    "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(3);
+    tp->add_flag("--keepEmptyEntries", keepEmptyEntries,
+                 "Include instructions in the output even if they do not have any values.")
+        ->default_val(false);
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
@@ -1090,6 +1094,9 @@ int run(int argc, char **argv) {
     lat->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(3);
+    lat->add_flag("--keepEmptyEntries", keepEmptyEntries,
+                  "Include instructions in the output even if they do not have any values.")
+        ->default_val(false);
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;

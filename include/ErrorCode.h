@@ -25,6 +25,7 @@ enum ErrorCode {
     S_MANUALLY,
     S_NO_MNEMONIC,
     E_TEMPLATE, // errors
+    E_NO_RUNS,
     E_NO_HELPER,
     E_ASSEMBLY,
     E_MMAP,

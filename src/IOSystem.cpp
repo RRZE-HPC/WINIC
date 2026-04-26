@@ -223,7 +223,7 @@ ErrorCode loadYaml(std::string Path) {
 }
 
 ErrorCode saveYaml(std::string Path) {
-    stripOutputDatabase();
+    if (!keepEmptyEntries) stripOutputDatabase();
     // remove tabs from mnemonics
     for (IOInstruction &inst : ioFile.instructions) {
         inst.name = replaceAllInstances(inst.name, "\t", "   ");

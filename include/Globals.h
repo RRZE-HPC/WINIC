@@ -27,7 +27,8 @@ extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
 extern bool includeX87FP;
 extern double clockFrequency;
-extern unsigned nRuns;
+extern unsigned nRuns;        // number of repititions for each benchmark
+extern bool keepEmptyEntries; // if true, entries with only null values are included in the output
 
 /**
  * \brief Sets the output stream to a file.
@@ -232,6 +233,33 @@ inline std::ostream &operator<<(std::ostream &OS, const TPMeasurement &Op) {
     if (!isError(Op.ec)) return OS << str(name, " [", Op.lowerTP, ";", Op.upperTP, "]");
     return OS << str(name, " [", ecToString(Op.ec), "]");
 }
+
+// overload operator<< for MCRegister
+// inline std::ostream &operator<<(std::ostream &OS, const MCRegister &Reg) {
+//     return OS << getEnv().TRI->getRegAsmName(Reg).data();
+// }
+
+// // overload operator<< for MCInst
+// inline std::ostream &operator<<(std::ostream &OS, const llvm::MCInst &Inst) {
+//     std::string instStr;
+//     llvm::raw_string_ostream rso(instStr);
+//     instStr = str("MCInst<opcode: ", Inst.getOpcode());
+//     for (unsigned i = 0; i < Inst.getNumOperands(); i++) {
+//         instStr = str(instStr, ", op", i, ": ");
+//         const MCOperand &Op = Inst.getOperand(i);
+//         if (Op.isReg()) {
+//             instStr = str(instStr, "Reg(", getEnv().TRI->getRegAsmName(Op.getReg()).data(), ")");
+//         } else if (Op.isImm()) {
+//             instStr = str(instStr, "Imm(", Op.getImm(), ")");
+//         } else if (Op.isExpr()) {
+//             instStr = str(instStr, "Expr");
+//         } else {
+//             instStr = str(instStr, "Unknown");
+//         }
+//     }
+//     instStr = str(instStr, ">");
+//     return OS << instStr;
+// }
 
 } // namespace winic
 

@@ -44,6 +44,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_NO_MNEMONIC";
     case E_TEMPLATE:
         return "ERROR_TEMPLATE";
+    case E_NO_RUNS:
+        return "ERROR_NO_RUNS";
     case E_NO_HELPER:
         return "ERROR_NO_HELPER";
     case E_ASSEMBLY:
