@@ -1196,6 +1196,11 @@ int run(int argc, char **argv) {
                         exit(1);
                     }
                 }
+                if (matchedNames.size() == 0) {
+                    out(std::cerr, "ERROR: regex ", instrName,
+                        " did not resolve to any LLVM instruction name, aborting");
+                    exit(EXIT_FAILURE);
+                }
                 out(*ios, "Instructions added by regex \"", instrName, "\": ", matchedNames.size());
                 out(std::cout, "Instructions added by regex \"", instrName,
                     "\": ", matchedNames.size());
