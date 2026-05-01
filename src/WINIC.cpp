@@ -2,10 +2,10 @@
 
 #include "BenchmarkGenerator.h"
 #include "CLI11.hpp"
-#include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "Globals.h"
 #include "IOSystem.h"
+#include "LLVMDebug.h"
 #include "LLVMEnvironment.h"
 #include "version.h"
 #include "llvm/ADT/StringRef.h"
@@ -748,7 +748,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
         std::cerr << std::endl;
     }
     for (auto entry : throughputOutputMessage) {
-        out(*ios, "-----", getEnv().MCII->getName(entry.first).data(), "-----");
+        out(*ios, "-----", getEnv().MCII->getName(entry.first), "-----");
         out(*ios, entry.second);
     }
 }
@@ -1008,7 +1008,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     // Print report strings collected
     out(*ios, "\n\nReport on individual measurements:");
     for (auto entry : latencyOutputMessage) {
-        out(*ios, "-----", getEnv().MCII->getName(entry.first).data(), "-----");
+        out(*ios, "-----", getEnv().MCII->getName(entry.first), "-----");
         out(*ios, entry.second);
     }
 }

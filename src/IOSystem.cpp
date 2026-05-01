@@ -12,9 +12,9 @@
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include <AssemblyFile.h>
-#include <CustomDebug.h>
 #include <ErrorCode.h>
 #include <Globals.h>
+#include <LLVMDebug.h>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -50,7 +50,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
         IOOperand opOp;
         if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
             opOp.opClass = "register";
-            opOp.name = std::make_optional(getEnv().regClassToString(opInfo.RegClass));
+            opOp.name = std::make_optional(str(getEnv().MRI->getRegClass(opInfo.RegClass)));
             opOp.write = i < desc.getNumDefs();
             opOp.read = !opOp.write;
             // check if this is a use or a def marked as being used

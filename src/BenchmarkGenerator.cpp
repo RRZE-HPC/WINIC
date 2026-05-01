@@ -1,9 +1,9 @@
 #include "BenchmarkGenerator.h"
 
 #include "AssemblyFile.h"
-#include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "Globals.h"
+#include "LLVMDebug.h"
 #include "LLVMEnvironment.h"
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
@@ -47,8 +47,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
         const MCInstrDesc &desc = getEnv().MCII->get(opcode);
         ErrorCode ec = isValid(desc);
         if (ec != SUCCESS) {
-            dbg(__func__, getEnv().MCII->getName(opcode).data(), " skipped for reason ",
-                ecToString(ec));
+            dbg(__func__, getEnv().MCII->getName(opcode), " skipped for reason ", ecToString(ec));
             continue;
         }
         auto operands = desc.operands();
@@ -229,7 +228,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
         " UsedRegisters.size(): ", UsedRegisters.size(),
         " HelperConstraints.size(): ", HelperConstraints.size());
     if (HelperOpcode != MAX_UNSIGNED)
-        dbg(__func__, "Helper: ", getEnv().MCII->getName(HelperOpcode).data());
+        dbg(__func__, "Helper: ", getEnv().MCII->getName(HelperOpcode));
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
     // extract list of registers used by the template
     // TODO optimize
@@ -616,8 +615,7 @@ std::string genSetRegister(MCRegister Reg, uint64_t Value) {
                 auto [EC, cl] = getEnv().getRegClass(superReg);
                 if (EC != SUCCESS) continue;
                 if (getEnv().regInRegClass(superReg, movClass)) {
-                    dbg(__func__, "initializing superregister ", getEnv().regToString(superReg),
-                        " instead of ", getEnv().regToString(Reg));
+                    dbg(__func__, "initializing superregister ", superReg, " instead of ", Reg);
                     return genSetRegister(superReg, Value);
                 }
             }
@@ -639,7 +637,7 @@ std::string genSetRegister(MCRegister Reg, uint64_t Value) {
 
 ErrorCode isValid(const MCInstrDesc &Desc) {
     dbg(__func__, "Opcode: ", Desc.getOpcode(),
-        " Name: ", getEnv().MCII->getName(Desc.getOpcode()).data());
+        " Name: ", getEnv().MCII->getName(Desc.getOpcode()));
     if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
     if (Desc.mayLoad()) return S_MAY_LOAD;
     if (Desc.mayStore()) return S_MAY_STORE;

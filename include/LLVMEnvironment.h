@@ -86,32 +86,11 @@ class LLVMEnvironment {
     std::pair<ErrorCode, MCRegisterClass> getRegClass(MCRegister Reg);
 
     /**
-     * \brief Converts a register to its string representation.
-     * \param Reg The register to convert.
-     * \return String representation of the register.
-     */
-    std::string regToString(MCRegister Reg);
-
-    /**
      * \brief Converts a register to its asm string representation.
      * \param Reg The register to convert.
      * \return String representation of the register.
      */
     std::string getRegAsmName(MCRegister Reg);
-
-    /**
-     * \brief Converts a register class to its string representation.
-     * \param RegClass The register class to convert.
-     * \return String representation of the register class.
-     */
-    std::string regClassToString(MCRegisterClass RegClass);
-
-    /**
-     * \brief Converts a register class ID to its string representation.
-     * \param RegClassID The register class ID.
-     * \return String representation of the register class.
-     */
-    std::string regClassToString(unsigned RegClassID);
 
     /**
      *  \brief print all register classes and their registers. Useful to find the correct class to

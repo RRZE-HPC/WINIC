@@ -1,6 +1,6 @@
 #include "LLVMEnvironment.h"
 
-#include "CustomDebug.h"
+#include "LLVMDebug.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
@@ -140,22 +140,11 @@ std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getRegClass(MCRegister Re
     return {E_GENERIC, {}};
 }
 
-std::string LLVMEnvironment::regToString(MCRegister Reg) { return TRI->getRegAsmName(Reg).data(); }
-
 std::string LLVMEnvironment::getRegAsmName(MCRegister Reg) {
     std::string regName;
     llvm::raw_string_ostream rss(regName);
     MIP->printRegName(rss, Reg);
     return regName;
-}
-
-std::string LLVMEnvironment::regClassToString(MCRegisterClass RegClass) {
-    return MRI->getRegClassName(&RegClass);
-}
-
-std::string LLVMEnvironment::regClassToString(unsigned RegClassID) {
-    const MCRegisterClass &regClass = MRI->getRegClass(RegClassID);
-    return MRI->getRegClassName(&regClass);
 }
 
 unsigned LLVMEnvironment::getOpcode(std::string InstructionName) {
@@ -170,7 +159,8 @@ void LLVMEnvironment::printRegClassInfo() {
         MCRegisterClass regClass = MRI->getRegClass(i);
         std::vector<std::string> regs;
         for (int j = 0; j < regClass.getNumRegs(); j++) {
-            regs.push_back(regToString(regClass.getRegister(j)));
+            // TODO missing cast to MCRegister fixed in LLVM 21.1.0
+            regs.push_back(str((MCRegister)regClass.getRegister(j)));
         }
         dbg(__func__, MRI->getRegClassName(&regClass), ": ", regs);
     }
