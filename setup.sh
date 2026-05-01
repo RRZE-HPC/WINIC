@@ -70,22 +70,28 @@ if [ -d "$LLVM_BUILD_DIR" ]; then
 else
     echo "Directory '$LLVM_BUILD_DIR' does not exist, building LLVM and Clang there."
     mkdir -p $LLVM_BUILD_DIR && cd $LLVM_BUILD_DIR
-    # Build llvm and clang
-    cmake -S ../llvm-project/llvm -B . \
-    -DLLVM_ENABLE_PROJECTS=clang \
-    -DLLVM_TARGETS_TO_BUILD="X86;AArch64;RISCV" \
-    -DLLVM_ENABLE_LIBPFM=ON \
-    -DCMAKE_C_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
-    -DCMAKE_CXX_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
-    -DCMAKE_LIBRARY_PATH="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib" \
-    -DCMAKE_EXE_LINKER_FLAGS="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib -lpfm" \
-    -DLLVM_ENABLE_LIBPFM=ON \
-    -DCMAKE_BUILD_TYPE=Release
+    # Build LLVM and clang
+    if [[ "$BUILD_LIBPFM" -eq 1 ]]; then
+        cmake -S ../llvm-project/llvm -B . \
+        -DLLVM_ENABLE_PROJECTS=clang \
+        -DLLVM_TARGETS_TO_BUILD="X86;AArch64;RISCV" \
+        -DLLVM_ENABLE_LIBPFM=ON \
+        -DCMAKE_C_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
+        -DCMAKE_CXX_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
+        -DCMAKE_LIBRARY_PATH="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib" \
+        -DCMAKE_EXE_LINKER_FLAGS="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib -lpfm" \
+        -DCMAKE_BUILD_TYPE=Release
+    else
+        cmake -S ../llvm-project/llvm -B . \
+        -DLLVM_ENABLE_PROJECTS=clang \
+        -DLLVM_TARGETS_TO_BUILD="X86;AArch64;RISCV" \
+        -DCMAKE_BUILD_TYPE=Release
+    fi
 
     cmake --build . -- -j "$NUM_PROCS"
 fi
 
-
+# Build WINIC
 mkdir -p ../$BUILD_DIR && cd ../$BUILD_DIR
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_SOURCE_DIR=../llvm-project/llvm \
