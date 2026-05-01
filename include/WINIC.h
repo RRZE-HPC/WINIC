@@ -23,9 +23,6 @@ class LLVMEnvironment;
 #define CLANG_PATH "usr/bin/clang"
 #endif
 
-static bool outputASM = true;
-static bool showProgress = true;
-
 namespace winic {
 
 static std::unordered_map<unsigned, TPMeasurement> throughputDatabase;

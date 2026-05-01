@@ -56,6 +56,11 @@ class MCInstrDesc;
 #endif
 
 namespace {
+double clockFrequency;
+unsigned nRuns; // number of repititions for each benchmark
+bool showProgress;
+bool outputASM;
+
 static std::string generateTimestamp() {
     // Get current time
     auto now = std::chrono::system_clock::now();
@@ -132,9 +137,6 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
             debugFile.close();
         }
     }
-    // gcc -x assembler-with-cpp -shared /dev/shm/temp.s -o /dev/shm/temp.so &> gcc_out"
-    // "gcc -x assembler-with-cpp -shared -mfp16-format=ieee " + sPath + " -o " + oPath + " 2>
-    // gcc_out";
 
     // slightly worse performance than fork
     //  std::string compiler = CLANG_PATH;
@@ -1027,84 +1029,72 @@ int run(int argc, char **argv) {
     unsigned minOpcode = 0;
     unsigned maxOpcode = 0;
     bool noReport = false;
-    bool forceASMOutput = false;
-    bool forceAnyASMOutput = false;
     std::string databasePath = "";
     std::string regInitValueString = "";
     std::string immValueString = "";
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
-    tp->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(tpInstOpt);
-    tp->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(tpInstOpt);
-    tp->add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
-    tp->add_flag("--outputASM", forceASMOutput,
-                 "Force WINIC to write every benchmark generated to asm/")
-        ->default_val(false);
-    tp->add_flag("--iKnowWhatImDoing", forceAnyASMOutput,
-                 "Force WINIC to write every benchmark generated to asm/ no matter how many. "
-                 "WARNING use with care!")
-        ->default_val(false);
-    tp->add_option("--regInit", regInitValueString,
+    tp->add_option("-o,--output", databasePath,
+                   "Path to the .yaml file to save the results to. If the file already exists new "
+                   "values will be overwritten. If no file is specified, a timestamped one will "
+                   "be generated. If set to /dev/null no file will be generated");
+    tp->add_option("--register-init-value", regInitValueString,
                    "Value to set registers to before benchmark. Accepts decimal, octal with "
                    "prefix 0 or hexadecimal with prefix 0x")
         ->default_val("4");
-    tp->add_option("--imm", immValueString,
+    tp->add_option("--immediate-value", immValueString,
                    "Value to use for immediates. Accepts decimal, octal with "
                    "prefix 0 or hexadecimal with prefix 0x")
         ->default_val("7");
-    tp->add_option("-o,--output", databasePath,
-                   "Path to the .yaml file to save the results to. If the file already exists new "
-                   "values will be overwritten. If emtpy a timestamped file will be generated. If "
-                   "/dev/null no file will be generated");
-    tp->add_flag("--x87FP", includeX87FP, "Include x87 floating point instructions")
-        ->default_val(false);
     tp->add_option("--runs", nRuns,
                    "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(3);
-    tp->add_flag("--keepEmptyEntries", keepEmptyEntries,
+    tp->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
+    tp->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
+        ->default_val(false);
+    tp->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
+        ->default_val(false);
+    tp->add_flag("--keep-empty-entries", keepEmptyEntries,
                  "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
+    tp->add_option("--min-opcode", minOpcode, "Minimum opcode to measure")->excludes(tpInstOpt);
+    tp->add_option("--max-opcode", maxOpcode, "Maximum opcode to measure")->excludes(tpInstOpt);
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
-    lat->add_option("--minOpcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
-    lat->add_option("--maxOpcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
-    lat->add_flag("--noReport", noReport, "Don't generate report file")->default_val(false);
-    lat->add_flag("--outputASM", forceASMOutput,
-                  "Force WINIC to write every benchmark generated to asm/")
-        ->default_val(false);
-    lat->add_flag("--iKnowWhatImDoing", forceAnyASMOutput,
-                  "Force WINIC to write every benchmark generated to asm/ no matter how many. "
-                  "WARNING use with care!")
-        ->default_val(false);
-    lat->add_option("--regInit", regInitValueString,
+    lat->add_option("-o,--output", databasePath,
+                    "Path to the .yaml file to save the results to. If the file already exists new "
+                    "values will be overwritten. If no file is specified, a timestamped one will "
+                    "be generated. If set to /dev/null no file will be generated");
+    lat->add_option("--register-init-value", regInitValueString,
                     "Value to set registers to before benchmark. Accepts decimal, octal with "
                     "prefix 0 or hexadecimal with prefix 0x")
         ->default_val("4");
-    lat->add_option("--imm", immValueString,
+    lat->add_option("--immediate-value", immValueString,
                     "Value to use for immediates. Accepts decimal, octal with "
                     "prefix 0 or hexadecimal with prefix 0x")
         ->default_val("7");
-    lat->add_option("-o,--output", databasePath,
-                    "Path to the .yaml file to save the results to. If the file already exists new "
-                    "values will be overwritten. If emtpy a timestamped file will be generated. If "
-                    "/dev/null no file will be generated");
-    lat->add_flag("--X87FP", includeX87FP, "Include x87 floating point instructions")
-        ->default_val(false);
     lat->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(3);
-    lat->add_flag("--keepEmptyEntries", keepEmptyEntries,
+    lat->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
+    lat->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
+        ->default_val(false);
+    lat->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
+        ->default_val(false);
+    lat->add_flag("--keep-empty-entries", keepEmptyEntries,
                   "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
+    lat->add_option("--min-opcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
+    lat->add_option("--max-opcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;
     auto *man = app.add_subcommand("MAN", "Manual");
     man->add_option("-p,--path", sPath, "Assembly file path")->required()->check(CLI::ExistingPath);
-    man->add_option("--funcName", funcName, "Function to benchmark")->required();
-    man->add_option("-n,--nInst", numInst, "Number of instructions in loop")->required();
-    man->add_option("--initName", initName, "Initialization function");
+    man->add_option("--func-name", funcName, "Function to benchmark")->required();
+    man->add_option("-n,--num-instructions", numInst, "Number of instructions in loop")->required();
+    man->add_option("--init-name", initName, "Initialization function");
     man->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(3);
@@ -1230,14 +1220,13 @@ int run(int argc, char **argv) {
 
         // decide on output verbosity
         showProgress = opcodes.size() >= 10;
-        outputASM = opcodes.size() < 10 || forceASMOutput;
-        if (opcodes.size() >= 100 && outputASM && !forceAnyASMOutput) {
-            out(std::cerr, "ABORTED: You are about to measure more than 100 instructions with ASM "
-                           "lot of files. If you are sure you want to do this use "
-                           "--iKnowWhatImDoing to override this check.");
-            exit(1);
+        if (outputASM) {
+            prepAsmDir();
+            if (opcodes.size() > 100) {
+                out(std::cerr, "WARNING: You are about to measure more than 100 instructions with "
+                               "--output-asm. This will create a lot of files!");
+            }
         }
-        if (outputASM) prepAsmDir();
 
         if (*tp) {
             out(*ios, "Mode: Throughput");

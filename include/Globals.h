@@ -26,8 +26,6 @@ LLVMEnvironment &getEnv();
 extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
 extern bool includeX87FP;
-extern double clockFrequency;
-extern unsigned nRuns;        // number of repititions for each benchmark
 extern bool keepEmptyEntries; // if true, entries with only null values are included in the output
 
 /**
