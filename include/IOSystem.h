@@ -51,6 +51,8 @@ struct IOInstruction {
 
 struct IOFile {
     std::string version;
+    std::string isa;
+    std::string microArchitecture;
     std::vector<IOInstruction> instructions;
 };
 
@@ -159,6 +161,8 @@ template <> struct MappingTraits<winic::IOInstruction> {
 template <> struct MappingTraits<winic::IOFile> {
     static void mapping(IO &Io, winic::IOFile &File) {
         Io.mapRequired("winicVersion", File.version);
+        Io.mapRequired("isa", File.isa);
+        Io.mapRequired("microArchitecture", File.microArchitecture);
         Io.mapRequired("instructions", File.instructions);
     }
 };

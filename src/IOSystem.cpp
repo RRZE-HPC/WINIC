@@ -228,6 +228,21 @@ ErrorCode saveYaml(std::string Path) {
         inst.name = replaceAllInstances(inst.name, "\t", "   ");
     }
     ioFile.version = WINIC_VERSION;
+    ioFile.microArchitecture = getEnv().Machine->getTargetCPU().data();
+    switch (getEnv().TargetTriple.getArch()) {
+    case Triple::ArchType::x86_64:
+        ioFile.isa = "x86";
+        break;
+    case Triple::ArchType::aarch64:
+        ioFile.isa = "aarch64";
+        break;
+    case Triple::ArchType::riscv64:
+        ioFile.isa = "riscv";
+        break;
+    default:
+        out(std::cerr, "Unsupported architecture, this should be unreachable.");
+        return E_UNREACHABLE;
+    }
 
     std::error_code ec;
     llvm::raw_fd_ostream fout(Path, ec);
