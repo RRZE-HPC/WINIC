@@ -1,12 +1,11 @@
 #include "BenchmarkGenerator.h"
 
 #include "AssemblyFile.h"
+#include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "Globals.h"
 #include "LLVMDebug.h"
 #include "LLVMEnvironment.h"
-#include "MCTargetDesc/AArch64MCTargetDesc.h"
-#include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "Templates.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -23,11 +22,9 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Triple.h"
 #include <algorithm>
-#include <cfloat>
 #include <cstddef>
-#include <cstdint>
-#include <cstdlib>
 #include <initializer_list>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <vector>

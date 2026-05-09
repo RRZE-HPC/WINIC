@@ -1,13 +1,15 @@
 #ifndef LLVM_DEBUG_H
 #define LLVM_DEBUG_H
 
-#include "CustomDebug.h"
 #include "Globals.h"
-
+#include "LLVMEnvironment.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCInst.h"
-// #include "llvm/MC/MCOperand.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
-#include <llvm/MC/MCRegisterInfo.h>
+#include "llvm/MC/MCRegisterInfo.h"
+#include <memory>
+#include <ostream>
 
 namespace llvm {
 

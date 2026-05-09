@@ -1,12 +1,12 @@
 #ifndef CUSTOM_DEBUG_H
 #define CUSTOM_DEBUG_H
 
+#include <cstddef>
 #include <iostream>
 #include <list>
 #include <map>
 #include <set>
 #include <sstream>
-#include <stddef.h>
 #include <string>
 #include <utility>
 #include <vector>

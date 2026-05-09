@@ -1,5 +1,7 @@
 #include "LLVMEnvironment.h"
 
+#include "CustomDebug.h"
+#include "ErrorCode.h"
 #include "LLVMDebug.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
@@ -22,13 +24,13 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/TargetParser/Host.h"
-#include <ErrorCode.h>
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <optional>
+#include <vector>
 
 using namespace llvm;
 namespace winic {

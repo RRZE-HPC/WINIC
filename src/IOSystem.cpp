@@ -1,5 +1,10 @@
 #include "IOSystem.h"
 
+#include "AssemblyFile.h"
+#include "CustomDebug.h"
+#include "ErrorCode.h"
+#include "Globals.h"
+#include "LLVMDebug.h"
 #include "LLVMEnvironment.h"
 #include "version.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -11,10 +16,8 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include <AssemblyFile.h>
-#include <ErrorCode.h>
-#include <Globals.h>
-#include <LLVMDebug.h>
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>

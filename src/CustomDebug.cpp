@@ -1,4 +1,5 @@
 #include "CustomDebug.h"
+
 #include <set>
 
 namespace winic {

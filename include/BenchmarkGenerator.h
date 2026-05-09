@@ -6,6 +6,7 @@
 #include "Globals.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegister.h"
+#include <cstdint>
 #include <list>
 #include <map>
 #include <set>
@@ -56,11 +57,10 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
  * \param RegInitValue Value to initialize registers with.
  * \return Pair of ErrorCode and generated AssemblyFile.
  */
-std::pair<ErrorCode, AssemblyFile> genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount,
-                                                  unsigned UnrollCount,
-                                                  std::set<MCRegister> UsedRegisters,
-                                                  std::map<unsigned, MCRegister> HelperConstraints,
-                                                  unsigned HelperOpcode, long RegInitValue, long Immediate);
+std::pair<ErrorCode, AssemblyFile>
+genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount,
+               std::set<MCRegister> UsedRegisters, std::map<unsigned, MCRegister> HelperConstraints,
+               unsigned HelperOpcode, long RegInitValue, long Immediate);
 
 /**
  * \brief Generates the inner loop for a throughput measurement.

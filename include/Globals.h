@@ -1,13 +1,13 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "LLVMEnvironment.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
-#include <CustomDebug.h>
 #include <assert.h>
 #include <fstream>
 #include <limits>

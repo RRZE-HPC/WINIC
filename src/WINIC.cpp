@@ -1,7 +1,9 @@
 #include "WINIC.h"
 
+#include "AssemblyFile.h"
 #include "BenchmarkGenerator.h"
 #include "CLI11.hpp"
+#include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "Globals.h"
 #include "IOSystem.h"
@@ -16,15 +18,14 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Triple.h"
-#include <AssemblyFile.h>
-#include <MCTargetDesc/X86MCTargetDesc.h>
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
-#include <ctype.h>
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <filesystem>
@@ -553,7 +554,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long 
         *sharedLowerBound = lower;
         *sharedUpperBound = upper;
         *sharedEC = ec;
-        strncpy(sharedMessage, throughputOutputMessage[Opcode].data(), 299);
+        std::strncpy(sharedMessage, throughputOutputMessage[Opcode].data(), 299);
         sharedMessage[299] = '\0';
         exit(EXIT_SUCCESS);
     } else { // Parent process
@@ -690,12 +691,12 @@ bool isVariant(unsigned A, unsigned B) {
     auto getPrefixWithFirstNumber = [](const std::string &Name) -> std::string {
         size_t i = 0;
         // Find the start of the first number
-        while (i < Name.size() && !isdigit(Name[i]))
+        while (i < Name.size() && !std::isdigit(Name[i]))
             ++i;
 
         // include the whole number
         size_t j = i;
-        while (j < Name.size() && isdigit(Name[j]))
+        while (j < Name.size() && std::isdigit(Name[j]))
             ++j;
 
         return Name.substr(0, j);
