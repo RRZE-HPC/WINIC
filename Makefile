@@ -1,10 +1,12 @@
 CC = g++
 CXXFLAGS = -std=c++17 -I./include -fexceptions
 
+# Runs LLVMs include-what-you-use on all source files
+# This is for development only
 all: iwyu
 
 LLVM_PROJECT="./llvm-project"
-BUILD="./llvm-build-genoa20"
+BUILD="./llvm-build-x86"
 LLVM_CONFIG = $(BUILD)/bin/llvm-config
 LDFLAGS_RAW = $(shell $(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs)
 # remove -fno-exceptions
@@ -17,9 +19,9 @@ LDFLAGS += -I$(LLVM_PROJECT)/llvm/lib/Target/RISCV
 LDFLAGS += -I$(BUILD)/lib/Target/RISCV
 
 # Add Clang include directories
-# LDFLAGS += -I$(LLVM_PROJECT)/llvm/include
 LDFLAGS += -I$(BUILD)/include
 LDFLAGS += -Iinclude-third-party
+LDFLAGS += -Ibuild-x86/generated
 
 IWYU = ./build-iwyu/bin/include-what-you-use
 SRC_FILES = WINIC BenchmarkGenerator LLVMEnvironment AssemblyFile Templates ErrorCode CustomDebug IOSystem Globals
@@ -33,6 +35,4 @@ iwyu:
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/CustomDebug.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/IOSystem.cpp $(LDFLAGS)
 	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) src/Globals.cpp $(LDFLAGS)
-
-clean:
-	rm -rf quick
+	@$(IWYU) -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 $(CXXFLAGS) include/LLVMDebug.h $(LDFLAGS)
