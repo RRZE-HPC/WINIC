@@ -35,6 +35,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -73,7 +74,7 @@ static std::string generateTimestamp() {
     return ss.str();
 }
 
-void displayProgress(size_t Progress, size_t Total) {
+void displayProgress(size_t Progress, size_t Total, std::optional<unsigned> Opcode) {
     if (!showProgress) return;
     int barWidth = 50;
     float ratio = (float)Progress / (float)Total;
@@ -88,7 +89,11 @@ void displayProgress(size_t Progress, size_t Total) {
         else
             std::cout << " ";
     }
-    std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
+    if (Opcode.has_value())
+        std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total
+                  << " Opcode: " << Opcode.value() << std::flush;
+    else
+        std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
 }
 
 // create ./asm and clear all existing files
@@ -725,7 +730,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
         gotNewMeasurement = false;
         size_t progress = 0;
         for (unsigned opcode : Opcodes) {
-            displayProgress(progress++, Opcodes.size());
+            displayProgress(progress++, Opcodes.size(), opcode);
             // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != E_NO_HELPER &&
@@ -766,7 +771,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     size_t progress = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
-        displayProgress(progress++, latencyDatabase.size());
+        displayProgress(progress++, latencyDatabase.size(), measurement.opcode);
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
@@ -807,7 +812,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     out(*ios, "\n\nReport on finding helpers for dependency types:");
     progress = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
-        displayProgress(progress++, classifiedMeasurements.size());
+        displayProgress(progress++, classifiedMeasurements.size(), std::nullopt);
         if (completedTypes.find(dTypeA) != completedTypes.end()) continue;
 
         DependencyType dTypeB = dTypeA.reversed();
