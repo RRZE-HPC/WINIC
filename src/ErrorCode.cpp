@@ -42,6 +42,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_MANUALLY";
     case S_NO_MNEMONIC:
         return "SKIP_NO_MNEMONIC";
+    case S_BLACKLISTED_REGISTER:
+        return "SKIP_BLACKLISTED_REGISTER";
     case E_TEMPLATE:
         return "ERROR_TEMPLATE";
     case E_NO_RUNS:

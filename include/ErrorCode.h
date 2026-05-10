@@ -24,6 +24,7 @@ enum ErrorCode {
     S_IS_X87FP,
     S_MANUALLY,
     S_NO_MNEMONIC,
+    S_BLACKLISTED_REGISTER,
     E_TEMPLATE, // errors
     E_NO_RUNS,
     E_NO_HELPER,

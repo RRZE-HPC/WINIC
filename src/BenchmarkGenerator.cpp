@@ -6,6 +6,7 @@
 #include "Globals.h"
 #include "LLVMDebug.h"
 #include "LLVMEnvironment.h"
+#include "MCTargetDesc/AArch64MCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "Templates.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -645,6 +646,22 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     if (!includeX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
         Desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
+
+    // blacklist instructions writing to certain registers
+    // on AArch64 writing LR can indeterministicly lead to very long runtimes or get trapped 
+    // (didn't test which one)
+    std::vector<MCRegister> registerBlacklist;
+    if (getEnv().Arch == Triple::ArchType::x86_64)
+        registerBlacklist = {};
+    else if (getEnv().Arch == Triple::ArchType::aarch64)
+        registerBlacklist = {AArch64::LR};
+
+    ArrayRef<MCPhysReg> defs = Desc.implicit_defs();
+    for (MCRegister reg : registerBlacklist) {
+        if (std::find(defs.begin(), defs.end(), reg) != defs.end()) {
+            return S_BLACKLISTED_REGISTER;
+        }
+    }
     MCInst inst;
     inst.setOpcode(Desc.getOpcode());
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
