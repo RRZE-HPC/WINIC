@@ -1054,7 +1054,7 @@ int run(int argc, char **argv) {
         ->default_val("7");
     tp->add_option("--runs", nRuns,
                    "Repeat each measurement multiple times and take the minimum runtime.")
-        ->default_val(3);
+        ->default_val(4);
     tp->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     tp->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
@@ -1082,7 +1082,7 @@ int run(int argc, char **argv) {
         ->default_val("7");
     lat->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
-        ->default_val(3);
+        ->default_val(4);
     lat->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     lat->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
@@ -1103,7 +1103,7 @@ int run(int argc, char **argv) {
     man->add_option("--init-name", initName, "Initialization function");
     man->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
-        ->default_val(3);
+        ->default_val(4);
 
     app.require_subcommand(1, 1);
     CLI11_PARSE(app, argc, argv)

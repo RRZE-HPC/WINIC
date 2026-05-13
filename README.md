@@ -47,7 +47,7 @@ By default WINIC measures all available instructions and generates a .yaml file 
 | `-o,--output` | Path to the .yaml file to save the results to. If the file already exists it will be updated (see [updating a database](#updating-a-database)) . If no file is specified, a timestamped one will be generated. If set to /dev/null no file will be generated. | - |
 | `--register-init-value V` | Load `V` into all registers used before every benchmark run. Accepts decimal, octal with prefix 0 or hexadecimal with prefix 0x | 4 |
 | `--immediate-value V` | Set all immediates to `V`. Accepts decimal, octal with prefix 0 or hexadecimal with prefix 0x | 7 |
-| `--runs N` | Repeat each measurement `N` times and take the minimum runtime | 3 |
+| `--runs N` | Repeat each measurement `N` times and take the minimum runtime | 4 |
 | `--no-report` | Don't generate report file | false |
 | `--output-asm` | Write the generated asm files to `asm/` (clears the directory at the start of the run) | false |
 | `--include-x87-fp` | By default x87 floating point instructions are excluded, as they are deprecated and consume a lot of time on architectures that emulate them. Use this flag to include them | false |
@@ -69,7 +69,7 @@ winic -f <frequency> MAN --path file.s --func-name tp --num-instructions 12
 | `--func-name` | Function to benchmark (required) | - |
 | `-n,--num-instructions` | Number of instructions in loop (required) | - |
 | `--init-name` | Initialization function | - |
-| `--runs N` | Repeat each measurement `N` times and take the minimum runtime | 3 |
+| `--runs N` | Repeat each measurement `N` times and take the minimum runtime | 4 |
 
 There are always cases where WINIC doesn't produce correct data. To do a custom benchmark for an instruction, first run WINIC in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
 
