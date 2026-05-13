@@ -111,3 +111,6 @@ Masking/Zeroing <---------------------------------------------------------+
 ## Safety
 
 MCInstPrinter->PrintInst can fail or even segfault if the operands are not set correctly. It is therefore only used in functions that are run in a subprocess.
+
+## IWYU Makefile
+The MAKEFILE is a helper to run LLVMs include-what-you-use on all WINIC source files. It expects the LLVM repo in `llvm-project` and a x86 llvm build in `llvm-build-x86` (generate using `setup.sh --dir x86`)
