@@ -1,5 +1,5 @@
-import yaml
 from analysis.parsing.parse_winic import read_WINIC_db
+
 
 def count_ranges(database, pr: bool = False):
     # parse database
@@ -76,3 +76,36 @@ def count_instr_different_sublatencies(database, pr: bool = False):
     if pr:
         print(f"List of instructions with different sub-latencies and ranges: {different_latencies_ranges}")
         print(f"List of instructions with different sub-latencies and no ranges: {different_latencies_exact}")
+
+
+def plot_distribution(database):
+    from matplotlib import pyplot as plt
+    import numpy as np
+
+    db = read_WINIC_db(database)
+    tps = [entry["throughput"] for entry in db if entry["throughput"] is not None]
+    # vals = [latEntry["latencyMin"] for entry in db for latEntry in entry["operandLatencies"] if latEntry["latencyMin"] is not None]
+    lats = [entry["latency"] for entry in db if entry["latency"] is not None]
+
+    # vals = [round(1/v) for v in vals]
+    latValues, latCounts = np.unique([round(v) for v in lats], return_counts=True)
+    # tpValues, tpCounts = np.unique([1 / (round(1 / (v + 1e-6)) + 1e-6) for v in tps], return_counts=True)
+    tpValues, tpCounts = np.unique([2 ** np.round(np.log2(v)) for v in tps], return_counts=True)
+
+    ax: list[plt.Axes]
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    ax[0].bar(latValues, latCounts)
+    ax[0].set_xlabel("Latency rounded to next integer")
+    ax[0].set_xlim(0, 20)
+    ax[0].set_xticks(np.arange(20))
+    ax[0].set_ylabel("Number of instructions")
+
+    ax[1].bar(range(len(tpValues)), tpCounts)
+    ax[1].set_xlabel("Throughput rounded to next inverse integer")
+    ax[1].set_xticks(range(len(tpValues)))
+    ax[1].set_xticklabels([f"{v:.3f}" for v in tpValues], rotation=45)
+    ax[1].label_outer()
+
+    fig.suptitle("Distribution of overall latency and througput values (considering maximum sublatency)")
+    plt.tight_layout()
+    plt.savefig("analysis/distribution.png")

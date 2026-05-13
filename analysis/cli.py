@@ -111,7 +111,7 @@ def main():
     # compare to docs
     docs_c_parser = sub_compare_parser.add_parser("docs", help="Compare to documentation")
     docs_c_parser.add_argument("arch", choices=DOCS_ARCHES, help=arch_help)
-    docs_c_parser.add_argument("db", help="Path to database YAML file")
+    docs_c_parser.add_argument("db", help="Path to database YAML file(s)")
     docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
     docs_c_parser.add_argument("--output", default="", help="Plot results to file")
 
@@ -136,8 +136,19 @@ def main():
 
     # stat command
     stat_parser = subparsers.add_parser("stat", help="Show statistics for a WINIC database")
-    stat_parser.add_argument("db", help="Path to database YAML file")
-    stat_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
+    sub_stat_parser = stat_parser.add_subparsers(dest="stat_type")
+
+    range_parser = sub_stat_parser.add_parser("ranges", help="Count how many instructions have ranges instead of exact values")
+    range_parser.add_argument("db", help="Path to database YAML file")
+    range_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
+
+    sublat_parser = sub_stat_parser.add_parser("sublatencies", help="Count how many instructions have distinct sublatency values")
+    sublat_parser.add_argument("db", help="Path to database YAML file")
+    sublat_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
+
+    plot_parser = sub_stat_parser.add_parser("distribution", help="Plot the distribution of TP/LAT values")
+    plot_parser.add_argument("db", help="Path to database YAML file")
+    
 
     args = parser.parse_args()
 
@@ -187,8 +198,13 @@ def main():
         case "plot":
             plot(None, None, args.path, args.mode)
         case "stat":
-            count_ranges(args.db, args.verbose)
-            count_instr_different_sublatencies(args.db, args.verbose)
+            if args.stat_type == "ranges":
+                count_ranges(args.db, args.verbose)
+            elif args.stat_type == "sublatencies":
+                count_instr_different_sublatencies(args.db, args.verbose)
+            elif args.stat_type == "distribution":
+                plot_distribution(args.db)
+
 
 
 if __name__ == "__main__":
