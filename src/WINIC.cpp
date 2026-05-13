@@ -1143,6 +1143,7 @@ int run(int argc, char **argv) {
     out(*ios, "Timestamp: ", timestamp);
     out(*ios, "Command: ", ss.str());
     out(*ios, "Frequency: ", frequency, " GHz");
+    out(*ios, "Runs per kernel: ", nRuns);
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
