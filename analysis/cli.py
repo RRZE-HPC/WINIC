@@ -1,5 +1,4 @@
 import os
-from analysis.comparison.compare_uops import db_diff, compare
 from analysis.plotting import *
 from analysis.setup import *
 from analysis.statistics import *
@@ -158,6 +157,7 @@ def main():
                 gen_quick_reference_files(f"{ref_dir}/AArch64.json", f"{ref_dir}/AArch64/", args.force)
                 gen_quick_reference_files(f"{ref_dir}/RISCV.json", f"analysis/reference-files/RISCV/", args.force)
         case "diff":
+            from analysis.comparison.db_diff import db_diff
             db_diff(args.db1, args.db2, args.mode, args.output)
         case "compare":
             if args.compare_source == "docs":
@@ -177,6 +177,7 @@ def main():
                 from analysis.comparison.compare_osaca import compare_winic_osaca
                 compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.output)
             elif args.compare_source == "uops":
+                from analysis.comparison.compare_uops import compare
                 compare(args.db, args.mode, args.arch)
                 if args.output != "":
                     output_dir = os.path.dirname(args.output)

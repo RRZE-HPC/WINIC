@@ -464,11 +464,11 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
                 found_non_matching_val = True
         # this range should not cause a partial match so we replace it with its start and end point
         to_replace.append(o_value)
-            # for rem_val in range(o_value.cyclesMin, o_value.cyclesMax):
-            # if equal_tolerance(rem_val, o_value.cyclesMin) or equal_tolerance(rem_val, o_value.cyclesMax):
-            #     continue  # don't remove start and end points
-            # values_o.remove(rem_val)
-            # values_w.remove(rem_val)
+        # for rem_val in range(o_value.cyclesMin, o_value.cyclesMax):
+        # if equal_tolerance(rem_val, o_value.cyclesMin) or equal_tolerance(rem_val, o_value.cyclesMax):
+        #     continue  # don't remove start and end points
+        # values_o.remove(rem_val)
+        # values_w.remove(rem_val)
     for v in to_replace:
         values_to_check_o.remove(v)
         # we just use TPs here as it doesn't matter in later code (which yes, is ugly)
@@ -516,6 +516,14 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
         return "PARTIAL"
     else:
         return "NO"
+
+
+def equal_tolerance(val1: float, val2: float, tolerance: float):
+    if val1 == val2:
+        return True
+    if val1 == None or val2 == None:
+        return False
+    return val1 * (1 - tolerance) < val2 < val1 * (1 + tolerance)
 
 
 # if the latency is a range, check that there is at least one value or range in ref_inst that allows any value in that range. (with a tolerance of 10%)
