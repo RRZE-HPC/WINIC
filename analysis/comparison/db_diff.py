@@ -28,13 +28,13 @@ def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], output_pat
         entry2 = None
         for e2 in db2:
             if e2["llvmName"] == entry1["llvmName"]:
-                if e2["llvmName"] == "VAND_VX":
-                    print("VAND_VX")
                 entry2 = e2
                 break
         if entry2 == None:
-            output += entry1["llvmName"] + " missing in new data\n"
-            c_missing += 1
+            # only count as missing if entry1 has any value
+            if entry1["throughput"] is not None or entry1["latency"] is not None:
+                output += entry1["llvmName"] + " missing in new data\n"
+                c_missing += 1
         else:
             # compare
             if mode == "TP" or mode == "BOTH":
@@ -57,8 +57,9 @@ def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], output_pat
                 key = (lat1["sourceOperand"], lat1["targetOperand"])
                 latString = f'{entry1["llvmName"]} ({lat1["sourceOperand"]} -> {lat1["targetOperand"]})'
                 if key not in lat_map2:
-                    output += latString + "missing\n"
-                    c_missing += 1
+                    if lat1["latencyMin"] is not None:
+                        output += latString + "missing\n"
+                        c_missing += 1
                 else:
                     lat1_min = lat1["latencyMin"]
                     lat2_min = lat_map2[key]["latencyMin"]
