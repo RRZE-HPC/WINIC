@@ -93,7 +93,7 @@ def main():
     diff_parser.add_argument("db1", help="Path to first database YAML file")
     diff_parser.add_argument("db2", help="Path to second database YAML file")
     diff_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    diff_parser.add_argument("--output", default="", help="File to write a detailed diff report to")
+    diff_parser.add_argument("--verbose", "-v", action="store_true", help="Report every individual change")
 
     arch_help = "Architecture name. Supported: " + ", ".join([f"{arch}: {ARCH_NAMES[arch]}" for arch in UOPS_ARCHES])
 
@@ -169,7 +169,7 @@ def main():
                 gen_quick_reference_files(f"{ref_dir}/RISCV.json", f"analysis/reference-files/RISCV/", args.force)
         case "diff":
             from analysis.comparison.db_diff import db_diff
-            db_diff(args.db1, args.db2, args.mode, args.output)
+            db_diff(args.db1, args.db2, args.mode, args.verbose)
         case "compare":
             if args.compare_source == "docs":
                 if args.arch == "V2":
