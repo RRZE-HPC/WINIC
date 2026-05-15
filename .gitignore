@@ -8,3 +8,6 @@ llvm-build*
 llvm-project
 analysis/reference-files
 venv
+core
+cache.pkl
+*.sh.o*
