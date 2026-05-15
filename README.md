@@ -31,14 +31,14 @@ To calculate throughput and latency WINIC needs the clock-frequency to be fixed 
 
 ## Available modes:
 ### LAT/TP:
-Measure latencies or throughputs.
+Measure latencies or inverse throughputs.
 By default WINIC measures all available instructions and generates a .yaml file with the results. Additionally a `report_{MODE}_{TIMESTAMP}` is generated providing additional information about how the values were obtained and warnings about unusual results. The runtime of a full run strongly depends on the architecture, here some rough estimates:
 
 |Architecture|Runtime TP|Runtime LAT|
 |----|----|----|
-|x86|23 min|40 min|
-|AArch64|23 min|17 min|
-|RISCV|8 min|9 min|
+|x86|25 min - 3h|40 min - 3h|
+|AArch64|5 min|25 min|
+|RISCV|10 min|10 min|
 
 ### TP/LAT Options
 | Option | Description | Default |

@@ -1,10 +1,12 @@
-Creating new database: spacemit_x60.yaml
-Timestamp: 2025-08-25_11-53-39
-Command: ./winic -f 1.6 -c spacemit-x60 TP -o spacemit_x60.yaml 
+WINIC version 0.1.0
+Creating new database: spacemit-x60.yaml
+Timestamp: 2026-05-13_17-12-48
+Command: ./winic -f 1.6 -c spacemit-x60 TP -o spacemit-x60.yaml 
 Frequency: 1.6 GHz
+Runs per kernel: 4
 Arch: spacemit-x60
-Mode: Throughput
 No instructions specified, measuring all instructions from opcode 0 to 13779
+Mode: Throughput
 -----PHI-----
 	PHI [SKIP_PSEUDO_INSTRUCTION]
 
@@ -35268,13 +35270,13 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	ADD [0.501;0.501]
 
 -----ADDI-----
-	ADDI [0.501;0.501]
+	ADDI [0.502;0.502]
 
 -----ADDIW-----
-	ADDIW [0.502;0.502]
+	ADDIW [0.501;0.501]
 
 -----ADDW-----
-	ADDW [0.501;0.501]
+	ADDW [0.502;0.502]
 
 -----ADD_UW-----
 	ADD_UW [0.501;0.501]
@@ -35823,7 +35825,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	ANDI [0.501;0.501]
 
 -----ANDN-----
-	ANDN [0.502;0.502]
+	ANDN [0.501;0.501]
 
 -----AUIPC-----
 	AUIPC [1.5;1.5]
@@ -35850,7 +35852,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	BGEU [SKIP_IS_BRANCH]
 
 -----BINV-----
-	BINV [0.502;0.502]
+	BINV [0.501;0.501]
 
 -----BINVI-----
 	BINVI [0.501;0.501]
@@ -35889,7 +35891,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	CCMOV [ERROR_ASSEMBLY]
 
 -----CLMUL-----
-	CLMUL [0.5;0.5]
+	CLMUL [0.501;0.501]
 
 -----CLMULH-----
 	CLMULH [0.501;0.501]
@@ -35901,7 +35903,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	CLZ [0.501;0.501]
 
 -----CLZW-----
-	CLZW [0.5;0.5]
+	CLZW [0.502;0.502]
 
 -----CM_JALT-----
 	CM_JALT [ERROR_ASSEMBLY]
@@ -35928,10 +35930,10 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	CM_PUSH [SKIP_MAY_STORE]
 
 -----CPOP-----
-	CPOP [0.502;0.502]
+	CPOP [0.501;0.501]
 
 -----CPOPW-----
-	CPOPW [0.502;0.502]
+	CPOPW [0.504;0.504]
 
 -----CSRRC-----
 	CSRRC [ERROR_ILLEGAL_INSTRUCTION]
@@ -35952,10 +35954,10 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	CSRRWI [ERROR_ILLEGAL_INSTRUCTION]
 
 -----CTZ-----
-	CTZ [0.501;0.501]
+	CTZ [0.503;0.503]
 
 -----CTZW-----
-	CTZW [0.502;0.502]
+	CTZW [0.501;0.501]
 
 -----CV_ABS-----
 	CV_ABS [ERROR_ASSEMBLY]
@@ -36903,7 +36905,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_ADD [0.501;0.501]
 
 -----C_ADDI-----
-	C_ADDI [0.5;0.5]
+	C_ADDI [0.501;0.501]
 
 -----C_ADDI16SP-----
 	C_ADDI16SP [ERROR_SIGSEGV]
@@ -36918,7 +36920,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_ADDI_HINT_IMM_ZERO [0.501;0.501]
 
 -----C_ADDW-----
-	C_ADDW [0.502;0.502]
+	C_ADDW [0.501;0.501]
 
 -----C_ADD_HINT-----
 	C_ADD_HINT [0;0]
@@ -37002,7 +37004,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_LUI [0.501;0.501]
 
 -----C_LUI_HINT-----
-	C_LUI_HINT [0.0016;0.0016]
+	C_LUI_HINT [0;0]
 
 -----C_LW-----
 	C_LW [SKIP_MAY_LOAD]
@@ -37047,7 +37049,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_MV [0.501;0.501]
 
 -----C_MV_HINT-----
-	C_MV_HINT [0;0]
+	C_MV_HINT [-0.0016;-0.0016]
 
 -----C_NOP-----
 	C_NOP [1;1]
@@ -37059,7 +37061,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_NOT [ERROR_ASSEMBLY]
 
 -----C_OR-----
-	C_OR [0.503;0.503]
+	C_OR [0.502;0.502]
 
 -----C_SB-----
 	C_SB [SKIP_MAY_STORE]
@@ -37083,7 +37085,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_SH_INX [SKIP_MAY_STORE]
 
 -----C_SLLI-----
-	C_SLLI [0.502;0.502]
+	C_SLLI [0.501;0.501]
 
 -----C_SLLI64_HINT-----
 	C_SLLI64_HINT [0.501;0.501]
@@ -37092,16 +37094,16 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	C_SLLI_HINT [0;0]
 
 -----C_SRAI-----
-	C_SRAI [0.431;0.431]
+	C_SRAI [0.43;0.43]
 
 -----C_SRAI64_HINT-----
-	C_SRAI64_HINT [0.432;0.432]
+	C_SRAI64_HINT [0.43;0.43]
 
 -----C_SRLI-----
-	C_SRLI [0.43;0.43]
+	C_SRLI [0.429;0.429]
 
 -----C_SRLI64_HINT-----
-	C_SRLI64_HINT [0.431;0.431]
+	C_SRLI64_HINT [0.43;0.43]
 
 -----C_SSPOPCHK-----
 	C_SSPOPCHK [SKIP_MAY_LOAD]
@@ -37179,7 +37181,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	FADD_H_INX [ERROR_ASSEMBLY]
 
 -----FADD_S-----
-	FADD_S [0.5;0.5]
+	FADD_S [0.501;0.501]
 
 -----FADD_S_INX-----
 	FADD_S_INX [ERROR_ASSEMBLY]
@@ -37434,7 +37436,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	FDIV_H_INX [ERROR_ASSEMBLY]
 
 -----FDIV_S-----
-	FDIV_S [15;15]
+	FDIV_S [9.01;9.01]
 
 -----FDIV_S_INX-----
 	FDIV_S_INX [ERROR_ASSEMBLY]
@@ -37608,7 +37610,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	FMINM_S [ERROR_ASSEMBLY]
 
 -----FMIN_D-----
-	FMIN_D [0.5;0.5]
+	FMIN_D [0.501;0.501]
 
 -----FMIN_D_IN32X-----
 	FMIN_D_IN32X [ERROR_ASSEMBLY]
@@ -37650,7 +37652,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	FMSUB_S_INX [ERROR_ASSEMBLY]
 
 -----FMUL_D-----
-	FMUL_D [0.553;0.553]
+	FMUL_D [0.601;0.601]
 
 -----FMUL_D_IN32X-----
 	FMUL_D_IN32X [ERROR_ASSEMBLY]
@@ -37842,13 +37844,13 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	FSQRT_H_INX [ERROR_ASSEMBLY]
 
 -----FSQRT_S-----
-	FSQRT_S [15;15]
+	FSQRT_S [9.01;9.01]
 
 -----FSQRT_S_INX-----
 	FSQRT_S_INX [ERROR_ASSEMBLY]
 
 -----FSUB_D-----
-	FSUB_D [0.5;0.5]
+	FSUB_D [0.501;0.501]
 
 -----FSUB_D_IN32X-----
 	FSUB_D_IN32X [ERROR_ASSEMBLY]
@@ -37857,13 +37859,13 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	FSUB_D_INX [ERROR_ASSEMBLY]
 
 -----FSUB_H-----
-	FSUB_H [0.5;0.5]
+	FSUB_H [0.501;0.501]
 
 -----FSUB_H_INX-----
 	FSUB_H_INX [ERROR_ASSEMBLY]
 
 -----FSUB_S-----
-	FSUB_S [0.502;0.502]
+	FSUB_S [0.501;0.501]
 
 -----FSUB_S_INX-----
 	FSUB_S_INX [ERROR_ASSEMBLY]
@@ -38076,16 +38078,16 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	LW_INX [SKIP_MAY_LOAD]
 
 -----MAX-----
-	MAX [0.5;0.5]
+	MAX [0.502;0.502]
 
 -----MAXU-----
 	MAXU [0.501;0.501]
 
 -----MIN-----
-	MIN [0.501;0.501]
+	MIN [0.5;0.5]
 
 -----MINU-----
-	MINU [0.502;0.502]
+	MINU [0.501;0.501]
 
 -----MNRET-----
 	MNRET [ERROR_ASSEMBLY]
@@ -38217,19 +38219,19 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	MUL [3;3]
 
 -----MULH-----
-	MULH [4;4]
+	MULH [4.01;4.01]
 
 -----MULHSU-----
 	MULHSU [4;4]
 
 -----MULHU-----
-	MULHU [4.01;4.01]
+	MULHU [4;4]
 
 -----MULW-----
 	MULW [1;1]
 
 -----OR-----
-	OR [0.501;0.501]
+	OR [0.502;0.502]
 
 -----ORC_B-----
 	ORC_B [0.501;0.501]
@@ -38559,7 +38561,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	RORI [0.501;0.501]
 
 -----RORIW-----
-	RORIW [0.502;0.502]
+	RORIW [0.501;0.501]
 
 -----RORW-----
 	RORW [0.501;0.501]
@@ -38640,13 +38642,13 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	SH [SKIP_MAY_STORE]
 
 -----SH1ADD-----
-	SH1ADD [0.506;0.506]
+	SH1ADD [0.501;0.501]
 
 -----SH1ADD_UW-----
 	SH1ADD_UW [0.501;0.501]
 
 -----SH2ADD-----
-	SH2ADD [0.502;0.502]
+	SH2ADD [0.501;0.501]
 
 -----SH2ADD_UW-----
 	SH2ADD_UW [0.501;0.501]
@@ -38721,7 +38723,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	SLLIW [0.501;0.501]
 
 -----SLLI_UW-----
-	SLLI_UW [0.5;0.5]
+	SLLI_UW [0.501;0.501]
 
 -----SLLW-----
 	SLLW [0.501;0.501]
@@ -38733,10 +38735,10 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	SLTI [0.501;0.501]
 
 -----SLTIU-----
-	SLTIU [0.502;0.502]
+	SLTIU [0.501;0.501]
 
 -----SLTU-----
-	SLTU [0.5;0.5]
+	SLTU [0.501;0.501]
 
 -----SM3P0-----
 	SM3P0 [ERROR_ASSEMBLY]
@@ -38754,7 +38756,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	SRA [0.501;0.501]
 
 -----SRAI-----
-	SRAI [0.503;0.503]
+	SRAI [0.502;0.502]
 
 -----SRAIW-----
 	SRAIW [0.501;0.501]
@@ -38772,7 +38774,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	SRLI [0.501;0.501]
 
 -----SRLIW-----
-	SRLIW [0.502;0.502]
+	SRLIW [0.501;0.501]
 
 -----SRLW-----
 	SRLW [0.501;0.501]
@@ -38811,10 +38813,10 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	SSRDP [ERROR_ASSEMBLY]
 
 -----SUB-----
-	SUB [0.501;0.501]
+	SUB [0.502;0.502]
 
 -----SUBW-----
-	SUBW [0.502;0.502]
+	SUBW [0.501;0.501]
 
 -----SW-----
 	SW [SKIP_MAY_STORE]
@@ -39411,7 +39413,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	VFCVT_X_F_V [2;2]
 
 -----VFDIV_VF-----
-	VFDIV_VF [24;24]
+	VFDIV_VF [18;18]
 
 -----VFDIV_VV-----
 	VFDIV_VV [24;24]
@@ -39531,7 +39533,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	VFNRCLIP_X_F_QF [ERROR_ASSEMBLY]
 
 -----VFRDIV_VF-----
-	VFRDIV_VF [24;24]
+	VFRDIV_VF [18;18]
 
 -----VFREC7_V-----
 	VFREC7_V [2;2]
@@ -40575,7 +40577,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	VREDMIN_VS [4;4]
 
 -----VREDOR_VS-----
-	VREDOR_VS [4;4]
+	VREDOR_VS [4.01;4.01]
 
 -----VREDSUM_VS-----
 	VREDSUM_VS [4;4]
@@ -40680,13 +40682,13 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	VSE8_V [SKIP_MAY_STORE]
 
 -----VSETIVLI-----
-	VSETIVLI [3.01;3.01]
+	VSETIVLI [3;3]
 
 -----VSETVL-----
 	VSETVL [4;4]
 
 -----VSETVLI-----
-	VSETVLI [3.01;3.01]
+	VSETVLI [3;3]
 
 -----VSEXT_VF2-----
 	VSEXT_VF2 [2;2]
@@ -41319,7 +41321,7 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	WRS_STO [ERROR_ASSEMBLY]
 
 -----XNOR-----
-	XNOR [0.503;0.503]
+	XNOR [0.501;0.501]
 
 -----XOR-----
 	XOR [0.501;0.501]
@@ -41334,12 +41336,14 @@ No instructions specified, measuring all instructions from opcode 0 to 13779
 	XPERM8 [ERROR_ASSEMBLY]
 
 -----ZEXT_H_RV32-----
-	ZEXT_H_RV32 [0.501;0.501]
+	ZEXT_H_RV32 [0.504;0.504]
 
 -----ZEXT_H_RV64-----
-	ZEXT_H_RV64 [0.502;0.502]
+	ZEXT_H_RV64 [0.501;0.501]
 
 -----ZIP_RV32-----
 	ZIP_RV32 [ERROR_ASSEMBLY]
 
-total runtime: 511.026 (s)
+Creating new database: spacemit-x60.yaml
+Saving database to: spacemit-x60.yaml
+total runtime: 558.119 (s)

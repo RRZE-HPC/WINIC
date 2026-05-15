@@ -1,10 +1,12 @@
-Using existing database: spacemit_x60.yaml
-Timestamp: 2025-08-25_12-04-04
-Command: ./winic -f 1.6 -c spacemit-x60 LAT -o spacemit_x60.yaml 
+WINIC version 0.1.0
+Using existing database: spacemit-x60.yaml
+Timestamp: 2026-05-13_17-22-06
+Command: ./winic -f 1.6 -c spacemit-x60 LAT -o spacemit-x60.yaml 
 Frequency: 1.6 GHz
+Runs per kernel: 4
 Arch: spacemit-x60
-Mode: Latency
 No instructions specified, measuring all instructions from opcode 0 to 13779
+Mode: Latency
 Number of measurements: 3159
 
 
@@ -12,19 +14,25 @@ Report on finding helpers for dependency types:
 -----Class<FPR32> -> Class<FPR16> and Class<FPR16> -> Class<FPR32>-----
 	2 measurements of first Type
 	2 measurements of reversed Type
-	Found helper instructions FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>))  and FCVT_S_H(1(Class<FPR16>) -> 0(Class<FPR32>))  with combined latency 8.00667
+	Measuring FCVT_BF16_S(1(Class<FPR32>) -> 0(Class<FPR16>))  and FCVT_S_H(1(Class<FPR16>) -> 0(Class<FPR32>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FCVT_BF16_S(1(Class<FPR32>) -> 0(Class<FPR16>))  was the problem and blacklisting it
+	Measuring FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>))  and FCVT_S_BF16(1(Class<FPR16>) -> 0(Class<FPR32>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FCVT_S_BF16(1(Class<FPR16>) -> 0(Class<FPR32>))  was the problem and blacklisting it
+	Found helper instructions FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>))  and FCVT_S_H(1(Class<FPR16>) -> 0(Class<FPR32>))  with combined latency 8.0092
 -----Class<GPR> -> Class<FPR16> and Class<FPR16> -> Class<GPR>-----
 	5 measurements of first Type
 	16 measurements of reversed Type
-	Measuring FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>))  and FLEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
-	 assuming FLEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Measuring FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>))  and FLTQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	New pair: FCVT_H_WU(1(Class<GPR>) -> 0(Class<FPR16>))  FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) with latency 8.00867
+	Measuring FCVT_H_WU(1(Class<GPR>) -> 0(Class<FPR16>))  and FLTQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
 	 assuming FLTQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Found helper instructions FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>))  and FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>))  with combined latency 8.01333
+	Measuring FCVT_H_WU(1(Class<GPR>) -> 0(Class<FPR16>))  and FLEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FLEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	New pair: FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>))  FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) with latency 8.00827
+	Found helper instructions FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>))  and FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>))  with combined latency 8.00827
 -----Class<FPR64> -> Class<FPR16> and Class<FPR16> -> Class<FPR64>-----
 	1 measurements of first Type
 	1 measurements of reversed Type
-	Found helper instructions FCVT_H_D(1(Class<FPR64>) -> 0(Class<FPR16>))  and FCVT_D_H(1(Class<FPR16>) -> 0(Class<FPR64>))  with combined latency 8.01867
+	Found helper instructions FCVT_H_D(1(Class<FPR64>) -> 0(Class<FPR16>))  and FCVT_D_H(1(Class<FPR16>) -> 0(Class<FPR64>))  with combined latency 8.00933
 -----Class<GPR> -> Class<GPRF16> and Class<GPRF16> -> Class<GPR>-----
 	5 measurements of first Type
 	12 measurements of reversed Type
@@ -40,24 +48,28 @@ Report on finding helpers for dependency types:
 -----Class<GPR> -> Class<FPR32> and Class<FPR32> -> Class<GPR>-----
 	5 measurements of first Type
 	16 measurements of reversed Type
-	Measuring FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>))  and FLEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
-	 assuming FLEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Measuring FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>))  and FLTQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	Measuring FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>))  and FLTQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
 	 assuming FLTQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Found helper instructions FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>))  and FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>))  with combined latency 8.00933
+	Measuring FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>))  and FLEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FLEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	Found helper instructions FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>))  and FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>))  with combined latency 8.00813
 -----Class<FPR64> -> Class<FPR32> and Class<FPR32> -> Class<FPR64>-----
 	1 measurements of first Type
 	1 measurements of reversed Type
-	Found helper instructions FCVT_S_D(1(Class<FPR64>) -> 0(Class<FPR32>))  and FCVT_D_S(1(Class<FPR32>) -> 0(Class<FPR64>))  with combined latency 8.01733
+	Found helper instructions FCVT_S_D(1(Class<FPR64>) -> 0(Class<FPR32>))  and FCVT_D_S(1(Class<FPR32>) -> 0(Class<FPR64>))  with combined latency 8.00853
 -----Class<VR> -> Class<FPR32> and Class<FPR32> -> Class<VR>-----
 	1 measurements of first Type
 	45 measurements of reversed Type
-	New pair: VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) with latency 7.00533
-	Measuring VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  and VFWADD_WF(2(Class<FPR32>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
-	 assuming VFWADD_WF(2(Class<FPR32>) -> 0(Class<VR>))  was the problem and blacklisting it
+	New pair: VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  VMFLT_VF(2(Class<FPR32>) -> 0(Class<VR>)) with latency 8.00933
+	New pair: VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  VMFLE_VF(2(Class<FPR32>) -> 0(Class<VR>)) with latency 8.0088
+	New pair: VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  VMFGT_VF(2(Class<FPR32>) -> 0(Class<VR>)) with latency 8.00867
+	New pair: VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  VMFGE_VF(2(Class<FPR32>) -> 0(Class<VR>)) with latency 8.00853
 	Measuring VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  and VFWSUB_WF(2(Class<FPR32>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
 	 assuming VFWSUB_WF(2(Class<FPR32>) -> 0(Class<VR>))  was the problem and blacklisting it
-	Found helper instructions VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  and VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>))  with combined latency 7.00533
+	Measuring VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  and VFWADD_WF(2(Class<FPR32>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VFWADD_WF(2(Class<FPR32>) -> 0(Class<VR>))  was the problem and blacklisting it
+	New pair: VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) with latency 7.00733
+	Found helper instructions VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  and VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  with combined latency 7.00733
 -----Reg<VL> -> Class<FPR32> and Class<FPR32> -> Reg<VL>-----
 	1 measurements of first Type
 	no measurements of type Class<FPR32> -> Reg<VL> so Reg<VL> -> Class<FPR32> can also not be measured
@@ -79,39 +91,64 @@ Report on finding helpers for dependency types:
 -----Class<FPR64> -> Class<GPR> and Class<GPR> -> Class<FPR64>-----
 	19 measurements of first Type
 	7 measurements of reversed Type
-	Measuring FCVTMOD_W_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
-	 assuming FCVTMOD_W_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	New pair: FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>))  FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.00933
-	Measuring FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FMVP_D_X(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	New pair: FMV_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  FMV_D_X(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.00947
+	Measuring FMV_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FMVP_D_X(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
 	 assuming FMVP_D_X(1(Class<GPR>) -> 0(Class<FPR64>))  was the problem and blacklisting it
-	Measuring FLEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
-	 assuming FLEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Measuring FLTQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
-	 assuming FLTQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Measuring FMVH_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	New pair: FMV_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.00933
+	Measuring FMVH_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
 	 assuming FMVH_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
-	Found helper instructions FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  with combined latency 8.00933
+	New pair: FLT_D(1(Class<FPR64>) -> 0(Class<GPR>))  FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.00893
+	Measuring FLTQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FLTQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	New pair: FLE_D(1(Class<FPR64>) -> 0(Class<GPR>))  FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.0088
+	New pair: FLE_D(2(Class<FPR64>) -> 0(Class<GPR>))  FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.00867
+	Measuring FLEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FLEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	New pair: FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) with latency 8.0084
+	Measuring FCVTMOD_W_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming FCVTMOD_W_D(1(Class<FPR64>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	Found helper instructions FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  and FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  with combined latency 8.0084
 -----Class<VR> -> Class<GPR> and Class<GPR> -> Class<VR>-----
 	3 measurements of first Type
 	91 measurements of reversed Type
-	cannot measure type. very unusual: both instructions can be executed individually but fail when interleaved: 
-	VCPOP_M(1(Class<VR>) -> 0(Class<GPR>)) 
-	VAADDU_VX(2(Class<GPR>) -> 0(Class<VR>)) 
+	Measuring VFIRST_M(1(Class<VR>) -> 0(Class<GPR>))  and VXOR_VX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_NO_REGISTERS
+	 assuming VFIRST_M(1(Class<VR>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	Measuring VCPOP_M(1(Class<VR>) -> 0(Class<GPR>))  and VXOR_VX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_NO_REGISTERS
+	 assuming VCPOP_M(1(Class<VR>) -> 0(Class<GPR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VWSUB_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VWSUB_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VWSUBU_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VWSUBU_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VWADD_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VWADD_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VWADDU_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VWADDU_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	New pair: VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  VSSUBU_VX(2(Class<GPR>) -> 0(Class<VR>)) with latency 8.0084
+	New pair: VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) with latency 8.00827
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VNSRL_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VNSRL_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VNSRA_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VNSRA_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VNCLIP_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VNCLIP_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VNCLIPU_WX(2(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VNCLIPU_WX(2(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Measuring VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VC_V_X(3(Class<GPR>) -> 0(Class<VR>))  was unsuccessful, EC: ERROR_ASSEMBLY
+	 assuming VC_V_X(3(Class<GPR>) -> 0(Class<VR>))  was the problem and blacklisting it
+	Found helper instructions VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  and VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>))  with combined latency 8.00827
 -----Class<VMV0> -> Class<GPR> and Class<GPR> -> Class<VMV0>-----
 	2 measurements of first Type
 	no measurements of type Class<GPR> -> Class<VMV0> so Class<VMV0> -> Class<GPR> can also not be measured
 -----Reg<VL> -> Class<GPR> and Class<GPR> -> Reg<VL>-----
 	3 measurements of first Type
 	3 measurements of reversed Type
-	cannot measure type. very unusual: both instructions can be executed individually but fail when interleaved: 
-	VCPOP_M(impl(Reg<VL>) -> 0(Class<GPR>)) 
-	VSETVL(1(Class<GPR>) -> impl(Reg<VL>)) 
+	Measuring VMV_X_S(impl(Reg<VL>) -> 0(Class<GPR>))  and VSETVL(1(Class<GPR>) -> impl(Reg<VL>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming VSETVL(1(Class<GPR>) -> impl(Reg<VL>))  was the problem and blacklisting it
+	Found helper instructions VMV_X_S(impl(Reg<VL>) -> 0(Class<GPR>))  and VSETVLI(1(Class<GPR>) -> impl(Reg<VL>))  with combined latency 6.00747
 -----Reg<VTYPE> -> Class<GPR> and Class<GPR> -> Reg<VTYPE>-----
 	3 measurements of first Type
 	3 measurements of reversed Type
-	cannot measure type. very unusual: both instructions can be executed individually but fail when interleaved: 
-	VCPOP_M(impl(Reg<VTYPE>) -> 0(Class<GPR>)) 
-	VSETVL(1(Class<GPR>) -> impl(Reg<VTYPE>)) 
+	Found helper instructions VMV_X_S(impl(Reg<VTYPE>) -> 0(Class<GPR>))  and VSETVLI(1(Class<GPR>) -> impl(Reg<VTYPE>))  with combined latency 6.0072
 -----Class<GPRPair> -> Class<GPRF32> and Class<GPRF32> -> Class<GPRPair>-----
 	1 measurements of first Type
 	1 measurements of reversed Type
@@ -249,14 +286,14 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----AND-----
-	AND(1(Class<GPR>) -> 0(Class<GPR>))  [0.417;0.417]
-		 Successful, latency: 0.417
+	AND(1(Class<GPR>) -> 0(Class<GPR>))  [0.418;0.418]
+		 Successful, latency: 0.418
 	AND(2(Class<GPR>) -> 0(Class<GPR>))  [0.416;0.416]
 		 Successful, latency: 0.416
 
 -----ANDI-----
-	ANDI(1(Class<GPR>) -> 0(Class<GPR>))  [0.5;0.5]
-		 Successful, latency: 0.5
+	ANDI(1(Class<GPR>) -> 0(Class<GPR>))  [0.501;0.501]
+		 Successful, latency: 0.501
 
 -----ANDN-----
 	ANDN(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
@@ -301,8 +338,8 @@ Report on individual measurements:
 -----BSET-----
 	BSET(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
 		 Successful, latency: 1
-	BSET(2(Class<GPR>) -> 0(Class<GPR>))  [0.999;0.999]
-		 Successful, latency: 0.999
+	BSET(2(Class<GPR>) -> 0(Class<GPR>))  [1;1]
+		 Successful, latency: 1
 
 -----BSETI-----
 	BSETI(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
@@ -319,14 +356,14 @@ Report on individual measurements:
 -----CLMUL-----
 	CLMUL(1(Class<GPR>) -> 0(Class<GPR>))  [2;2]
 		 Successful, latency: 2
-	CLMUL(2(Class<GPR>) -> 0(Class<GPR>))  [2.01;2.01]
-		 Successful, latency: 2.01
+	CLMUL(2(Class<GPR>) -> 0(Class<GPR>))  [2;2]
+		 Successful, latency: 2
 
 -----CLMULH-----
 	CLMULH(1(Class<GPR>) -> 0(Class<GPR>))  [2;2]
 		 Successful, latency: 2
-	CLMULH(2(Class<GPR>) -> 0(Class<GPR>))  [2.01;2.01]
-		 Successful, latency: 2.01
+	CLMULH(2(Class<GPR>) -> 0(Class<GPR>))  [2;2]
+		 Successful, latency: 2
 
 -----CLMULR-----
 	CLMULR(1(Class<GPR>) -> 0(Class<GPR>))  [2;2]
@@ -343,7 +380,7 @@ Report on individual measurements:
 		 Successful, latency: 1
 
 -----CM_MVSA01-----
-	0x2ac1862848
+	0x3fab6b34e0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----CPOP-----
@@ -2007,8 +2044,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----CZERO_EQZ-----
-	CZERO_EQZ(1(Class<GPR>) -> 0(Class<GPR>))  [0.999;0.999]
-		 Successful, latency: 0.999
+	CZERO_EQZ(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
+		 Successful, latency: 1
 	CZERO_EQZ(2(Class<GPR>) -> 0(Class<GPR>))  [1;1]
 		 Successful, latency: 1
 
@@ -2021,8 +2058,8 @@ Report on individual measurements:
 -----C_ADD-----
 	C_ADD(1(Class<GPRNoX0>) -> 0(Class<GPRNoX0>))  [1;1]
 		 Successful, latency: 1
-	C_ADD(2(Class<GPRNoX0>) -> 0(Class<GPRNoX0>))  [0.999;0.999]
-		 Successful, latency: 0.999
+	C_ADD(2(Class<GPRNoX0>) -> 0(Class<GPRNoX0>))  [1;1]
+		 Successful, latency: 1
 
 -----C_ADDI-----
 	C_ADDI(1(Class<GPRNoX0>) -> 0(Class<GPRNoX0>))  [1;1]
@@ -2051,14 +2088,14 @@ Report on individual measurements:
 		 Successful, latency: 1
 
 -----C_AND-----
-	C_AND(1(Class<GPRC>) -> 0(Class<GPRC>))  [0.416;0.416]
-		 Successful, latency: 0.416
+	C_AND(1(Class<GPRC>) -> 0(Class<GPRC>))  [0.419;0.419]
+		 Successful, latency: 0.419
 	C_AND(2(Class<GPRC>) -> 0(Class<GPRC>))  [1;1]
 		 Successful, latency: 1
 
 -----C_ANDI-----
-	C_ANDI(1(Class<GPRC>) -> 0(Class<GPRC>))  [0.5;0.5]
-		 Successful, latency: 0.5
+	C_ANDI(1(Class<GPRC>) -> 0(Class<GPRC>))  [0.502;0.502]
+		 Successful, latency: 0.502
 
 -----C_MUL-----
 	C_MUL(1(Class<GPRC>) -> 0(Class<GPRC>))  [ERROR_ASSEMBLY]
@@ -2067,8 +2104,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----C_MV-----
-	C_MV(1(Class<GPRNoX0>) -> 0(Class<GPRNoX0>))  [1;1]
-		 Successful, latency: 1
+	C_MV(1(Class<GPRNoX0>) -> 0(Class<GPRNoX0>))  [1.01;1.01]
+		 Successful, latency: 1.01
 
 -----C_NOT-----
 	C_NOT(1(Class<GPRC>) -> 0(Class<GPRC>))  [ERROR_ASSEMBLY]
@@ -2129,8 +2166,8 @@ Report on individual measurements:
 		 Successful, latency: 1
 
 -----C_XOR-----
-	C_XOR(1(Class<GPRC>) -> 0(Class<GPRC>))  [0.416;0.416]
-		 Successful, latency: 0.416
+	C_XOR(1(Class<GPRC>) -> 0(Class<GPRC>))  [0.417;0.417]
+		 Successful, latency: 0.417
 	C_XOR(2(Class<GPRC>) -> 0(Class<GPRC>))  [1;1]
 		 Successful, latency: 1
 
@@ -2147,34 +2184,34 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----DIV-----
-	DIV(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	DIV(1(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
 	DIV(2(Class<GPR>) -> 0(Class<GPR>))  [4;4]
 		 Successful, latency: 4
 
 -----DIVU-----
-	DIVU(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	DIVU(2(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	DIVU(1(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
+	DIVU(2(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
 
 -----DIVUW-----
 	DIVUW(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	DIVUW(2(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	DIVUW(2(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
 
 -----DIVW-----
-	DIVW(1(Class<GPR>) -> 0(Class<GPR>))  [4;4]
-		 Successful, latency: 4
-	DIVW(2(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
+	DIVW(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
 		 Successful, latency: 4.01
+	DIVW(2(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
 
 -----FADD_D-----
-	FADD_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4;4]
-		 Successful, latency: 4
-	FADD_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FADD_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FADD_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----FADD_D_IN32X-----
 	FADD_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -2189,10 +2226,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FADD_H-----
-	FADD_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	FADD_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FADD_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
+	FADD_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 
 -----FADD_H_INX-----
 	FADD_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -2203,8 +2240,8 @@ Report on individual measurements:
 -----FADD_S-----
 	FADD_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
 		 Successful, latency: 4
-	FADD_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FADD_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 
 -----FADD_S_INX-----
 	FADD_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -2213,14 +2250,14 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCLASS_D-----
-	FCLASS_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
+	FCLASS_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCLASS_D_IN32X-----
-	0x2ac186ad80
+	0x3fab6ab050
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCLASS_D_INX-----
@@ -2230,44 +2267,40 @@ Report on individual measurements:
 -----FCLASS_H-----
 	FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCLASS_S-----
-	FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1.01;7.01]
+	FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCLASS_S_INX-----
-	0x2ac186ae98
-		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
-
------FCVT_BF16_S-----
-	0x2ac186af08
+	0x3fab6aaf38
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_D_H-----
-	FCVT_D_H(1(Class<FPR16>) -> 0(Class<FPR64>))  [0.992;7.01]
+	FCVT_D_H(1(Class<FPR16>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
 			FCVT_H_D(1(Class<FPR64>) -> 0(Class<FPR16>)) 
 			FCVT_D_H(1(Class<FPR16>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_D_L-----
-	FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  [0.995;7]
+	FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_D_LU-----
-	FCVT_D_LU(1(Class<GPR>) -> 0(Class<FPR64>))  [0.991;7]
+	FCVT_D_LU(1(Class<GPR>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_D_LU_INX-----
@@ -2279,29 +2312,29 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_D_S-----
-	FCVT_D_S(1(Class<FPR32>) -> 0(Class<FPR64>))  [0.995;7.01]
+	FCVT_D_S(1(Class<FPR32>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
 			FCVT_S_D(1(Class<FPR64>) -> 0(Class<FPR32>)) 
 			FCVT_D_S(1(Class<FPR32>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_D_S_INX-----
-	0x2ac186b138
+	0x3fab6aac98
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_D_W-----
-	FCVT_D_W(1(Class<GPR>) -> 0(Class<FPR64>))  [1.02;7.03]
+	FCVT_D_W(1(Class<GPR>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.04 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_D_WU-----
-	FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  [0.996;7.01]
+	FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_D_WU_INX-----
 	FCVT_D_WU_INX(1(Class<GPR>) -> 0(Class<GPR>))  [ERROR_ASSEMBLY]
@@ -2312,81 +2345,81 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_D-----
-	FCVT_H_D(1(Class<FPR64>) -> 0(Class<FPR16>))  [1;7.02]
+	FCVT_H_D(1(Class<FPR64>) -> 0(Class<FPR16>))  [0.999;7.01]
 		Dependencies:
 			FCVT_H_D(1(Class<FPR64>) -> 0(Class<FPR16>)) 
 			FCVT_D_H(1(Class<FPR16>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+		Combined result: 8.01 cycles
 
 -----FCVT_H_D_IN32X-----
-	0x2ac186b2f8
+	0x3fab6aaad8
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_D_INX-----
-	0x2ac186b330
+	0x3fab6aaaa0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_L-----
-	FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>))  [1.01;7.02]
+	FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_H_LU-----
-	FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>))  [1.01;7.02]
+	FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_H_LU_INX-----
-	0x2ac186b3d8
+	0x3fab6aa9f8
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_L_INX-----
-	0x2ac186b410
+	0x3fab6aa9c0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_S-----
-	FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>))  [1.01;7.02]
+	FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>))  [0.999;7.01]
 		Dependencies:
 			FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>)) 
 			FCVT_S_H(1(Class<FPR16>) -> 0(Class<FPR32>)) 
-		Combined result: 8.02 cycles
+		Combined result: 8.01 cycles
 
 -----FCVT_H_S_INX-----
-	0x2ac186b480
+	0x3fab6aa950
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_W-----
-	FCVT_H_W(1(Class<GPR>) -> 0(Class<FPR16>))  [1.01;7.02]
+	FCVT_H_W(1(Class<GPR>) -> 0(Class<FPR16>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_H_WU-----
-	FCVT_H_WU(1(Class<GPR>) -> 0(Class<FPR16>))  [1.01;7.03]
+	FCVT_H_WU(1(Class<GPR>) -> 0(Class<FPR16>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.03 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_H_WU_INX-----
-	0x2ac186b528
+	0x3fab6aa8a8
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_H_W_INX-----
-	0x2ac186b560
+	0x3fab6aa870
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_LU_D-----
-	FCVT_LU_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
+	FCVT_LU_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_LU_D_INX-----
 	FCVT_LU_D_INX(1(Class<GPR>) -> 0(Class<GPR>))  [ERROR_ASSEMBLY]
@@ -2395,63 +2428,59 @@ Report on individual measurements:
 -----FCVT_LU_H-----
 	FCVT_LU_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_LU_S-----
-	FCVT_LU_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.992;7]
+	FCVT_LU_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_LU_S_INX-----
-	0x2ac186b6b0
+	0x3fab6aa720
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_L_D-----
-	FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
+	FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_L_D_INX-----
 	FCVT_L_D_INX(1(Class<GPR>) -> 0(Class<GPR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_L_H-----
-	FCVT_L_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
+	FCVT_L_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1.01;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_L_S-----
-	FCVT_L_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.999;7.01]
+	FCVT_L_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_L_S_INX-----
-	0x2ac186b800
-		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
-
------FCVT_S_BF16-----
-	0x2ac186b838
+	0x3fab6aa5d0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_S_D-----
-	FCVT_S_D(1(Class<FPR64>) -> 0(Class<FPR32>))  [1;7.02]
+	FCVT_S_D(1(Class<FPR64>) -> 0(Class<FPR32>))  [1;7.01]
 		Dependencies:
 			FCVT_S_D(1(Class<FPR64>) -> 0(Class<FPR32>)) 
 			FCVT_D_S(1(Class<FPR32>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+		Combined result: 8.01 cycles
 
 -----FCVT_S_D_IN32X-----
-	0x2ac186b8a8
+	0x3fab6aa528
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_S_H-----
@@ -2459,45 +2488,45 @@ Report on individual measurements:
 		Dependencies:
 			FCVT_H_S(1(Class<FPR32>) -> 0(Class<FPR16>)) 
 			FCVT_S_H(1(Class<FPR16>) -> 0(Class<FPR32>)) 
-		Combined result: 8.02 cycles
+		Combined result: 8.01 cycles
 
 -----FCVT_S_L-----
-	FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>))  [1.01;7.02]
+	FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_S_LU-----
-	FCVT_S_LU(1(Class<GPR>) -> 0(Class<FPR32>))  [1.01;7.02]
+	FCVT_S_LU(1(Class<GPR>) -> 0(Class<FPR32>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_S_W-----
 	FCVT_S_W(1(Class<GPR>) -> 0(Class<FPR32>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_S_WU-----
-	FCVT_S_WU(1(Class<GPR>) -> 0(Class<FPR32>))  [1.01;7.01]
+	FCVT_S_WU(1(Class<GPR>) -> 0(Class<FPR32>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_WU_D-----
-	FCVT_WU_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.03;7.04]
+	FCVT_WU_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.04 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_WU_D_IN32X-----
-	0x2ac186bb80
+	0x3fab6aa250
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_WU_D_INX-----
@@ -2505,32 +2534,32 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_WU_H-----
-	FCVT_WU_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1.03;7.04]
+	FCVT_WU_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.04 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_WU_S-----
-	FCVT_WU_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
+	FCVT_WU_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_WU_S_INX-----
-	0x2ac186bc98
+	0x3fab6aa138
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_W_D-----
-	FCVT_W_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
+	FCVT_W_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_W_D_IN32X-----
-	0x2ac186bd08
+	0x3fab6aa0c8
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_W_D_INX-----
@@ -2538,28 +2567,28 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FCVT_W_H-----
-	FCVT_W_H(1(Class<FPR16>) -> 0(Class<GPR>))  [0.999;7.01]
+	FCVT_W_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FCVT_W_S-----
-	FCVT_W_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.996;7.01]
+	FCVT_W_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
 
 -----FCVT_W_S_INX-----
-	0x2ac186be20
+	0x3fab6a9fb0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FDIV_D-----
 	FDIV_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [10;10]
 		 Successful, latency: 10
-	FDIV_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [-3.95;-3.95]
-		 Successful, latency: -3.95
+	FDIV_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [24.5;24.5]
+		 Successful, latency: 24.5
 
 -----FDIV_D_IN32X-----
 	FDIV_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -2588,8 +2617,8 @@ Report on individual measurements:
 -----FDIV_S-----
 	FDIV_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [10;10]
 		 Successful, latency: 10
-	FDIV_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [16.5;16.5]
-		 Successful, latency: 16.5
+	FDIV_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [10;10]
+		 Successful, latency: 10
 
 -----FDIV_S_INX-----
 	FDIV_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -2598,19 +2627,19 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FEQ_D-----
-	FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.04;7.05]
+	FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.05 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 	FEQ_D(2(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
 
 -----FEQ_D_IN32X-----
-	0x2ac186c1d8
+	0x3fab6a9bc0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FEQ_D_INX-----
@@ -2620,47 +2649,47 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FEQ_H-----
-	FEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1.03;7.04]
+	FEQ_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.05 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 	FEQ_H(2(Class<FPR16>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FEQ_S-----
-	FEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1.01;7.02]
+	FEQ_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.03 cycles
-	FEQ_S(2(Class<FPR32>) -> 0(Class<GPR>))  [1.01;7.01]
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
+	FEQ_S(2(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FEQ_S_INX-----
-	0x2ac186c408
+	0x3fab6a9990
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FLE_D-----
-	FLE_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.02;7.03]
+	FLE_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.03 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 	FLE_D(2(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
 
 -----FLE_D_IN32X-----
-	0x2ac186c638
+	0x3fab6a9760
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FLE_D_INX-----
@@ -2670,47 +2699,47 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FLE_H-----
-	FLE_H(1(Class<FPR16>) -> 0(Class<GPR>))  [0.995;7.01]
+	FLE_H(1(Class<FPR16>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
-	FLE_H(2(Class<FPR16>) -> 0(Class<GPR>))  [0.993;7.01]
+	FLE_H(2(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
 
 -----FLE_S-----
-	FLE_S(1(Class<FPR32>) -> 0(Class<GPR>))  [0.995;7]
+	FLE_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
-	FLE_S(2(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
+	FLE_S(2(Class<FPR32>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FLE_S_INX-----
-	0x2ac186c868
+	0x3fab6a9530
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FLT_D-----
-	FLT_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.01]
+	FLT_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
-	FLT_D(2(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
+	FLT_D(2(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FLT_D_IN32X-----
-	0x2ac186ca98
+	0x3fab6a9300
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FLT_D_INX-----
@@ -2720,31 +2749,31 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FLT_H-----
-	FLT_H(1(Class<FPR16>) -> 0(Class<GPR>))  [0.995;7.01]
+	FLT_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
 		Combined result: 8.01 cycles
-	FLT_H(2(Class<FPR16>) -> 0(Class<GPR>))  [1.01;7.02]
+	FLT_H(2(Class<FPR16>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.03 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FLT_S-----
-	FLT_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1.01;7.02]
+	FLT_S(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 	FLT_S(2(Class<FPR32>) -> 0(Class<GPR>))  [0.999;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FLT_S_INX-----
-	0x2ac186ccc8
+	0x3fab6a90d0
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMADD_D-----
@@ -2792,8 +2821,8 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 	FMADD_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	FMADD_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
-		 Successful, latency: 5.01
+	FMADD_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5;5]
+		 Successful, latency: 5
 
 -----FMADD_S_INX-----
 	FMADD_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -2822,8 +2851,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMAX_D-----
-	FMAX_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FMAX_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4;4]
+		 Successful, latency: 4
 	FMAX_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
@@ -2840,10 +2869,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMAX_H-----
-	FMAX_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	FMAX_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	FMAX_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
+	FMAX_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 
 -----FMAX_H_INX-----
 	FMAX_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -2852,10 +2881,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMAX_S-----
-	FMAX_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	FMAX_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FMAX_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
+	FMAX_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 
 -----FMAX_S_INX-----
 	FMAX_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -2882,8 +2911,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMIN_D-----
-	FMIN_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	FMIN_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4;4]
+		 Successful, latency: 4
 	FMIN_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
@@ -2902,8 +2931,8 @@ Report on individual measurements:
 -----FMIN_H-----
 	FMIN_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	FMIN_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FMIN_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 
 -----FMIN_H_INX-----
 	FMIN_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -2912,8 +2941,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMIN_S-----
-	FMIN_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FMIN_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 	FMIN_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
 		 Successful, latency: 4
 
@@ -2966,10 +2995,10 @@ Report on individual measurements:
 -----FMSUB_S-----
 	FMSUB_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	FMSUB_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	FMSUB_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	FMSUB_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FMSUB_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----FMSUB_S_INX-----
 	FMSUB_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -2980,10 +3009,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMUL_D-----
-	FMUL_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	FMUL_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	FMUL_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [6.01;6.01]
+		 Successful, latency: 6.01
+	FMUL_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [6.01;6.01]
+		 Successful, latency: 6.01
 
 -----FMUL_D_IN32X-----
 	FMUL_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -2998,10 +3027,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMUL_H-----
-	FMUL_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	FMUL_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	FMUL_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FMUL_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----FMUL_H_INX-----
 	FMUL_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -3022,53 +3051,53 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FMV_D_X-----
-	FMV_D_X(1(Class<GPR>) -> 0(Class<FPR64>))  [0.991;7]
+	FMV_D_X(1(Class<GPR>) -> 0(Class<FPR64>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
 		Combined result: 8.01 cycles
 
 -----FMV_H_X-----
-	FMV_H_X(1(Class<GPR>) -> 0(Class<FPR16>))  [1.04;7.05]
+	FMV_H_X(1(Class<GPR>) -> 0(Class<FPR16>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.05 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FMV_W_X-----
-	FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>))  [1.01;7.02]
+	FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.02 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FMV_X_D-----
 	FMV_X_D(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
 		Combined result: 8.02 cycles
 
 -----FMV_X_H-----
-	FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1.03;7.04]
+	FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_H_L(1(Class<GPR>) -> 0(Class<FPR16>)) 
-			FCLASS_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
-		Combined result: 8.05 cycles
+			FCVT_H_LU(1(Class<GPR>) -> 0(Class<FPR16>)) 
+			FMV_X_H(1(Class<FPR16>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FMV_X_W-----
-	FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>))  [1.04;7.05]
+	FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_S_L(1(Class<GPR>) -> 0(Class<FPR32>)) 
-			FCLASS_S(1(Class<FPR32>) -> 0(Class<GPR>)) 
-		Combined result: 8.05 cycles
+			FMV_W_X(1(Class<GPR>) -> 0(Class<FPR32>)) 
+			FMV_X_W(1(Class<FPR32>) -> 0(Class<GPR>)) 
+		Combined result: 8.01 cycles
 
 -----FMV_X_W_FPR64-----
-	FMV_X_W_FPR64(1(Class<FPR64>) -> 0(Class<GPR>))  [1.01;7.02]
+	FMV_X_W_FPR64(1(Class<FPR64>) -> 0(Class<GPR>))  [1;7.01]
 		Dependencies:
-			FCVT_L_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
-			FCVT_D_L(1(Class<GPR>) -> 0(Class<FPR64>)) 
-		Combined result: 8.02 cycles
+			FEQ_D(1(Class<FPR64>) -> 0(Class<GPR>)) 
+			FCVT_D_WU(1(Class<GPR>) -> 0(Class<FPR64>)) 
+		Combined result: 8.01 cycles
 
 -----FNMADD_D-----
 	FNMADD_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [6.01;6.01]
@@ -3111,8 +3140,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FNMADD_S-----
-	FNMADD_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	FNMADD_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	FNMADD_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	FNMADD_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
@@ -3131,8 +3160,8 @@ Report on individual measurements:
 		 Successful, latency: 6.01
 	FNMSUB_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [6.01;6.01]
 		 Successful, latency: 6.01
-	FNMSUB_D(3(Class<FPR64>) -> 0(Class<FPR64>))  [6;6]
-		 Successful, latency: 6
+	FNMSUB_D(3(Class<FPR64>) -> 0(Class<FPR64>))  [6.01;6.01]
+		 Successful, latency: 6.01
 
 -----FNMSUB_D_IN32X-----
 	FNMSUB_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -3151,12 +3180,12 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FNMSUB_H-----
-	FNMSUB_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	FNMSUB_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [5;5]
-		 Successful, latency: 5
-	FNMSUB_H(3(Class<FPR16>) -> 0(Class<FPR16>))  [5;5]
-		 Successful, latency: 5
+	FNMSUB_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FNMSUB_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FNMSUB_H(3(Class<FPR16>) -> 0(Class<FPR16>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----FNMSUB_H_INX-----
 	FNMSUB_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -3169,10 +3198,10 @@ Report on individual measurements:
 -----FNMSUB_S-----
 	FNMSUB_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	FNMSUB_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	FNMSUB_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	FNMSUB_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FNMSUB_S(3(Class<FPR32>) -> 0(Class<FPR32>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----FNMSUB_S_INX-----
 	FNMSUB_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -3209,8 +3238,8 @@ Report on individual measurements:
 -----FSGNJN_D-----
 	FSGNJN_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4;4]
 		 Successful, latency: 4
-	FSGNJN_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FSGNJN_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [4;4]
+		 Successful, latency: 4
 
 -----FSGNJN_D_IN32X-----
 	FSGNJN_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -3227,8 +3256,8 @@ Report on individual measurements:
 -----FSGNJN_H-----
 	FSGNJN_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	FSGNJN_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	FSGNJN_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 
 -----FSGNJN_H_INX-----
 	FSGNJN_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -3239,8 +3268,8 @@ Report on individual measurements:
 -----FSGNJN_S-----
 	FSGNJN_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	FSGNJN_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FSGNJN_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 
 -----FSGNJN_S_INX-----
 	FSGNJN_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -3269,8 +3298,8 @@ Report on individual measurements:
 -----FSGNJX_H-----
 	FSGNJX_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	FSGNJX_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FSGNJX_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 
 -----FSGNJX_H_INX-----
 	FSGNJX_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -3279,8 +3308,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSGNJX_S-----
-	FSGNJX_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FSGNJX_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 	FSGNJX_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
 		 Successful, latency: 4
 
@@ -3309,8 +3338,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSGNJ_H-----
-	FSGNJ_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FSGNJ_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 	FSGNJ_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
@@ -3321,10 +3350,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSGNJ_S-----
-	FSGNJ_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	FSGNJ_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	FSGNJ_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
+	FSGNJ_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 
 -----FSGNJ_S_INX-----
 	FSGNJ_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -3333,8 +3362,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSQRT_D-----
-	FSQRT_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [-3.96;-3.96]
-		 Successful, latency: -3.96
+	FSQRT_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [24;24]
+		 Successful, latency: 24
 
 -----FSQRT_D_IN32X-----
 	FSQRT_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -3353,18 +3382,18 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSQRT_S-----
-	FSQRT_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [16.1;16.1]
-		 Successful, latency: 16.1
+	FSQRT_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [10;10]
+		 Successful, latency: 10
 
 -----FSQRT_S_INX-----
 	FSQRT_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSUB_D-----
-	FSUB_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	FSUB_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [3.53;3.53]
-		 Successful, latency: 3.53
+	FSUB_D(1(Class<FPR64>) -> 0(Class<FPR64>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	FSUB_D(2(Class<FPR64>) -> 0(Class<FPR64>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----FSUB_D_IN32X-----
 	FSUB_D_IN32X(1(Class<GPRPair>) -> 0(Class<GPRPair>))  [ERROR_ASSEMBLY]
@@ -3379,10 +3408,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSUB_H-----
-	FSUB_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	FSUB_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	FSUB_H(1(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
+	FSUB_H(2(Class<FPR16>) -> 0(Class<FPR16>))  [4;4]
+		 Successful, latency: 4
 
 -----FSUB_H_INX-----
 	FSUB_H_INX(1(Class<GPRF16>) -> 0(Class<GPRF16>))  [ERROR_ASSEMBLY]
@@ -3391,10 +3420,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----FSUB_S-----
-	FSUB_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	FSUB_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	FSUB_S(1(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
+	FSUB_S(2(Class<FPR32>) -> 0(Class<FPR32>))  [4;4]
+		 Successful, latency: 4
 
 -----FSUB_S_INX-----
 	FSUB_S_INX(1(Class<GPRF32>) -> 0(Class<GPRF32>))  [ERROR_ASSEMBLY]
@@ -3609,8 +3638,8 @@ Report on individual measurements:
 -----MUL-----
 	MUL(1(Class<GPR>) -> 0(Class<GPR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	MUL(2(Class<GPR>) -> 0(Class<GPR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	MUL(2(Class<GPR>) -> 0(Class<GPR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----MULH-----
 	MULH(1(Class<GPR>) -> 0(Class<GPR>))  [6.01;6.01]
@@ -3619,36 +3648,36 @@ Report on individual measurements:
 		 Successful, latency: 6.01
 
 -----MULHSU-----
-	MULHSU(1(Class<GPR>) -> 0(Class<GPR>))  [6.03;6.03]
-		 Successful, latency: 6.03
+	MULHSU(1(Class<GPR>) -> 0(Class<GPR>))  [6.01;6.01]
+		 Successful, latency: 6.01
 	MULHSU(2(Class<GPR>) -> 0(Class<GPR>))  [6.01;6.01]
 		 Successful, latency: 6.01
 
 -----MULHU-----
-	MULHU(1(Class<GPR>) -> 0(Class<GPR>))  [6.04;6.04]
-		 Successful, latency: 6.04
+	MULHU(1(Class<GPR>) -> 0(Class<GPR>))  [6.01;6.01]
+		 Successful, latency: 6.01
 	MULHU(2(Class<GPR>) -> 0(Class<GPR>))  [6.01;6.01]
 		 Successful, latency: 6.01
 
 -----MULW-----
-	MULW(1(Class<GPR>) -> 0(Class<GPR>))  [3.01;3.01]
-		 Successful, latency: 3.01
-	MULW(2(Class<GPR>) -> 0(Class<GPR>))  [3.01;3.01]
-		 Successful, latency: 3.01
+	MULW(1(Class<GPR>) -> 0(Class<GPR>))  [3;3]
+		 Successful, latency: 3
+	MULW(2(Class<GPR>) -> 0(Class<GPR>))  [3;3]
+		 Successful, latency: 3
 
 -----OR-----
 	OR(1(Class<GPR>) -> 0(Class<GPR>))  [0.417;0.417]
 		 Successful, latency: 0.417
-	OR(2(Class<GPR>) -> 0(Class<GPR>))  [0.416;0.416]
-		 Successful, latency: 0.416
+	OR(2(Class<GPR>) -> 0(Class<GPR>))  [0.417;0.417]
+		 Successful, latency: 0.417
 
 -----ORC_B-----
 	ORC_B(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
 		 Successful, latency: 1
 
 -----ORI-----
-	ORI(1(Class<GPR>) -> 0(Class<GPR>))  [0.5;0.5]
-		 Successful, latency: 0.5
+	ORI(1(Class<GPR>) -> 0(Class<GPR>))  [0.501;0.501]
+		 Successful, latency: 0.501
 
 -----ORN-----
 	ORN(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
@@ -3691,7 +3720,7 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----QC_CSRRWRI-----
-	0x2ac1870f48
+	0x3fab6a4e88
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----QC_C_MULIADD-----
@@ -3987,10 +4016,10 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----REM-----
-	REM(1(Class<GPR>) -> 0(Class<GPR>))  [4.03;4.03]
-		 Successful, latency: 4.03
-	REM(2(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
+	REM(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
 		 Successful, latency: 4.01
+	REM(2(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
 
 -----REMU-----
 	REMU(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
@@ -4001,8 +4030,8 @@ Report on individual measurements:
 -----REMUW-----
 	REMUW(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	REMUW(2(Class<GPR>) -> 0(Class<GPR>))  [4;4]
-		 Successful, latency: 4
+	REMUW(2(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
+		 Successful, latency: 4.01
 
 -----REMW-----
 	REMW(1(Class<GPR>) -> 0(Class<GPR>))  [4.01;4.01]
@@ -4021,8 +4050,8 @@ Report on individual measurements:
 -----ROL-----
 	ROL(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
 		 Successful, latency: 1
-	ROL(2(Class<GPR>) -> 0(Class<GPR>))  [0.999;0.999]
-		 Successful, latency: 0.999
+	ROL(2(Class<GPR>) -> 0(Class<GPR>))  [1;1]
+		 Successful, latency: 1
 
 -----ROLW-----
 	ROLW(1(Class<GPR>) -> 0(Class<GPR>))  [1;1]
@@ -4067,18 +4096,18 @@ Report on individual measurements:
 -----SH1ADD_UW-----
 	SH1ADD_UW(1(Class<GPR>) -> 0(Class<GPR>))  [2;2]
 		 Successful, latency: 2
-	SH1ADD_UW(2(Class<GPR>) -> 0(Class<GPR>))  [0.999;0.999]
-		 Successful, latency: 0.999
+	SH1ADD_UW(2(Class<GPR>) -> 0(Class<GPR>))  [1;1]
+		 Successful, latency: 1
 
 -----SH2ADD-----
 	SH2ADD(1(Class<GPR>) -> 0(Class<GPR>))  [2;2]
 		 Successful, latency: 2
-	SH2ADD(2(Class<GPR>) -> 0(Class<GPR>))  [0.999;0.999]
-		 Successful, latency: 0.999
+	SH2ADD(2(Class<GPR>) -> 0(Class<GPR>))  [1;1]
+		 Successful, latency: 1
 
 -----SH2ADD_UW-----
-	SH2ADD_UW(1(Class<GPR>) -> 0(Class<GPR>))  [2.01;2.01]
-		 Successful, latency: 2.01
+	SH2ADD_UW(1(Class<GPR>) -> 0(Class<GPR>))  [2;2]
+		 Successful, latency: 2
 	SH2ADD_UW(2(Class<GPR>) -> 0(Class<GPR>))  [1;1]
 		 Successful, latency: 1
 
@@ -4443,50 +4472,70 @@ Report on individual measurements:
 -----VAADDU_VV-----
 	VAADDU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	VAADDU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VAADDU_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VAADDU_VX-----
-	VAADDU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VAADDU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VAADDU_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.995;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VAADD_VV-----
 	VAADD_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VAADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VAADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VAADD_VX-----
 	VAADD_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
+	VAADD_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VADC_VIM-----
-	VADC_VIM(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VADC_VIM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VADC_VVM-----
-	VADC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VADC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VADC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VADC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VADC_VXM-----
-	VADC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VADC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VADC_VXM(2(Class<GPR>) -> 0(Class<VR>))  [0.994;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VADD_VI-----
-	VADD_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VADD_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VADD_VV-----
 	VADD_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VADD_VX-----
-	VADD_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VADD_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VADD_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VAESDF_VS-----
 	VAESDF_VS(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -4563,38 +4612,53 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VAND_VI-----
-	VAND_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VAND_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VAND_VV-----
 	VAND_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VAND_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VAND_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VAND_VX-----
-	VAND_VX(1(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	VAND_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VAND_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VASUBU_VV-----
-	VASUBU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VASUBU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VASUBU_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VASUBU_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VASUBU_VX-----
-	VASUBU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VASUBU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VASUBU_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VASUB_VV-----
-	VASUB_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VASUB_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VASUB_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VASUB_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VASUB_VX-----
 	VASUB_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
+	VASUB_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VBREV8_V-----
 	VBREV8_V(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -4721,43 +4785,53 @@ Report on individual measurements:
 -----VDIVU_VX-----
 	VDIVU_VX(1(Class<VR>) -> 0(Class<VR>))  [20;20]
 		 Successful, latency: 20
+	VDIVU_VX(2(Class<GPR>) -> 0(Class<VR>))  [13;19]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 20 cycles
 
 -----VDIV_VV-----
-	VDIV_VV(1(Class<VR>) -> 0(Class<VR>))  [22.1;22.1]
-		 Successful, latency: 22.1
+	VDIV_VV(1(Class<VR>) -> 0(Class<VR>))  [22;22]
+		 Successful, latency: 22
 	VDIV_VV(2(Class<VR>) -> 0(Class<VR>))  [22;22]
 		 Successful, latency: 22
 
 -----VDIV_VX-----
-	VDIV_VX(1(Class<VR>) -> 0(Class<VR>))  [22.1;22.1]
-		 Successful, latency: 22.1
+	VDIV_VX(1(Class<VR>) -> 0(Class<VR>))  [22;22]
+		 Successful, latency: 22
+	VDIV_VX(2(Class<GPR>) -> 0(Class<VR>))  [15;21]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 22 cycles
 
 -----VFADD_VF-----
-	VFADD_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFADD_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VFADD_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFADD_VV-----
-	VFADD_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VFADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFADD_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VFADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFCLASS_V-----
-	VFCLASS_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFCLASS_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFCVT_F_XU_V-----
-	VFCVT_F_XU_V(1(Class<VR>) -> 0(Class<VR>))  [3.99;3.99]
-		 Successful, latency: 3.99
+	VFCVT_F_XU_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFCVT_F_X_V-----
-	VFCVT_F_X_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFCVT_F_X_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFCVT_RTZ_XU_F_V-----
 	VFCVT_RTZ_XU_F_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
@@ -4768,21 +4842,21 @@ Report on individual measurements:
 		 Successful, latency: 4
 
 -----VFCVT_XU_F_V-----
-	VFCVT_XU_F_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFCVT_XU_F_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFCVT_X_F_V-----
-	VFCVT_X_F_V(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VFCVT_X_F_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFDIV_VF-----
 	VFDIV_VF(1(Class<VR>) -> 0(Class<VR>))  [18;18]
 		 Successful, latency: 18
-	VFDIV_VF(2(Class<FPR32>) -> 0(Class<VR>))  [18.1;23.1]
+	VFDIV_VF(2(Class<FPR32>) -> 0(Class<VR>))  [18;23]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 24.1 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 24 cycles
 
 -----VFDIV_VV-----
 	VFDIV_VV(1(Class<VR>) -> 0(Class<VR>))  [18;18]
@@ -4791,75 +4865,75 @@ Report on individual measurements:
 		 Successful, latency: 24.5
 
 -----VFMACC_VF-----
-	VFMACC_VF(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	VFMACC_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+	VFMACC_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.04;7.04]
+	VFMACC_VF(3(Class<VR>) -> 0(Class<VR>))  [5;5]
+		 Successful, latency: 5
+	VFMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.05 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VFMACC_VV-----
-	VFMACC_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
-		 Successful, latency: 5.01
+	VFMACC_VV(1(Class<VR>) -> 0(Class<VR>))  [5;5]
+		 Successful, latency: 5
 	VFMACC_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VFMACC_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 
 -----VFMADD_VF-----
-	VFMADD_VF(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFMADD_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VFMADD_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VFMADD_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VFMADD_VV-----
 	VFMADD_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFMADD_VV(2(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
-	VFMADD_VV(3(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFMADD_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMADD_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VFMAX_VF-----
-	VFMAX_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VFMAX_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1.01;6.01]
+	VFMAX_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VFMAX_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFMAX_VV-----
 	VFMAX_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VFMAX_VV(2(Class<VR>) -> 0(Class<VR>))  [4.04;4.04]
-		 Successful, latency: 4.04
+	VFMAX_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFMERGE_VFM-----
-	VFMERGE_VFM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>))  [0.995;6]
+	VFMERGE_VFM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 7.01 cycles
 
 -----VFMIN_VF-----
-	VFMIN_VF(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VFMIN_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VFMIN_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFMIN_VV-----
 	VFMIN_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
@@ -4868,50 +4942,50 @@ Report on individual measurements:
 		 Successful, latency: 4.01
 
 -----VFMSAC_VF-----
-	VFMSAC_VF(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
-	VFMSAC_VF(3(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
-	VFMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7]
+	VFMSAC_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMSAC_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 8.01 cycles
 
 -----VFMSAC_VV-----
 	VFMSAC_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFMSAC_VV(2(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
-	VFMSAC_VV(3(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFMSAC_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMSAC_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VFMSUB_VF-----
-	VFMSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
-	VFMSUB_VF(3(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	VFMSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.01;7.02]
+	VFMSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMSUB_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.03 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VFMSUB_VV-----
 	VFMSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFMSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	VFMSUB_VV(3(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFMSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VFMSUB_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VFMUL_VF-----
 	VFMUL_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFMUL_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1.99;7]
+	VFMUL_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 8.01 cycles
 
 -----VFMUL_VV-----
@@ -4921,27 +4995,27 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VFMV_F_S-----
-	VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  [1.01;6.02]
+	VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>))  [0.999;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFMV_S_F-----
-	VFMV_S_F(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VFMV_S_F(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VFMV_S_F(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFMV_V_F-----
 	VFMV_V_F(1(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFNCVTBF16_F_F_W-----
 	VFNCVTBF16_F_F_W(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -4964,12 +5038,12 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VFNCVT_RTZ_XU_F_W-----
-	VFNCVT_RTZ_XU_F_W(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VFNCVT_RTZ_XU_F_W(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VFNCVT_RTZ_X_F_W-----
-	VFNCVT_RTZ_X_F_W(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFNCVT_RTZ_X_F_W(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VFNCVT_XU_F_W-----
 	VFNCVT_XU_F_W(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -4980,14 +5054,14 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VFNMACC_VF-----
-	VFNMACC_VF(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFNMACC_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VFNMACC_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFNMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7]
+	VFNMACC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 8.01 cycles
 
 -----VFNMACC_VV-----
@@ -5003,15 +5077,15 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 	VFNMADD_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFNMADD_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.01;7.01]
+	VFNMADD_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VFNMADD_VV-----
-	VFNMADD_VV(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VFNMADD_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VFNMADD_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VFNMADD_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -5020,36 +5094,36 @@ Report on individual measurements:
 -----VFNMSAC_VF-----
 	VFNMSAC_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFNMSAC_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
-		 Successful, latency: 5.01
-	VFNMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7]
+	VFNMSAC_VF(3(Class<VR>) -> 0(Class<VR>))  [5;5]
+		 Successful, latency: 5
+	VFNMSAC_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 8.01 cycles
 
 -----VFNMSAC_VV-----
 	VFNMSAC_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFNMSAC_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
-		 Successful, latency: 5.01
+	VFNMSAC_VV(2(Class<VR>) -> 0(Class<VR>))  [5;5]
+		 Successful, latency: 5
 	VFNMSAC_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 
 -----VFNMSUB_VF-----
-	VFNMSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [5.03;5.03]
-		 Successful, latency: 5.03
+	VFNMSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VFNMSUB_VF(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VFNMSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VFNMSUB_VV-----
-	VFNMSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VFNMSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VFNMSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VFNMSUB_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -5064,17 +5138,17 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VFRDIV_VF-----
-	VFRDIV_VF(1(Class<VR>) -> 0(Class<VR>))  [24.5;24.5]
-		 Successful, latency: 24.5
+	VFRDIV_VF(1(Class<VR>) -> 0(Class<VR>))  [18;18]
+		 Successful, latency: 18
 	VFRDIV_VF(2(Class<FPR32>) -> 0(Class<VR>))  [18;23]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 24 cycles
 
 -----VFREC7_V-----
-	VFREC7_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFREC7_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFREDMAX_VS-----
 	VFREDMAX_VS(1(Class<VR>) -> 0(Class<VR>))  [12;12]
@@ -5101,71 +5175,71 @@ Report on individual measurements:
 		 Successful, latency: 12
 
 -----VFRSQRT7_V-----
-	VFRSQRT7_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
-		 Successful, latency: 4
+	VFRSQRT7_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
 
 -----VFRSUB_VF-----
-	VFRSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
-	VFRSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1.04;6.04]
+	VFRSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VFRSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.05 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFSGNJN_VF-----
-	VFSGNJN_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
-		 Successful, latency: 4
-	VFSGNJN_VF(2(Class<FPR32>) -> 0(Class<VR>))  [0.999;6]
+	VFSGNJN_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VFSGNJN_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 7.01 cycles
 
 -----VFSGNJN_VV-----
 	VFSGNJN_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	VFSGNJN_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFSGNJN_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFSGNJX_VF-----
 	VFSGNJX_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	VFSGNJX_VF(2(Class<FPR32>) -> 0(Class<VR>))  [0.989;5.99]
+	VFSGNJX_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 7.01 cycles
 
 -----VFSGNJX_VV-----
-	VFSGNJX_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VFSGNJX_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFSGNJX_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VFSGNJX_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VFSGNJ_VF-----
-	VFSGNJ_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VFSGNJ_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1.01;6.01]
+	VFSGNJ_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VFSGNJ_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFSGNJ_VV-----
-	VFSGNJ_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VFSGNJ_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+	VFSGNJ_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
+	VFSGNJ_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
 
 -----VFSLIDE1DOWN_VF-----
 	VFSLIDE1DOWN_VF(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VFSLIDE1DOWN_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.02;7.03]
+	VFSLIDE1DOWN_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.04 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VFSLIDE1UP_VF-----
 	VFSLIDE1UP_VF(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -5176,17 +5250,17 @@ Report on individual measurements:
 		 Successful, latency: 24
 
 -----VFSUB_VF-----
-	VFSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VFSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1;6.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 7.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 7.01 cycles
 
 -----VFSUB_VV-----
-	VFSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [3.99;3.99]
-		 Successful, latency: 3.99
+	VFSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
 	VFSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
@@ -5201,12 +5275,12 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VFWADD_WF-----
-	VFWADD_WF(1(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VFWADD_WF(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 
 -----VFWADD_WV-----
-	VFWADD_WV(1(Class<VR>) -> 0(Class<VR>))  [8.02;8.02]
-		 Successful, latency: 8.02
+	VFWADD_WV(1(Class<VR>) -> 0(Class<VR>))  [8.01;8.01]
+		 Successful, latency: 8.01
 	VFWADD_WV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -5263,8 +5337,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VFWMACC_VF-----
-	VFWMACC_VF(1(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VFWMACC_VF(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 	VFWMACC_VF(3(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -5277,8 +5351,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VFWMSAC_VF-----
-	VFWMSAC_VF(1(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VFWMSAC_VF(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 	VFWMSAC_VF(3(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -5321,8 +5395,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VFWNMSAC_VV-----
-	VFWNMSAC_VV(1(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VFWNMSAC_VV(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 	VFWNMSAC_VV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 	VFWNMSAC_VV(3(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -5331,14 +5405,14 @@ Report on individual measurements:
 -----VFWREDOSUM_VS-----
 	VFWREDOSUM_VS(1(Class<VR>) -> 0(Class<VR>))  [33;33]
 		 Successful, latency: 33
-	VFWREDOSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [33.1;33.1]
-		 Successful, latency: 33.1
+	VFWREDOSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [33;33]
+		 Successful, latency: 33
 
 -----VFWREDUSUM_VS-----
 	VFWREDUSUM_VS(1(Class<VR>) -> 0(Class<VR>))  [33;33]
 		 Successful, latency: 33
-	VFWREDUSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [33.1;33.1]
-		 Successful, latency: 33.1
+	VFWREDUSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [33;33]
+		 Successful, latency: 33
 
 -----VFWSUB_VF-----
 	VFWSUB_VF(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -5355,8 +5429,8 @@ Report on individual measurements:
 		 Successful, latency: 7.01
 
 -----VFWSUB_WV-----
-	VFWSUB_WV(1(Class<VR>) -> 0(Class<VR>))  [8.02;8.02]
-		 Successful, latency: 8.02
+	VFWSUB_WV(1(Class<VR>) -> 0(Class<VR>))  [8.01;8.01]
+		 Successful, latency: 8.01
 	VFWSUB_WV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -5401,84 +5475,114 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VMACC_VX-----
-	VMACC_VX(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	VMACC_VX(3(Class<VR>) -> 0(Class<VR>))  [5.04;5.04]
-		 Successful, latency: 5.04
+	VMACC_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VMACC_VX(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VMACC_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMADC_VI-----
-	VMADC_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMADC_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMADC_VIM-----
-	VMADC_VIM(1(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	VMADC_VIM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMADC_VV-----
-	VMADC_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMADC_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMADC_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMADC_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMADC_VVM-----
-	VMADC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMADC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMADC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMADC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMADC_VX-----
-	VMADC_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMADC_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMADC_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMADC_VXM-----
-	VMADC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMADC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMADC_VXM(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMADD_VV-----
 	VMADD_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VMADD_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VMADD_VV(3(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VMADD_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VMADD_VX-----
 	VMADD_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VMADD_VX(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
+	VMADD_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMANDN_MM-----
 	VMANDN_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	VMANDN_MM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMANDN_MM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMAND_MM-----
-	VMAND_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMAND_MM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMAND_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMAND_MM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMAXU_VV-----
-	VMAXU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMAXU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMAXU_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMAXU_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMAXU_VX-----
-	VMAXU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMAXU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VMAXU_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMAX_VV-----
-	VMAX_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMAX_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMAX_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMAX_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMAX_VX-----
 	VMAX_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
+	VMAX_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMERGE_VIM-----
 	VMERGE_VIM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
@@ -5487,75 +5591,80 @@ Report on individual measurements:
 -----VMERGE_VVM-----
 	VMERGE_VVM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VMERGE_VVM(2(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMERGE_VVM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMERGE_VXM-----
-	VMERGE_VXM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMERGE_VXM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMERGE_VXM(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMFEQ_VF-----
-	VMFEQ_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMFEQ_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.01;7.01]
+	VMFEQ_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMFEQ_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.03 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMFEQ_VV-----
-	VMFEQ_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VMFEQ_VV(2(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMFEQ_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMFEQ_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMFGE_VF-----
-	VMFGE_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMFGE_VF(2(Class<FPR32>) -> 0(Class<VR>))  [1.99;7]
+	VMFGE_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMFGE_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
 		Combined result: 8.01 cycles
 
 -----VMFGT_VF-----
-	VMFGT_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMFGT_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.01;7.01]
+	VMFGT_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMFGT_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMFLE_VF-----
 	VMFLE_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	VMFLE_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2.01;7.01]
+	VMFLE_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMFLE_VV-----
-	VMFLE_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+	VMFLE_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VMFLE_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VMFLE_VV(2(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
 
 -----VMFLT_VF-----
-	VMFLT_VF(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMFLT_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMFLT_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMFLT_VV-----
-	VMFLT_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VMFLT_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+	VMFLT_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
+	VMFLT_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMFNE_VF-----
 	VMFNE_VF(1(Class<VR>) -> 0(Class<VR>))  [4;4]
@@ -5563,78 +5672,98 @@ Report on individual measurements:
 	VMFNE_VF(2(Class<FPR32>) -> 0(Class<VR>))  [2;7.01]
 		Dependencies:
 			VFMV_F_S(1(Class<VR>) -> 0(Class<FPR32>)) 
-			VFMERGE_VFM(2(Class<FPR32>) -> 0(Class<VR>)) 
-		Combined result: 8.02 cycles
+			VFSUB_VF(2(Class<FPR32>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMFNE_VV-----
-	VMFNE_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMFNE_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMFNE_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
 
 -----VMINU_VV-----
-	VMINU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VMINU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	VMINU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VMINU_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMINU_VX-----
-	VMINU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMINU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMINU_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMIN_VV-----
-	VMIN_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMIN_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMIN_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMIN_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMIN_VX-----
-	VMIN_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMIN_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMIN_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMNAND_MM-----
-	VMNAND_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMNAND_MM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMNAND_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMNAND_MM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMNOR_MM-----
-	VMNOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMNOR_MM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMNOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMNOR_MM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMORN_MM-----
-	VMORN_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMORN_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMORN_MM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
 
 -----VMOR_MM-----
-	VMOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMOR_MM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
 
 -----VMSBC_VV-----
-	VMSBC_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMSBC_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSBC_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSBC_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSBC_VVM-----
-	VMSBC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMSBC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSBC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSBC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSBC_VX-----
-	VMSBC_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMSBC_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSBC_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSBC_VXM-----
-	VMSBC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSBC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSBC_VXM(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSBF_M-----
 	VMSBF_M(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -5645,96 +5774,136 @@ Report on individual measurements:
 		 Successful, latency: 4.01
 
 -----VMSEQ_VV-----
-	VMSEQ_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMSEQ_VV(2(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMSEQ_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSEQ_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSEQ_VX-----
-	VMSEQ_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSEQ_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSEQ_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSGTU_VI-----
-	VMSGTU_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSGTU_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSGTU_VX-----
-	VMSGTU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSGTU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSGTU_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSGT_VI-----
-	VMSGT_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSGT_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSGT_VX-----
 	VMSGT_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
+	VMSGT_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSIF_M-----
 	VMSIF_M(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VMSLEU_VI-----
-	VMSLEU_VI(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMSLEU_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSLEU_VV-----
-	VMSLEU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMSLEU_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMSLEU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VMSLEU_VX-----
-	VMSLEU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSLEU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSLEU_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSLE_VI-----
 	VMSLE_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
 
 -----VMSLE_VV-----
-	VMSLE_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VMSLE_VV(2(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	VMSLE_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSLE_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSLE_VX-----
 	VMSLE_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
+	VMSLE_VX(2(Class<GPR>) -> 0(Class<VR>))  [2;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSLTU_VV-----
-	VMSLTU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VMSLTU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSLTU_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSLTU_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSLTU_VX-----
-	VMSLTU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSLTU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSLTU_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSLT_VV-----
 	VMSLT_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VMSLT_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSLT_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSLT_VX-----
-	VMSLT_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSLT_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSLT_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSNE_VI-----
-	VMSNE_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSNE_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSNE_VV-----
-	VMSNE_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VMSNE_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMSNE_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSNE_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMSNE_VX-----
-	VMSNE_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VMSNE_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMSNE_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMSOF_M-----
 	VMSOF_M(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -5747,18 +5916,28 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VMULHSU_VX-----
-	VMULHSU_VX(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VMULHSU_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VMULHSU_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMULHU_VV-----
-	VMULHU_VV(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	VMULHU_VV(2(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VMULHU_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VMULHU_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VMULHU_VX-----
 	VMULHU_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
+	VMULHU_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMULH_VV-----
 	VMULH_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -5767,8 +5946,13 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VMULH_VX-----
-	VMULH_VX(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VMULH_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VMULH_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMUL_VV-----
 	VMUL_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -5777,48 +5961,82 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VMUL_VX-----
-	VMUL_VX(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VMUL_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VMUL_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VMV1R_V-----
-	VMV1R_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMV1R_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VMV2R_V-----
 	VMV2R_V(1(Class<VRM2>) -> 0(Class<VRM2>))  [4;4]
 		 Successful, latency: 4
 
 -----VMV4R_V-----
-	VMV4R_V(1(Class<VRM4>) -> 0(Class<VRM4>))  [8.02;8.02]
-		 Successful, latency: 8.02
+	VMV4R_V(1(Class<VRM4>) -> 0(Class<VRM4>))  [8.01;8.01]
+		 Successful, latency: 8.01
 
 -----VMV8R_V-----
 	VMV8R_V(1(Class<VRM8>) -> 0(Class<VRM8>))  [16;16]
 		 Successful, latency: 16
 
 -----VMV_S_X-----
-	VMV_S_X(1(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	VMV_S_X(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VMV_S_X(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VMV_V_V-----
-	VMV_V_V(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMV_V_V(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+
+-----VMV_V_X-----
+	VMV_V_X(1(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
+
+-----VMV_X_S-----
+	VMV_X_S(1(Class<VR>) -> 0(Class<GPR>))  [1.01;7.02]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.02 cycles
+	VMV_X_S(impl(Reg<VL>) -> 0(Class<GPR>))  [1;5.01]
+		Dependencies:
+			VMV_X_S(impl(Reg<VL>) -> 0(Class<GPR>)) 
+			VSETVLI(1(Class<GPR>) -> impl(Reg<VL>)) 
+		Combined result: 6.01 cycles
+	VMV_X_S(impl(Reg<VTYPE>) -> 0(Class<GPR>))  [1;5.01]
+		Dependencies:
+			VMV_X_S(impl(Reg<VTYPE>) -> 0(Class<GPR>)) 
+			VSETVLI(1(Class<GPR>) -> impl(Reg<VTYPE>)) 
+		Combined result: 6.01 cycles
 
 -----VMXNOR_MM-----
-	VMXNOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4.03;4.03]
-		 Successful, latency: 4.03
+	VMXNOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMXNOR_MM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VMXOR_MM-----
-	VMXOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VMXOR_MM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VMXOR_MM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VNCLIPU_WI-----
-	VNCLIPU_WI(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNCLIPU_WI(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VNCLIPU_WV-----
 	VNCLIPU_WV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -5827,50 +6045,60 @@ Report on individual measurements:
 		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
 
 -----VNCLIPU_WX-----
-	VNCLIPU_WX(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNCLIPU_WX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VNCLIP_WI-----
-	VNCLIP_WI(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNCLIP_WI(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VNCLIP_WV-----
-	VNCLIP_WV(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VNCLIP_WV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VNCLIP_WV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ILLEGAL_INSTRUCTION]
 		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
 
 -----VNCLIP_WX-----
-	VNCLIP_WX(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNCLIP_WX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VNMSAC_VV-----
 	VNMSAC_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VNMSAC_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VNMSAC_VV(3(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNMSAC_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VNMSAC_VX-----
 	VNMSAC_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VNMSAC_VX(3(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VNMSAC_VX(3(Class<VR>) -> 0(Class<VR>))  [5;5]
+		 Successful, latency: 5
+	VNMSAC_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VNMSUB_VV-----
 	VNMSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 	VNMSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
-	VNMSUB_VV(3(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNMSUB_VV(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VNMSUB_VX-----
-	VNMSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
-	VNMSUB_VX(3(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNMSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VNMSUB_VX(3(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VNMSUB_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VNSRA_WI-----
 	VNSRA_WI(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
@@ -5891,8 +6119,8 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VNSRL_WV-----
-	VNSRL_WV(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VNSRL_WV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VNSRL_WV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ILLEGAL_INSTRUCTION]
 		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
 
@@ -5901,18 +6129,23 @@ Report on individual measurements:
 		 Successful, latency: 5.01
 
 -----VOR_VI-----
-	VOR_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VOR_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VOR_VV-----
-	VOR_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VOR_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VOR_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VOR_VX-----
-	VOR_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VOR_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VOR_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VQMACCSU_2x8x2-----
 	VQMACCSU_2x8x2(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -5969,10 +6202,10 @@ Report on individual measurements:
 		 Successful, latency: 6.01
 
 -----VREDMAXU_VS-----
-	VREDMAXU_VS(1(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
-	VREDMAXU_VS(2(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VREDMAXU_VS(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
+	VREDMAXU_VS(2(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 
 -----VREDMAX_VS-----
 	VREDMAX_VS(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
@@ -5983,12 +6216,12 @@ Report on individual measurements:
 -----VREDMINU_VS-----
 	VREDMINU_VS(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
 		 Successful, latency: 7.01
-	VREDMINU_VS(2(Class<VR>) -> 0(Class<VR>))  [7.04;7.04]
-		 Successful, latency: 7.04
+	VREDMINU_VS(2(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 
 -----VREDMIN_VS-----
-	VREDMIN_VS(1(Class<VR>) -> 0(Class<VR>))  [7.03;7.03]
-		 Successful, latency: 7.03
+	VREDMIN_VS(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 	VREDMIN_VS(2(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
 		 Successful, latency: 7.01
 
@@ -5999,10 +6232,10 @@ Report on individual measurements:
 		 Successful, latency: 6.01
 
 -----VREDSUM_VS-----
-	VREDSUM_VS(1(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
-	VREDSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VREDSUM_VS(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
+	VREDSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 
 -----VREDXOR_VS-----
 	VREDXOR_VS(1(Class<VR>) -> 0(Class<VR>))  [6.01;6.01]
@@ -6019,6 +6252,11 @@ Report on individual measurements:
 -----VREMU_VX-----
 	VREMU_VX(1(Class<VR>) -> 0(Class<VR>))  [22;22]
 		 Successful, latency: 22
+	VREMU_VX(2(Class<GPR>) -> 0(Class<VR>))  [15;21]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 22 cycles
 
 -----VREM_VV-----
 	VREM_VV(1(Class<VR>) -> 0(Class<VR>))  [24;24]
@@ -6029,6 +6267,11 @@ Report on individual measurements:
 -----VREM_VX-----
 	VREM_VX(1(Class<VR>) -> 0(Class<VR>))  [24;24]
 		 Successful, latency: 24
+	VREM_VX(2(Class<GPR>) -> 0(Class<VR>))  [17;23]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 24 cycles
 
 -----VREV8_V-----
 	VREV8_V(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -6085,54 +6328,84 @@ Report on individual measurements:
 -----VRSUB_VX-----
 	VRSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
+	VRSUB_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSADDU_VI-----
-	VSADDU_VI(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSADDU_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
 
 -----VSADDU_VV-----
 	VSADDU_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
-	VSADDU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSADDU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
 
 -----VSADDU_VX-----
-	VSADDU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSADDU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VSADDU_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSADD_VI-----
 	VSADD_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VSADD_VV-----
-	VSADD_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
-	VSADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSADD_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSADD_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VSADD_VX-----
 	VSADD_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
+	VSADD_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSBC_VVM-----
-	VSBC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSBC_VVM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VSBC_VVM(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VSBC_VXM-----
-	VSBC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSBC_VXM(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSETVL-----
-	VSETVL(1(Class<GPR>) -> 0(Class<GPR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSETVL(1(Class<GPR>) -> 0(Class<GPR>))  [4;4]
+		 Successful, latency: 4
 	VSETVL(2(Class<GPR>) -> 0(Class<GPR>))  [10.5;10.5]
 		 Successful, latency: 10.5
 
 -----VSETVLI-----
-	VSETVLI(1(Class<GPR>) -> 0(Class<GPR>))  [3.01;3.01]
-		 Successful, latency: 3.01
+	VSETVLI(1(Class<GPR>) -> 0(Class<GPR>))  [3;3]
+		 Successful, latency: 3
+	VSETVLI(1(Class<GPR>) -> impl(Reg<VL>))  [1;5.01]
+		Dependencies:
+			VMV_X_S(impl(Reg<VL>) -> 0(Class<GPR>)) 
+			VSETVLI(1(Class<GPR>) -> impl(Reg<VL>)) 
+		Combined result: 6.01 cycles
+	VSETVLI(1(Class<GPR>) -> impl(Reg<VTYPE>))  [1;5.01]
+		Dependencies:
+			VMV_X_S(impl(Reg<VTYPE>) -> 0(Class<GPR>)) 
+			VSETVLI(1(Class<GPR>) -> impl(Reg<VTYPE>)) 
+		Combined result: 6.01 cycles
 
 -----VSEXT_VF2-----
 	VSEXT_VF2(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ILLEGAL_INSTRUCTION]
@@ -6171,20 +6444,30 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VSLIDE1DOWN_VX-----
-	VSLIDE1DOWN_VX(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VSLIDE1DOWN_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
+	VSLIDE1DOWN_VX(2(Class<GPR>) -> 0(Class<VR>))  [2;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VSLIDE1UP_VX-----
 	VSLIDE1UP_VX(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VSLIDEDOWN_VI-----
-	VSLIDEDOWN_VI(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VSLIDEDOWN_VI(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 
 -----VSLIDEDOWN_VX-----
 	VSLIDEDOWN_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
+	VSLIDEDOWN_VX(2(Class<GPR>) -> 0(Class<VR>))  [2.99;9]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 10 cycles
 
 -----VSLIDEUP_VI-----
 	VSLIDEUP_VI(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -6195,18 +6478,23 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VSLL_VI-----
-	VSLL_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSLL_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VSLL_VV-----
-	VSLL_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSLL_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VSLL_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
 
 -----VSLL_VX-----
-	VSLL_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSLL_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSLL_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSM3C_VI-----
 	VSM3C_VI(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -6237,42 +6525,57 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VSMUL_VV-----
-	VSMUL_VV(1(Class<VR>) -> 0(Class<VR>))  [5;5]
-		 Successful, latency: 5
+	VSMUL_VV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VSMUL_VV(2(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
 
 -----VSMUL_VX-----
 	VSMUL_VX(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
 		 Successful, latency: 5.01
+	VSMUL_VX(2(Class<GPR>) -> 0(Class<VR>))  [1.99;8]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 9.01 cycles
 
 -----VSRA_VI-----
-	VSRA_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSRA_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VSRA_VV-----
-	VSRA_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSRA_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VSRA_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VSRA_VX-----
 	VSRA_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
+	VSRA_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSRL_VI-----
 	VSRL_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VSRL_VV-----
-	VSRL_VV(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
-	VSRL_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSRL_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSRL_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VSRL_VX-----
-	VSRL_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSRL_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
+		 Successful, latency: 4.01
+	VSRL_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSSRA_VI-----
 	VSSRA_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
@@ -6285,42 +6588,62 @@ Report on individual measurements:
 		 Successful, latency: 4.01
 
 -----VSSRA_VX-----
-	VSSRA_VX(1(Class<VR>) -> 0(Class<VR>))  [4.02;4.02]
-		 Successful, latency: 4.02
+	VSSRA_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSSRA_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.991;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSSRL_VI-----
-	VSSRL_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSRL_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VSSRL_VV-----
-	VSSRL_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSRL_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VSSRL_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
 		 Successful, latency: 4
 
 -----VSSRL_VX-----
-	VSSRL_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSRL_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSSRL_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.991;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSSUBU_VV-----
-	VSSUBU_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSUBU_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VSSUBU_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VSSUBU_VX-----
-	VSSUBU_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSUBU_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSSUBU_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSSUB_VV-----
 	VSSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
-	VSSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSUB_VV(2(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VSSUB_VX-----
-	VSSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSSUB_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VSUB_VV-----
 	VSUB_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
@@ -6329,8 +6652,13 @@ Report on individual measurements:
 		 Successful, latency: 4
 
 -----VSUB_VX-----
-	VSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VSUB_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VSUB_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.993;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VT_MASKC-----
 	VT_MASKC(1(Class<GPR>) -> 0(Class<GPR>))  [ERROR_ASSEMBLY]
@@ -6361,8 +6689,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VWADDU_WX-----
-	VWADDU_WX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VWADDU_WX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VWADD_VV-----
 	VWADD_VV(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -6381,8 +6709,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VWADD_WX-----
-	VWADD_WX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VWADD_WX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VWMACCSU_VV-----
 	VWMACCSU_VV(1(Class<VR>) -> 0(Class<VR>))  [6.01;6.01]
@@ -6427,8 +6755,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VWMACC_VX-----
-	VWMACC_VX(1(Class<VR>) -> 0(Class<VR>))  [6.02;6.02]
-		 Successful, latency: 6.02
+	VWMACC_VX(1(Class<VR>) -> 0(Class<VR>))  [6.01;6.01]
+		 Successful, latency: 6.01
 	VWMACC_VX(3(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -6469,10 +6797,10 @@ Report on individual measurements:
 		 Successful, latency: 7.01
 
 -----VWREDSUM_VS-----
-	VWREDSUM_VS(1(Class<VR>) -> 0(Class<VR>))  [7;7]
-		 Successful, latency: 7
-	VWREDSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [7.02;7.02]
-		 Successful, latency: 7.02
+	VWREDSUM_VS(1(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
+	VWREDSUM_VS(2(Class<VR>) -> 0(Class<VR>))  [7.01;7.01]
+		 Successful, latency: 7.01
 
 -----VWSLL_VI-----
 	VWSLL_VI(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
@@ -6499,8 +6827,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VWSUBU_WV-----
-	VWSUBU_WV(1(Class<VR>) -> 0(Class<VR>))  [5.02;5.02]
-		 Successful, latency: 5.02
+	VWSUBU_WV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
+		 Successful, latency: 5.01
 	VWSUBU_WV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -6519,8 +6847,8 @@ Report on individual measurements:
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
 -----VWSUB_WV-----
-	VWSUB_WV(1(Class<VR>) -> 0(Class<VR>))  [5.01;5.01]
-		 Successful, latency: 5.01
+	VWSUB_WV(1(Class<VR>) -> 0(Class<VR>))  [5;5]
+		 Successful, latency: 5
 	VWSUB_WV(2(Class<VR>) -> 0(Class<VR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
@@ -6529,18 +6857,23 @@ Report on individual measurements:
 		 Successful, latency: 4.01
 
 -----VXOR_VI-----
-	VXOR_VI(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VXOR_VI(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 
 -----VXOR_VV-----
-	VXOR_VV(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VXOR_VV(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
 	VXOR_VV(2(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
 		 Successful, latency: 4.01
 
 -----VXOR_VX-----
-	VXOR_VX(1(Class<VR>) -> 0(Class<VR>))  [4.01;4.01]
-		 Successful, latency: 4.01
+	VXOR_VX(1(Class<VR>) -> 0(Class<VR>))  [4;4]
+		 Successful, latency: 4
+	VXOR_VX(2(Class<GPR>) -> 0(Class<VR>))  [0.992;7]
+		Dependencies:
+			VMV_X_S(1(Class<VR>) -> 0(Class<GPR>)) 
+			VSBC_VXM(2(Class<GPR>) -> 0(Class<VR>)) 
+		Combined result: 8.01 cycles
 
 -----VZEXT_VF2-----
 	VZEXT_VF2(1(Class<VR>) -> 0(Class<VR>))  [ERROR_ILLEGAL_INSTRUCTION]
@@ -6561,14 +6894,14 @@ Report on individual measurements:
 		 Successful, latency: 1
 
 -----XOR-----
-	XOR(1(Class<GPR>) -> 0(Class<GPR>))  [0.416;0.416]
-		 Successful, latency: 0.416
+	XOR(1(Class<GPR>) -> 0(Class<GPR>))  [0.418;0.418]
+		 Successful, latency: 0.418
 	XOR(2(Class<GPR>) -> 0(Class<GPR>))  [0.417;0.417]
 		 Successful, latency: 0.417
 
 -----XORI-----
-	XORI(1(Class<GPR>) -> 0(Class<GPR>))  [0.5;0.5]
-		 Successful, latency: 0.5
+	XORI(1(Class<GPR>) -> 0(Class<GPR>))  [0.501;0.501]
+		 Successful, latency: 0.501
 
 -----XPERM4-----
 	XPERM4(1(Class<GPR>) -> 0(Class<GPR>))  [ERROR_ASSEMBLY]
@@ -6594,4 +6927,7 @@ Report on individual measurements:
 	ZIP_RV32(1(Class<GPR>) -> 0(Class<GPR>))  [ERROR_ASSEMBLY]
 		ERROR_ASSEMBLY, this instruction cannot be measured on this platform
 
-total runtime: 554.331 (s)
+Loading existing database: spacemit-x60.yaml
+SUCCESS
+Saving database to: spacemit-x60.yaml
+total runtime: 1062.79 (s)
