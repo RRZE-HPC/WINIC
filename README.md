@@ -30,7 +30,7 @@ To calculate throughput and latency WINIC needs the clock-frequency to be fixed 
 | `-v,--version` | Show version | - |
 
 ## Available modes:
-### LAT/TP:
+### TP/LAT:
 Measure latencies or inverse throughputs.
 By default WINIC measures all available instructions and generates a .yaml file with the results. Additionally a `report_{MODE}_{TIMESTAMP}` is generated providing additional information about how the values were obtained and warnings about unusual results. The runtime of a full run strongly depends on the architecture, here some rough estimates:
 
@@ -71,7 +71,7 @@ winic -f <frequency> MAN --path file.s --func-name tp --num-instructions 12
 | `--init-name` | Initialization function | - |
 | `--runs N` | Repeat each measurement `N` times and take the minimum runtime | 4 |
 
-There are always cases where WINIC doesn't produce correct data. To do a custom benchmark for an instruction, first run WINIC in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME>`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
+There are always cases where WINIC doesn't produce correct data. To do a custom benchmark for an instruction, first run WINIC in TP or LAT mode with `-i <LLVM_INSTRUCTION_NAME> --output-asm`. This will output all `.s` files generated for the benchmark to `asm/` and an `assembler_out.log`. The `.s` files can then be modified and executed using the MAN-mode.
 
 ## Updating a database
 By default TP and LAT mode generate a `db_{TIMESTAMP}.yaml` file with the results. Use `-o/--output <file.yaml>` to specify a custom path instead. If the file already exists the values obtained during the run will overwrite the existing ones according to the following rules:
@@ -93,5 +93,4 @@ The solution is to first do a full run and look up the dependencies of the instr
 Note that currently `--output` does NOT load the values into the internal working databases so the information read from there can NOT be used as helpers.
 
 ## Analysis/Reference files
-There are scripts in `analysis/` to compare the measurements on x86 with uops.info or to generate useful reference files which contain comprehensive information about instructions, operands, registers etc. from LLVM. For more details refer to `analysis/README.md`.
-
+The `analysis/` python module can be used to compare the results with various other sources, or to generate useful reference files which contain comprehensive information about instructions, operands, registers etc. from LLVM. For more details refer to `analysis/README.md`.
