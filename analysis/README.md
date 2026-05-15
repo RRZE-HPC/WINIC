@@ -12,16 +12,14 @@ Then run
 ```bash
 python -m analysis.cli compare uops <arch> <db.yaml> --output plot.svg
 ```
-to compare a WINIC database to uops.info. A plot with the results will be written to plot.svg
+to compare a WINIC database to uops.info and plot the result.
 
 ## Usage
 Run the CLI with:
 
 ```bash
-python -m analysis.cli <command> [options]
+python -m analysis.cli <command> [subcommand] [options]
 ```
-
-## Commands
 
 ### setup
 This script collection needs the uops.info database as well as llvm-tblgen dumps to work. The `setup` command downloads and generates all necessary files automatically. For the tblgen dumps it needs the `llvm-tblgen` binary built with LLVM, therefore a llvm build directory must be supplied. Refer to the main README for how to build LLVM for WINIC.
@@ -40,58 +38,91 @@ python -m analysis.cli setup <llvm_build_dir> [--step dump|uops|ref|all] [--forc
 
 
 ### diff
-Generate a diff between two WINIC YAML files.
+Compare two WINIC YAML files.
 
 **Usage:**
 ```bash
-python -m analysis.cli diff <db1.yaml> <db2.yaml> [--mode TP|LAT|BOTH] [--output <file>]
+python -m analysis.cli diff <db1.yaml> <db2.yaml> [--mode TP|LAT|BOTH] [--verbose -v]
 ```
 - `db1`, `db2`: Paths to the WINIC database files.
 - `--mode`: Compare throughput (`TP`), latency (`LAT`), or both (`BOTH`). Default: BOTH.
-- `--output`: Write a detailed diff report to a file.
+- `--verbose`: Report every individual change.
 
-### compare
-Compare a database against values from uops.info and plot the results. This is only available for x86 since uops.info only has x86 data. (Comparison with the Neoverse-V2 opt guide coming soon)
+### compare to uops / documentation
+Compare WINIC results to results from uops.info (x86 only) or selected documentation (zen4, neoverse-v2).
 
 **Usage:**
 ```bash
-python -m analysis.cli compare <source> <arch> <db.yaml> [--mode TP|LAT|BOTH] [--output <file>]
+python -m analysis.cli compare <uops / docs> <arch> <db.yaml> [--mode TP|LAT|BOTH] [--output <file>]
 ```
-- `source`: Source to compare to, currently only `uops` is supported 
 - `arch`: Architecture name (see supported list below).
 - `db`: Path to the database file.
 - `--mode`: Compare throughput, latency, or both. Default: BOTH.
 - `--output`: Plot results to a file.
 
-#### Supported Architectures
-- CON: Conroe
-- WOL: Wolfdale
-- NHM: Nehalem
-- WSM: Westmere
-- SNB: Sandy Bridge
-- IVB: Ivy Bridge
-- HSW: Haswell
-- BDW: Broadwell
-- SKL: Skylake
-- SKX: Skylake-X
-- KBL: Kaby Lake
-- CFL: Coffee Lake
-- CNL: Cannon Lake
-- CLX: Cascade Lake
-- ICL: Ice Lake
-- TGL: Tiger Lake
-- RKL: Rocket Lake
-- ADL-P: Alder Lake-P
-- ADL-E: Alder Lake-E
-- BNL: Bonnell
-- AMT: Atom
-- GLM: Goldmont
-- GLP: Goldmont Plus
-- TRM: Tremont
-- ZEN+: Zen+
-- ZEN2: Zen 2
-- ZEN3: Zen 3
-- ZEN4: Zen 4
+#### Supported Architectures for uops
+<table>
+<tr>
+<td valign="top">
+<table>
+<tr><th>Shorthand</th><th>Architecture</th></tr>
+<tr><td>NHM   </td><td> Nehalem</td></tr>
+<tr><td>WSM   </td><td> Westmere</td></tr>
+<tr><td>SNB   </td><td> Sandy Bridge </td><td>
+<tr><td>IVB   </td><td> Ivy Bridge </td><td>
+<tr><td>HSW   </td><td> Haswell </td><td>
+<tr><td>BDW   </td><td> Broadwell </td><td>
+<tr><td>SKL   </td><td> Skylake </td><td>
+<tr><td>SKX   </td><td> Skylake-X </td><td>
+<tr><td>KBL   </td><td> Kaby Lake </td><td>
+<tr><td>CFL   </td><td> Coffee Lake </td><td>
+<tr><td>CNL   </td><td> Cannon Lake </td><td>
+<tr><td>CLX   </td><td> Cascade Lake </td><td>
+<tr><td>ICL   </td><td> Ice Lake </td><td>
+</table>
+</td>
+
+<td valign="top">
+<table>
+<tr><th>Shorthand</th><th>Architecture</th></tr>
+<tr><td>TGL   </td><td> Tiger Lake </td><td>
+<tr><td>RKL   </td><td> Rocket Lake </td><td>
+<tr><td>ADL-P </td><td> Alder Lake-P </td><td>
+<tr><td>ADL-E </td><td> Alder Lake-E </td><td>
+<tr><td>BNL   </td><td> Bonnell </td><td>
+<tr><td>AMT   </td><td> Atom </td><td>
+<tr><td>GLM   </td><td> Goldmont </td><td>
+<tr><td>GLP   </td><td> Goldmont Plus </td><td>
+<tr><td>TRM   </td><td> Tremont </td><td>
+<tr><td>ZEN+  </td><td> Zen+ </td><td>
+<tr><td>ZEN2  </td><td> Zen 2 </td><td>
+<tr><td>ZEN3  </td><td> Zen 3 </td><td>
+<tr><td>ZEN4  </td><td> Zen 4 </td><td>
+</table>
+</td>
+</tr>
+</table>
+
+
+#### Supported Architectures for docs
+| Shorthand | Architecture |
+|---|---|
+| V2 | Neoverse v2 |
+| ZEN4 | Zen 4 |
+
+### compare to exegesis / OSACA
+Compare WINIC results to llvm-exegesis output.
+
+**Usage:**
+```bash
+python -m analysis.cli compare <exegesis / osaca> <db_winic> <db_other> [db_exegesis ...] [--mode TP|LAT|BOTH] [--output <file>]
+```
+- `db_winic`: Path to the WINIC database file.
+- `db_other`: exegesis/OSACA database.
+- `db_exegesis`: Paths to the exegesis YAML files (can specify multiple).
+- `--mode`: Compare throughput, latency, or both. Default: BOTH.
+- `--output`: Plot results to a file.
+
 
 ### plot
 Generate plots from hardcoded data. This is mostly useful for developing new plotting scripts.
@@ -104,13 +135,16 @@ python -m analysis.cli plot <output_path> [--mode TP|LAT|BOTH]
 - `--mode`: Plot throughput, latency, or both. Default: BOTH.
 
 ### stat
-Generate statistics for a WINIC database. Extracts how many TP/LAT entries are ranges vs exact values as well as the number of instructions with different latency values for different operand combinations.
+Generate statistics for a WINIC database.
 
 **Usage:**
 ```bash
-python -m analysis.cli stat <db.yaml>
+python -m analysis.cli stat <type> <db.yaml> [options]
 ```
-- `db`: Path to the database file.
+**Types:**
+- `ranges`: Count how many instructions have ranges instead of exact values for TP/LAT.
+- `sublatencies`: Count how many instructions have distinct sublatency values for different operand combinations.
+- `distribution`: Plot the distribution of TP/LAT values.
 
 
 ## Reference Files
