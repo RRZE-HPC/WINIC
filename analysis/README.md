@@ -64,41 +64,43 @@ python -m analysis.cli compare <uops / docs> <arch> <db.yaml> [--mode TP|LAT|BOT
 <table>
 <tr>
 <td valign="top">
-<table>
-<tr><th>Shorthand</th><th>Architecture</th></tr>
-<tr><td>NHM   </td><td> Nehalem</td></tr>
-<tr><td>WSM   </td><td> Westmere</td></tr>
-<tr><td>SNB   </td><td> Sandy Bridge </td><td>
-<tr><td>IVB   </td><td> Ivy Bridge </td><td>
-<tr><td>HSW   </td><td> Haswell </td><td>
-<tr><td>BDW   </td><td> Broadwell </td><td>
-<tr><td>SKL   </td><td> Skylake </td><td>
-<tr><td>SKX   </td><td> Skylake-X </td><td>
-<tr><td>KBL   </td><td> Kaby Lake </td><td>
-<tr><td>CFL   </td><td> Coffee Lake </td><td>
-<tr><td>CNL   </td><td> Cannon Lake </td><td>
-<tr><td>CLX   </td><td> Cascade Lake </td><td>
-<tr><td>ICL   </td><td> Ice Lake </td><td>
-</table>
-</td>
+  
+| Shorthand | Architecture |
+|---|---|
+| CON | Conroe |
+| WOL | Wolfdale |
+| NHM | Nehalem |
+| WSM | Westmere |
+| SNB | Sandy Bridge |
+| IVB | Ivy Bridge |
+| HSW | Haswell |
+| BDW | Broadwell |
+| SKL | Skylake |
+| SKX | Skylake-X |
+| KBL | Kaby Lake |
+| CFL | Coffee Lake |
+| CNL | Cannon Lake |
+| CLX | Cascade Lake |
 
+</td>
 <td valign="top">
-<table>
-<tr><th>Shorthand</th><th>Architecture</th></tr>
-<tr><td>TGL   </td><td> Tiger Lake </td><td>
-<tr><td>RKL   </td><td> Rocket Lake </td><td>
-<tr><td>ADL-P </td><td> Alder Lake-P </td><td>
-<tr><td>ADL-E </td><td> Alder Lake-E </td><td>
-<tr><td>BNL   </td><td> Bonnell </td><td>
-<tr><td>AMT   </td><td> Atom </td><td>
-<tr><td>GLM   </td><td> Goldmont </td><td>
-<tr><td>GLP   </td><td> Goldmont Plus </td><td>
-<tr><td>TRM   </td><td> Tremont </td><td>
-<tr><td>ZEN+  </td><td> Zen+ </td><td>
-<tr><td>ZEN2  </td><td> Zen 2 </td><td>
-<tr><td>ZEN3  </td><td> Zen 3 </td><td>
-<tr><td>ZEN4  </td><td> Zen 4 </td><td>
-</table>
+
+| Shorthand | Architecture |
+|---|---|
+| ICL | Ice Lake |
+| TGL | Tiger Lake |
+| RKL | Rocket Lake |
+| ADL-P | Alder Lake-P |
+| ADL-E | Alder Lake-E |
+| BNL | Bonnell |
+| AMT | Atom |
+| GLM | Goldmont |
+| GLP | Goldmont Plus |
+| TRM | Tremont |
+| ZEN+ | Zen+ |
+| ZEN2 | Zen 2 |
+| ZEN3 | Zen 3 |
+| ZEN4 | Zen 4 |
 </td>
 </tr>
 </table>
