@@ -182,7 +182,7 @@ def get_stats(
     o_inst: Instruction,
     counters: CompareCounters,
     mode: Literal["TP", "LAT", "BOTH"] = "BOTH",
-    pr: bool = False,
+    verbose: bool = False,
 ):
     assert mode in ["TP", "LAT", "BOTH"]
 
@@ -192,11 +192,11 @@ def get_stats(
             if cl == "FULL":
                 counters.c_lat_full += 1
             elif cl == "PARTIAL":
-                if pr:
+                if verbose:
                     print(f"{'{'}partial_lat_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_partial += 1
             else:
-                if pr:
+                if verbose:
                     print(f"{'{'}no_lat_match_at_all: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_no += 1
 
@@ -206,11 +206,11 @@ def get_stats(
             if cl == "FULL":
                 counters.c_tp_full += 1
             elif cl == "PARTIAL":
-                if pr:
+                if verbose:
                     print(f"{'{'}partial_tp_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_tp_partial += 1
             else:
-                if pr:
+                if verbose:
                     print(f"{'{'}no_tp_match_at_all: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_tp_no += 1
 
@@ -259,7 +259,8 @@ def compare_lists(
     w_instructions: List[Instruction],
     o_instructions: List[Instruction],
     mode: Literal["TP", "LAT", "BOTH"] = "BOTH",
-    verbosity: Literal["conservative", "loose"] = "conservative",
+    strictness: Literal["conservative", "loose"] = "conservative",
+    verbose: bool = False,
 ) -> CompareCounters:
     # o_match_map: dict[str, list[str]] = {}
     # def track_match(w_inst: Instruction, o_inst: Instruction):
@@ -329,7 +330,7 @@ def compare_lists(
             # for s in scored_candidates:
             #     print(f"scored_candidates: {[_short(c) for c in s]}")
             # print("\n")
-            if verbosity == "conservative":
+            if strictness == "conservative":
                 continue
             # loose mode: create one instruction containing all unique values of all matches
             n_inst = copy.deepcopy(highest_score_bin[0])
@@ -358,7 +359,7 @@ def compare_lists(
         # if w_inst in w_unmatched:
         #     w_unmatched.remove(w_inst)
 
-        counters = get_stats(w_inst, o_inst, counters, mode, True)
+        counters = get_stats(w_inst, o_inst, counters, mode, verbose)
 
     # check total number of instruction with value
     c_lat_obtained = 0  # how many instructions have a latency value
@@ -495,9 +496,6 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
     # from now on there are no ranges left
     values_o = set([v.cyclesMin for v in values_to_check_o])
     values_w = set([v.cyclesMin for v in values_to_check_w])
-    if w_inst.sourceName == "SQRTSSr_Int":
-        print(f"{values_o=}")
-        print(f"{values_w=}")
 
     for o_value in values_o:
         if any(eq(w_value, o_value) for w_value in values_w):

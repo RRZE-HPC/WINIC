@@ -101,33 +101,33 @@ def main():
     compare_parser = subparsers.add_parser("compare", help="Compare database and plot results")
     sub_compare_parser = compare_parser.add_subparsers(dest="compare_source")
 
-    # compare to ups
+    # compare to uops
     uops_c_parser = sub_compare_parser.add_parser("uops", help="Compare to results from uops.info")
     uops_c_parser.add_argument("arch", choices=UOPS_ARCHES, help=arch_help)
     uops_c_parser.add_argument("db", help="Path to database YAML file")
     uops_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    uops_c_parser.add_argument("--output", default="", help="Plot results to file")
+    uops_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 
     # compare to docs
     docs_c_parser = sub_compare_parser.add_parser("docs", help="Compare to documentation")
     docs_c_parser.add_argument("arch", choices=DOCS_ARCHES, help=arch_help)
     docs_c_parser.add_argument("db", help="Path to database YAML file(s)")
     docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--output", default="", help="Plot results to file")
+    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 
     # compare to exegesis
     docs_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm-exegesis output")
     docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
     docs_c_parser.add_argument("db_exegesis", nargs="+",     help="Paths to exegesis YAML files")
     docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--output", default="", help="Plot results to file")
+    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 
     # compare to osaca
     docs_c_parser = sub_compare_parser.add_parser("osaca", help="Compare to osaca database")
     docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
     docs_c_parser.add_argument("db_osaca", help="Path to exegesis YAML file")
     docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--output", default="", help="Plot results to file")
+    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 
     # plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots out of hardcoded data")
@@ -174,26 +174,21 @@ def main():
             if args.compare_source == "docs":
                 if args.arch == "V2":
                     from analysis.comparison.compare_v2 import compare_winic_v2
-                    compare_winic_v2(args.db, args.mode, args.output)
+                    compare_winic_v2(args.db, args.mode, args.verbose)
                 elif args.arch == "ZEN4":
                     from analysis.comparison.compare_zen4_sheet import compare_winic_zen4_sheet
-                    compare_winic_zen4_sheet(args.db, args.mode, args.output)
+                    compare_winic_zen4_sheet(args.db, args.mode, args.verbose)
             elif args.compare_source == "exegesis":
                 from analysis.comparison.compare_exegesis import compare_winic_exegesis
                 if  isinstance(args.db_exegesis, str):
                     args.db_exegesis = [args.exegesis]
-                print(f"args.db_exegesis is {args.db_exegesis}")
-                compare_winic_exegesis(args.db_winic, args.db_exegesis, args.mode, args.output)
+                compare_winic_exegesis(args.db_winic, args.db_exegesis, args.mode, args.verbose)
             elif args.compare_source == "osaca":
                 from analysis.comparison.compare_osaca import compare_winic_osaca
-                compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.output)
+                compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.verbose)
             elif args.compare_source == "uops":
                 from analysis.comparison.compare_uops import compare
-                compare(args.db, args.mode, args.arch)
-                if args.output != "":
-                    output_dir = os.path.dirname(args.output)
-                    if output_dir and not os.path.exists(output_dir):
-                        os.makedirs(output_dir, exist_ok=True)
+                compare(args.db, args.mode, args.arch, args.verbose)
                     # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
             plot(None, None, args.path, args.mode)

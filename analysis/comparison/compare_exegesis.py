@@ -1,13 +1,14 @@
 from analysis.globals import *
 from analysis.comparison.helper import *
 from analysis.parsing.parse_exegesis import parse_exegesis
-from analysis.parsing.parse_winic import read_WINIC_db 
+from analysis.parsing.parse_winic import read_WINIC_db
 
 
-def compare_winic_exegesis(db_winic, db_exegesis, mode: Literal["TP", "LAT", "BOTH"], out_file):
+def compare_winic_exegesis(db_winic, db_exegesis, mode: Literal["TP", "LAT", "BOTH"], verbose: bool = False):
     db = read_WINIC_db(db_winic)
 
-    o_instructions: List[Instruction] = combine_dbs([parse_exegesis(d) for d in db_exegesis])
+    print(f"using exegesis databases {db_exegesis}")
+    o_instructions: List[Instruction] = combine_dbs([parse_exegesis(d) for d in db_exegesis], "ReplaceNone")
 
     # load winic instructions
     w_instructions: List[Instruction] = []
@@ -39,8 +40,9 @@ def compare_winic_exegesis(db_winic, db_exegesis, mode: Literal["TP", "LAT", "BO
     w_unmatched = set(w_inst_map).difference(exact_matches)
     o_unmatched = set(o_inst_map).difference(exact_matches)
     print(f"exact matches by LLVM name: {len(exact_matches)}")
-    print(f"{len(o_unmatched)} exegesis entrys not present in winic output: \n {sorted(o_unmatched)}")
-    print(f"{len(w_unmatched)} winic entrys not present in exegesis output: \n {sorted(w_unmatched)}")
+    if verbose:
+        print(f"{len(o_unmatched)} exegesis entrys not present in winic output: \n {sorted(o_unmatched)}")
+        print(f"{len(w_unmatched)} winic entrys not present in exegesis output: \n {sorted(w_unmatched)}")
 
     counters: CompareCounters = CompareCounters()
     for name in exact_matches:

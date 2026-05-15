@@ -6,7 +6,7 @@ from analysis.parsing.parse_winic import parse_WINIC_instruction, read_WINIC_db
 # Naming scheme: w_xxx winic data, o_xxx other sources data
 
 
-def compare_winic_zen4_sheet(database, mode: Literal["TP", "LAT", "BOTH"], out_file):
+def compare_winic_zen4_sheet(database, mode: Literal["TP", "LAT", "BOTH"], verbose: bool = False):
     db = read_WINIC_db(database)
 
     # parse instructions from zen4 csv
@@ -29,4 +29,4 @@ def compare_winic_zen4_sheet(database, mode: Literal["TP", "LAT", "BOTH"], out_f
     o_instructions = temp
     print(f"{len(o_instructions)=}")
 
-    compare_lists(w_instructions, o_instructions, mode, "loose")
+    compare_lists(w_instructions, o_instructions, mode, "loose", verbose)

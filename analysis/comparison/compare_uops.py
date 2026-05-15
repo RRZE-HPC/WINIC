@@ -287,7 +287,7 @@ def compare_each_value(database, type: Literal["lat", "tp"], arch: str) -> Count
     return c
 
 
-def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counters:
+def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str, verbose: bool = False) -> Counters:
     from analysis.comparison.helper import CompareCounters, get_stats, count_instrs_with_values, compare_lists
 
     # parse measured instructions
@@ -296,23 +296,15 @@ def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counter
 
     db = read_WINIC_db(database)
     uops_instructions = parse_uops_database(march)
-    print(f"{len(uops_instructions)=}")
     w_instructions = [parse_WINIC_instruction(db_entry, "X86") for db_entry in db]
-    print(w_instructions[:10])
     # compare_lists(w_instructions, uops_instructions, mode, "loose")
     counters = CompareCounters()
     c_no_match = 0
     c_multiple_matches = 0
     c_one_match = 0
 
-    progress = 0
-    outputLines = []
     w_instructions = []
     for db_entry in db:
-        # progress += 1
-        # progress_bar(progress, len(db))
-        # if c.dbProgressC % 1000 == 0:
-        #     print(c.dbProgressC)
         llvm_name = db_entry["llvmName"]
         if dbgInstruction != "" and llvm_name != dbgInstruction:
             continue
@@ -322,18 +314,16 @@ def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counter
             continue
         w_instructions.append(w_instr)
 
-        # find uops instsruction
+        # find uops instruction
         u_matches: List[Instruction] = []
         for u_instr in uops_instructions:
             if is_same(u_instr, w_instr):
                 u_matches.append(u_instr)
 
         if len(u_matches) == 0:
-            # outputLines.append(f"no_match: {llvm_name}\n")
             c_no_match += 1
             continue
         elif len(u_matches) > 1:
-            # outputLines.append(f"multiple_matches: {llvm_name}\n")
             c_multiple_matches += 1
             # loose mode: create one instruction containing all unique values of all matches
             n_inst = copy.deepcopy(u_matches[0])
@@ -357,10 +347,7 @@ def compare(database, mode: Literal["LAT", "TP", "BOTH"], march: str) -> Counter
         c_one_match += 1
         u_instr = u_matches[0]
 
-        counters = get_stats(w_instr, u_instr, counters, "BOTH", True)
-
-    for line in outputLines:
-        print(line)
+        counters = get_stats(w_instr, u_instr, counters, "BOTH", verbose)
 
     print("match stats:")
     print(f"\t{c_no_match=}")

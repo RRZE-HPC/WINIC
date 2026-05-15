@@ -2,15 +2,16 @@
 This directory contains scripts for analyzing results obtained with WINIC. The main entry point is the CLI tool.
 
 ## Quick start
+Install the necessary python packages in `requirements.txt`.
 Run
 ```bash
 python -m analysis.cli setup <llvm_build_dir>
 ```
-to generate the necessary files for this script collection. A llvm build directory is required.
+to generate the necessary files for this script collection. An LLVM build directory is required.
 
 Then run 
 ```bash
-python -m analysis.cli compare uops <arch> <db.yaml> --output plot.svg
+python -m analysis.cli compare uops <arch> <db.yaml>
 ```
 to compare a WINIC database to uops.info and plot the result.
 
@@ -58,7 +59,7 @@ python -m analysis.cli compare <uops / docs> <arch> <db.yaml> [--mode TP|LAT|BOT
 - `arch`: Architecture name (see supported list below).
 - `db`: Path to the database file.
 - `--mode`: Compare throughput, latency, or both. Default: BOTH.
-- `--output`: Plot results to a file.
+- `--verbose`: Enable verbose output.
 
 #### Supported Architectures for uops
 <table>
@@ -123,7 +124,7 @@ python -m analysis.cli compare <exegesis / osaca> <db_winic> <db_other> [db_exeg
 - `db_other`: exegesis/OSACA database.
 - `db_exegesis`: Paths to the exegesis YAML files (can specify multiple).
 - `--mode`: Compare throughput, latency, or both. Default: BOTH.
-- `--output`: Plot results to a file.
+- `--verbose`: Enable verbose output.
 
 
 ### plot

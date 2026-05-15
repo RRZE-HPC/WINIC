@@ -57,7 +57,7 @@ def _operand_similarity(operands1: List[Operand], operands2: List[Operand], debu
     return 0
 
 
-def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], out_file):
+def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], verbose=False):
     db = read_WINIC_db(db_winic)
 
     # find osaca arch
@@ -86,7 +86,7 @@ def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], 
         if not any([op.type in "mem" for op in o_inst.operands]):
             temp.append(o_inst)
     o_instructions = temp
-    print(f"{len(o_instructions)=}")
+    print(f"osaca db has {len(o_instructions)} instructions")
 
     # group by name
     o_inst_map: dict[str, List[Instruction]] = {}
@@ -97,5 +97,4 @@ def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], 
         else:
             o_inst_map[map_name] = [o_inst]
 
-    print(f"{len(o_inst_map)=}")
-    compare_lists(w_instructions, o_instructions, mode, "loose")
+    compare_lists(w_instructions, o_instructions, mode, "loose", verbose)

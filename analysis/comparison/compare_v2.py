@@ -6,7 +6,7 @@ from analysis.parsing.parse_winic import read_WINIC_db
 # this does not use additional LLVM information as the opt guide does not provide enough info per instruction anyway
 
 
-def compare_winic_v2(database, mode, out_file):
+def compare_winic_v2(database, mode, verbose: bool = False):
     db = read_WINIC_db(database)
 
     # parse neoverse opt guide instructions
