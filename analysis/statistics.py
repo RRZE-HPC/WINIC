@@ -87,11 +87,6 @@ def plot_distribution(database):
     # vals = [latEntry["latencyMin"] for entry in db for latEntry in entry["operandLatencies"] if latEntry["latencyMin"] is not None]
     lats = [entry["latency"] for entry in db if entry["latency"] is not None]
 
-    # vals = [round(1/v) for v in vals]
-    latValues, latCounts = np.unique([round(v) for v in lats], return_counts=True)
-    # tpValues, tpCounts = np.unique([1 / (round(1 / (v + 1e-6)) + 1e-6) for v in tps], return_counts=True)
-    tpValues, tpCounts = np.unique([2 ** np.round(np.log2(v)) for v in tps], return_counts=True)
-
     ax: list[plt.Axes]
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
     ax[0].hist(lats, range=(0, 12), bins=100)
