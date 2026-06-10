@@ -94,17 +94,17 @@ def plot_distribution(database):
 
     ax: list[plt.Axes]
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    ax[0].bar(latValues, latCounts)
-    ax[0].set_xlabel("Latency rounded to next integer")
-    ax[0].set_xlim(0, 20)
-    ax[0].set_xticks(np.arange(20))
+    ax[0].hist(lats, range=(0, 12), bins=100)
+    latNotShown = len([l for l in lats if l > 12])
+    ax[0].set_xlabel(f"Latency ({latNotShown} values out of range)")
+    ax[0].set_xticks(np.arange(0, 12))
     ax[0].set_ylabel("Number of instructions")
 
-    ax[1].bar(range(len(tpValues)), tpCounts)
-    ax[1].set_xlabel("Throughput rounded to next inverse integer")
-    ax[1].set_xticks(range(len(tpValues)))
-    ax[1].set_xticklabels([f"{v:.3f}" for v in tpValues], rotation=45)
-    ax[1].label_outer()
+    ax[1].hist(tps, range=(0, 4.5), bins=100)
+    latNotShown = len([t for t in tps if t > 4.5])
+    ax[1].set_xlabel(f"Reciprocal throughput ({latNotShown} values out of range)")
+    ax[1].set_xticks(np.arange(0, 5, 0.5))
+    # ax[1].label_outer()
 
     fig.suptitle("Distribution of overall latency and througput values (considering maximum sublatency)")
     plt.tight_layout()
