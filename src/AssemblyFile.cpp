@@ -7,6 +7,31 @@
 #include <iostream>
 #include <string>
 
+static std::string stripLine(std::string Line) {
+    size_t start = Line.find_first_not_of(" \t");
+    size_t end = Line.find_last_not_of(" \t");
+    if (start == std::string::npos || end == std::string::npos) return "";
+    return Line.substr(start, end - start + 1);
+}
+
+// strip each line of a block of code and indents it with the specified number of tabs
+static std::string indentBlock(std::string Block, unsigned Tabs){
+    std::string result;
+    llvm::raw_string_ostream rso(result);
+    std::string tabString(Tabs, '\t');
+    size_t pos = 0;
+    while (pos < Block.size()) {
+        size_t nextPos = Block.find('\n', pos);
+        if (nextPos == std::string::npos) nextPos = Block.size();
+        std::string line = Block.substr(pos, nextPos - pos);
+        // strip leading tabs
+        line = stripLine(line);
+        rso << tabString << line << "\n";
+        pos = nextPos + 1;
+    }
+    return result;
+}
+
 namespace winic {
 
 std::string replaceFunctionName(std::string Str, const std::string Name) {
@@ -89,11 +114,11 @@ std::string AssemblyFile::generateBenchFunction(BenchFunction Function) {
     llvm::raw_string_ostream rso(result);
     Template benchTemplate = getTemplate(arch);
     rso << replaceFunctionName(benchTemplate.preLoop, Function.name);
-    rso << Function.preLoopCode;
+    rso << indentBlock(Function.preLoopCode, 2);
     rso << replaceFunctionName(benchTemplate.beginLoop, Function.name);
-    rso << Function.loopCode;
+    rso << indentBlock(Function.loopCode, 2);
     rso << replaceFunctionName(benchTemplate.endLoop, Function.name);
-    rso << Function.postLoopCode;
+    rso << indentBlock(Function.postLoopCode, 2);
     rso << replaceFunctionName(benchTemplate.postLoop, Function.name);
     return result;
 }
@@ -103,7 +128,7 @@ std::string AssemblyFile::generateInitFunction(InitFunction Function) {
     llvm::raw_string_ostream rso(result);
     Template benchTemplate = getTemplate(arch);
     rso << replaceFunctionName(benchTemplate.preInit, Function.name);
-    rso << Function.initCode;
+    rso << indentBlock(Function.initCode, 2);
     rso << replaceFunctionName(benchTemplate.postInit, Function.name);
     return result;
 }
