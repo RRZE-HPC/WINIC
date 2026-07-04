@@ -62,6 +62,7 @@ double clockFrequency;
 unsigned nRuns; // number of repititions for each benchmark
 bool showProgress;
 bool outputASM;
+bool runInSubprocess;
 
 static std::string generateTimestamp() {
     // Get current time
@@ -250,10 +251,10 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     return {SUCCESS, benchtimes};
 }
 
-std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned Runs,
-                                                    unsigned NumInst, int LoopCount,
-                                                    std::string FunctionName,
-                                                    std::string InitName) {
+std::pair<ErrorCode, std::vector<double>> measureManualInProcess(std::string SPath, unsigned Runs,
+                                                                 unsigned NumInst, int LoopCount,
+                                                                 std::string FunctionName,
+                                                                 std::string InitName) {
     dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
         " LoopCount: ", LoopCount, " FunctionName: ", FunctionName, " InitName: ", InitName);
     std::string clangPath = CLANG_PATH;
@@ -429,6 +430,29 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
 
 std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
                                                         long Immediate) {
+    std::cout << runInSubprocess << std::endl;
+    return runInSubprocess ? measureThroughputInSubprocess(Opcode, RegInitValue, Immediate)
+                           : measureThroughputInProcess(Opcode, RegInitValue, Immediate);
+}
+
+std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
+                                            unsigned LoopCount, long RegInitValue, long Immediate) {
+    return runInSubprocess
+               ? measureLatencyInSubprocess(Measurements, LoopCount, RegInitValue, Immediate)
+               : measureLatencyInProcess(Measurements, LoopCount, RegInitValue, Immediate);
+}
+
+std::pair<ErrorCode, std::vector<double>> measureManual(std::string SPath, unsigned Runs,
+                                                        unsigned NumInst, int LoopCount,
+                                                        std::string FunctionName,
+                                                        std::string InitName) {
+    return runInSubprocess
+               ? measureManualInSubprocess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName)
+               : measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
+}
+
+std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode, long RegInitValue,
+                                                                 long Immediate) {
     dbg(__func__, "Opcode: ", Opcode);
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
@@ -485,8 +509,9 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long Re
     return {SUCCESS, correctedTP, correctedTP};
 }
 
-std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, long RegInitValue, long Immediate) {
+std::pair<ErrorCode, double> measureLatencyInProcess(const std::list<LatMeasurement> &Measurements,
+                                                     unsigned LoopCount, long RegInitValue,
+                                                     long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
         " Immediate: ", Immediate);
 
@@ -529,8 +554,8 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     return {SUCCESS, cycles};
 }
 
-std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long RegInitValue,
-                                                          long Immediate) {
+std::tuple<ErrorCode, double, double>
+measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedLowerBound = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -554,7 +579,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long 
         ErrorCode ec;
         double lower;
         double upper;
-        std::tie(ec, lower, upper) = measureThroughput(Opcode, RegInitValue, Immediate);
+        std::tie(ec, lower, upper) = measureThroughputInProcess(Opcode, RegInitValue, Immediate);
 
         *sharedLowerBound = lower;
         *sharedUpperBound = upper;
@@ -590,9 +615,9 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long 
     }
 }
 
-std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
-                                                 unsigned LoopCount, long RegInitValue,
-                                                 long Immediate) {
+std::pair<ErrorCode, double>
+measureLatencyInSubprocess(const std::list<LatMeasurement> &Measurements, unsigned LoopCount,
+                           long RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -610,7 +635,8 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     if (pid == 0) { // Child process
         ErrorCode ec;
         double res;
-        std::tie(ec, res) = measureLatency(Measurements, LoopCount, RegInitValue, Immediate);
+        std::tie(ec, res) =
+            measureLatencyInProcess(Measurements, LoopCount, RegInitValue, Immediate);
 
         *sharedResult = res;
         *sharedEC = ec;
@@ -636,10 +662,9 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     }
 }
 
-std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath, unsigned Runs,
-                                                              unsigned NumInst, unsigned LoopCount,
-                                                              std::string FunctionName,
-                                                              std::string InitName) {
+std::pair<ErrorCode, std::vector<double>>
+measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
+                          std::string FunctionName, std::string InitName) {
     // allocate memory to communicate result
     double *sharedResults = static_cast<double *>(mmap(
         NULL, Runs * sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -657,7 +682,7 @@ std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath,
     if (pid == 0) { // Child process
         ErrorCode EC;
         std::vector<double> res;
-        std::tie(EC, res) = runManual(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
+        std::tie(EC, res) = measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
         *sharedEC = EC;
         for (unsigned i = 0; i < res.size() && i < Runs; i++)
             sharedResults[i] = res[i];
@@ -714,7 +739,7 @@ bool isVariant(unsigned A, unsigned B) {
 
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
 ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate) {
-    auto [EC, lat] = measureInSubprocess({Measurement}, 2, RegInit, Immediate);
+    auto [EC, lat] = measureLatency({Measurement}, 2, RegInit, Immediate);
     if (!isError(EC)) return SUCCESS;
     return EC;
 }
@@ -745,7 +770,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
                 throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
                 continue;
             }
-            auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, RegInitValue, Immediate);
+            auto [EC, lowerTP, upperTP] = measureThroughput(opcode, RegInitValue, Immediate);
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
             throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
 
@@ -775,7 +800,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
-            auto [EC, lat] = measureInSubprocess({measurement}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({measurement}, loopCount, RegInitValue, Immediate);
             measurement.ec = EC;
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
@@ -883,7 +908,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         }
         // measure the combined latency of the two instructions as a baseline
         auto [EC, lat] =
-            measureInSubprocess({*smallestA, *smallestB}, loopCount, RegInitValue, Immediate);
+            measureLatency({*smallestA, *smallestB}, loopCount, RegInitValue, Immediate);
         if (isError(EC)) {
             out(*ios,
                 "\tcannot measure type. very unusual: both instructions can be executed "
@@ -920,7 +945,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end() ||
                 mA->opcode == mB->opcode)
                 continue;
-            auto [EC, lat] = measureInSubprocess({*mA, *mB}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({*mA, *mB}, loopCount, RegInitValue, Immediate);
             if (isError(EC)) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
                     " was unsuccessful, EC: ", ecToString(EC));
@@ -979,8 +1004,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         // Use them to measure everything else
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
-            auto [EC, lat] =
-                measureInSubprocess({*mA, *smallestB}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({*mA, *smallestB}, loopCount, RegInitValue, Immediate);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
@@ -995,8 +1019,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             // mB has to come first as the first instruction in the benchmark determines the name of
             // the debug .s file
-            auto [EC, lat] =
-                measureInSubprocess({*mB, *smallestA}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({*mB, *smallestA}, loopCount, RegInitValue, Immediate);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
@@ -1029,6 +1052,10 @@ int run(int argc, char **argv) {
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
+    app.add_option("--run-in-subprocess", runInSubprocess,
+                   "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                   "off for debugging purposes")
+        ->default_val(true);
     app.set_version_flag("-v,--version", WINIC_VERSION, "Show version");
 
     std::vector<std::string> instrNames;
@@ -1242,13 +1269,13 @@ int run(int argc, char **argv) {
                 // interleaving with other instructions
                 unsigned opcodeTest = getEnv().getOpcode("TEST64rr");
                 auto [EC, lowerTP1, upperTP1] =
-                    measureInSubprocess(opcodeTest, regInitValue, immValue);
+                    measureThroughput(opcodeTest, regInitValue, immValue);
                 throughputDatabase[opcodeTest] = {opcodeTest, EC, lowerTP1, upperTP1};
                 priorityTPHelper.emplace_back(opcodeTest);
 
                 unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
                 auto [EC2, lowerTP2, upperTP2] =
-                    measureInSubprocess(opcodeMov, regInitValue, immValue);
+                    measureThroughput(opcodeMov, regInitValue, immValue);
                 throughputDatabase[opcodeMov] = {opcodeMov, EC2, lowerTP2, upperTP2};
                 priorityTPHelper.emplace_back(opcodeMov);
             }
@@ -1320,7 +1347,8 @@ int run(int argc, char **argv) {
     }
 
     if (*man) {
-        auto [EC, times] = measureInSubprocess(sPath, nRuns, numInst, 1e6, funcName, initName);
+        auto [EC, times] =
+            measureManualInSubprocess(sPath, nRuns, numInst, 1e6, funcName, initName);
         if (EC != SUCCESS) {
             std::cout << "failed for reason: " << ecToString(EC) << std::endl;
             return 1;
