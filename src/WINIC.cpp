@@ -430,7 +430,6 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
 
 std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
                                                         long Immediate) {
-    std::cout << runInSubprocess << std::endl;
     return runInSubprocess ? measureThroughputInSubprocess(Opcode, RegInitValue, Immediate)
                            : measureThroughputInProcess(Opcode, RegInitValue, Immediate);
 }
