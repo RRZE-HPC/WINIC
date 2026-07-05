@@ -75,7 +75,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
  * \param UsedRegisters A register blacklist (will be updated).
  * \return Pair of ErrorCode and list of generated MCInst instructions.
  */
-std::pair<ErrorCode, std::list<MCInst>>
+std::pair<ErrorCode, std::vector<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
           std::set<MCRegister> &UsedRegisters, long Immediate);
@@ -157,6 +157,9 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
  * \return Pair of ErrorCode and assembly code string.
  */
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
+
+std::string genRegInitCode(std::vector<MCInst> Instructions,
+                                                 long RegInitValue);
 
 /**
  * \brief Generates initialization code for a register.

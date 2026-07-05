@@ -182,17 +182,8 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
     llvm::raw_string_ostream ico(initCode);
     llvm::raw_string_ostream rio(regInit);
     ico << saveRegs << "\n";
-    std::set<MCRegister> initialized;
+    ico << genRegInitCode(instructions, RegInitValue);
     for (auto inst : instructions) {
-        // initialize all registers used by the instructions
-        for (unsigned i = 0; i < inst.getNumOperands(); i++) {
-            if (!inst.getOperand(i).isReg()) continue;
-            MCRegister reg = inst.getOperand(i).getReg();
-            if (initialized.find(reg) == initialized.end()) {
-                rio << genSetRegister(reg, RegInitValue);
-                initialized.insert(reg);
-            }
-        }
         // execute each instruction once in the init function to e.g. mark registers as avx
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, ico);
         ico << "\n";
@@ -239,14 +230,14 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
     }
 
     // this is the hepler instruciton if needed.
-    std::list<MCInst> instructions;
+    std::vector<MCInst> instructions;
     ErrorCode EC;
     if (HelperOpcode != MAX_UNSIGNED) {
         std::tie(EC, instructions) = genTPLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
                                                *TargetInstrCount, UsedRegisters, Immediate);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
-        // update TargetInstructionCount to actual number of instructions generated, dont include
-        // helper instructions
+        // update TargetInstructionCount to actual number of instructions generated, dont
+        // include helper instructions
         *TargetInstrCount = UnrollCount * instructions.size() / 2;
     } else {
         // ho helper
@@ -273,22 +264,12 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
             restoreRegs.insert(0, restore);
         }
     }
-    std::string regInit;
+
+    std::string regInit = genRegInitCode(instructions, RegInitValue);
     std::string singleLoopCode;
-    llvm::raw_string_ostream rio(regInit);
     llvm::raw_string_ostream slo(singleLoopCode);
-    std::set<MCRegister> initialized;
+    // build loop code
     for (auto inst : instructions) {
-        // initialize all registers used by the instructions
-        for (unsigned i = 0; i < inst.getNumOperands(); i++) {
-            if (!inst.getOperand(i).isReg()) continue;
-            MCRegister reg = inst.getOperand(i).getReg();
-            if (initialized.find(reg) == initialized.end()) {
-                rio << genSetRegister(reg, RegInitValue);
-                initialized.insert(reg);
-            }
-        }
-        // build loop code
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, slo);
         slo << "\n";
     }
@@ -320,11 +301,11 @@ static bool isUseOnly(unsigned Opcode, unsigned OpIndex) {
     return !(opInfo.Constraints & (1 << MCOI::TIED_TO)); // this is not tied to a def
 }
 
-std::pair<ErrorCode, std::list<MCInst>>
+std::pair<ErrorCode, std::vector<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
           std::set<MCRegister> &UsedRegisters, long Immediate) {
-    std::list<MCInst> instructions;
+    std::vector<MCInst> instructions;
     for (unsigned i = 0; i < Opcodes.size(); i++) {
         unsigned opcode = Opcodes[i];
         const MCInstrDesc &desc = getEnv().MCII->get(opcode);
@@ -345,8 +326,8 @@ genTPLoop(std::vector<unsigned> Opcodes,
     }
 
     for (unsigned i = 1; i < TargetInstrCount; ++i) {
-        // only insert complete sets of instructions into the final list. (Registers may run out mid
-        // generation)
+        // only insert complete sets of instructions into the final list. (Registers may run out
+        // mid generation)
         std::list<MCInst> tempInstructions;
         for (unsigned j = 0; j < Opcodes.size(); j++) {
             auto [EC, inst] = genInst(Opcodes[j], ConstraintsVector[j], UsedRegisters, Immediate);
@@ -631,6 +612,24 @@ std::string genSetRegister(MCRegister Reg, uint64_t Value) {
         return result;
     }
     return "";
+}
+
+std::string genRegInitCode(std::vector<MCInst> Instructions, long RegInitValue) {
+    std::string regInit;
+    llvm::raw_string_ostream rio(regInit);
+    std::set<MCRegister> initialized;
+    for (auto inst : Instructions) {
+        // initialize all registers used by the instructions
+        for (unsigned i = 0; i < inst.getNumOperands(); i++) {
+            if (!inst.getOperand(i).isReg()) continue;
+            MCRegister reg = inst.getOperand(i).getReg();
+            if (initialized.find(reg) == initialized.end()) {
+                rio << genSetRegister(reg, RegInitValue);
+                initialized.insert(reg);
+            }
+        }
+    }
+    return regInit;
 }
 
 ErrorCode isValid(const MCInstrDesc &Desc) {
