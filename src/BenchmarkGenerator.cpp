@@ -591,8 +591,6 @@ std::string genSetRegister(MCRegister Reg, uint64_t Value) {
             // this can not be used by the template directly, check if the register has any
             // superregister that can be used by the template
             for (MCRegister superReg : getEnv().TRI->superregs(Reg)) {
-                auto [EC, cl] = getEnv().getRegClass(superReg);
-                if (EC != SUCCESS) continue;
                 if (getEnv().regInRegClass(superReg, movClass)) {
                     dbg(__func__, "initializing superregister ", superReg, " instead of ", Reg);
                     return genSetRegister(superReg, Value);
