@@ -582,7 +582,12 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     return {SUCCESS, result};
 }
 
-std::string genSetRegister(MCRegister Reg, uint64_t Value) {
+template <typename T> std::string genSetRegister(MCRegister Reg, T Value) {
+    // this might be called with no value for Reg, as memory operands are made up of registers
+    // and immediates and registers in memory operands might be empty
+    if (Reg == 0) {
+        return "";
+    }
     std::string result;
     llvm::raw_string_ostream os(result);
     for (RegInitTemplate regTemplate : getTemplate(getEnv().Arch).regInitTemplates) {
@@ -612,7 +617,17 @@ std::string genSetRegister(MCRegister Reg, uint64_t Value) {
     return "";
 }
 
-std::string genRegInitCode(std::vector<MCInst> Instructions, long RegInitValue) {
+std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitValue) {
+    // override some register types
+    std::map<unsigned, std::variant<uint32_t, uint64_t, float, double>> regInitMap;
+    if (getEnv().Arch == Triple::ArchType::x86_64) {
+        regInitMap = {
+            {X86::VK8WMRegClassID, uint32_t{0b11111111}}, // x86 mask register
+            // {X86::GR32RegClassID, float(7.0)},
+            // {X86::VR512RegClassID, double{5}},
+        };
+    } // TODO
+
     std::string regInit;
     llvm::raw_string_ostream rio(regInit);
     std::set<MCRegister> initialized;
@@ -621,10 +636,23 @@ std::string genRegInitCode(std::vector<MCInst> Instructions, long RegInitValue) 
         for (unsigned i = 0; i < inst.getNumOperands(); i++) {
             if (!inst.getOperand(i).isReg()) continue;
             MCRegister reg = inst.getOperand(i).getReg();
-            if (initialized.find(reg) == initialized.end()) {
-                rio << genSetRegister(reg, RegInitValue);
-                initialized.insert(reg);
+            if (initialized.find(reg) != initialized.end()) continue;
+
+            auto regClasses = getEnv().getRegClasses(reg);
+            auto it = regInitMap.find(0);
+            for (auto regClass : regClasses) {
+                it = regInitMap.find(regClass.getID());
+                if (it != regInitMap.end()) break;
             }
+
+            if (it == regInitMap.end()) {
+                rio << genSetRegister(reg, RegInitValue); // use default/user defined value
+            } else {
+                rio << std::visit([reg](auto &&Value) { return genSetRegister(reg, Value); },
+                                  regInitMap.at(it->first));
+            }
+
+            initialized.insert(reg);
         }
     }
     return regInit;

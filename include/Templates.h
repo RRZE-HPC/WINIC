@@ -18,7 +18,8 @@ struct RegInitTemplate {
     std::optional<llvm::MCRegister> dependencyReg;
 
   public:
-    string fillRegInitTemplate(llvm::MCRegister Reg, uint64_t Imm);
+    template<typename T>
+    string fillRegInitTemplate(llvm::MCRegister Reg, T Imm);
 };
 
 /**

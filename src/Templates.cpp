@@ -12,6 +12,7 @@
 #include <set>
 #include <sstream>
 #include <stdlib.h>
+#include <type_traits>
 
 // AI
 static void replaceAll(std::string &Str, const std::string &From, const std::string &To) {
@@ -65,25 +66,55 @@ void Template::trimLeadingNewline(string &Str) {
     }
 }
 
-string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, uint64_t Imm) {
-    std::string result = this->templateString;
-    // replace imm occurences. If multiple are found the immediate is split up into n segments it is
-    // assumed the lowest 64/n bits have to go first.
-    unsigned split = countOccurrences(this->templateString, "imm");
-    for (unsigned splitPart = 0; splitPart < split; splitPart++) {
-        std::stringstream ss;
-        // extract the current segment of the immediate and convert it to hex
-        unsigned segmentBits = 64 / split;
-        uint64_t mask = (segmentBits == 64) ? ~0ULL : (1ULL << (64 / split)) - 1;
-        ss << std::hex << ((Imm >> (splitPart * 64 / split)) & mask);
-        std::string hexString = ss.str();
-        unsigned index = result.find("imm");
-        result.replace(index, 3, "0x" + hexString);
-    }
-    // insert register
-    replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
-    return result;
+// AI
+template <typename To, typename From> static To bitCast(const From &Input) {
+    static_assert(sizeof(To) == sizeof(From));
+    static_assert(std::is_trivially_copyable_v<To>);
+    static_assert(std::is_trivially_copyable_v<From>);
+
+    To to;
+    std::memcpy(&to, &Input, sizeof(To));
+    return to;
 }
+
+template <typename T> string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, T Imm) {
+    if constexpr (std::is_floating_point_v<T>) {
+        using UInt = std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>;
+        return fillRegInitTemplate(Reg, bitCast<UInt>(Imm));
+    } else {
+        static_assert(std::is_unsigned_v<T>);
+
+        std::string result = this->templateString;
+        // insert register
+        replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
+        // replace imm occurences. If multiple are found the immediate is split up into n segments
+        unsigned split = countOccurrences(this->templateString, "imm");
+        if (split == 0) return result;
+        unsigned totalBits = sizeof(T) * 8;
+        unsigned segmentBits = totalBits / split;
+
+        T mask;
+        if (segmentBits == totalBits)
+            mask = ~T(0);
+        else {
+            mask = T(1) << segmentBits - T(1);
+        }
+        for (unsigned splitPart = 0; splitPart < split; splitPart++) {
+            std::stringstream ss;
+            // extract the current segment of the immediate and convert it to hex
+
+            ss << std::hex << ((Imm >> (splitPart * segmentBits)) & mask);
+            std::string hexString = ss.str();
+            result.replace(result.find("imm"), 3, "0x" + hexString);
+        }
+        return result;
+    }
+}
+
+template std::string RegInitTemplate::fillRegInitTemplate<double>(llvm::MCRegister, double);
+template std::string RegInitTemplate::fillRegInitTemplate<float>(llvm::MCRegister, float);
+template std::string RegInitTemplate::fillRegInitTemplate<uint32_t>(llvm::MCRegister, uint32_t);
+template std::string RegInitTemplate::fillRegInitTemplate<uint64_t>(llvm::MCRegister, uint64_t);
 
 Template X86Template = {
     R"(
@@ -132,6 +163,13 @@ done_functionName:
     {"edi", "r8d", "rbp", "rsp"},
     {{
          R"(
+    mov	reg, imm
+    )",
+         llvm::X86::GR32RegClassID,
+         std::nullopt,
+     },
+     {
+         R"(
     movabs	reg, imm
     )",
          llvm::X86::GR64RegClassID,
@@ -157,6 +195,13 @@ done_functionName:
     )",
          llvm::X86::VR512RegClassID,
          X86::XMM0,
+     },
+     {
+         R"(
+    kmovd	reg, eax
+    )",
+         llvm::X86::VK8WMRegClassID,
+         X86::EAX,
      }}};
 
 Template AArch64Template = {

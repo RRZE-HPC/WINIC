@@ -158,8 +158,7 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
  */
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
 
-std::string genRegInitCode(std::vector<MCInst> Instructions,
-                                                 long RegInitValue);
+std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitValue);
 
 /**
  * \brief Generates initialization code for a register.
@@ -167,7 +166,7 @@ std::string genRegInitCode(std::vector<MCInst> Instructions,
  * \param Value The value to initialize the register with, current maximum 15.
  * \return Assembly code string for register initialization or empty string on error.
  */
-std::string genSetRegister(MCRegister Reg, uint64_t Value);
+template <typename T> std::string genSetRegister(MCRegister Reg, T Value);
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.

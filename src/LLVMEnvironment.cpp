@@ -135,11 +135,12 @@ bool LLVMEnvironment::regInRegClass(MCRegister Reg, unsigned RegClassID) {
     return regInRegClass(Reg, regClass);
 }
 
-std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getRegClass(MCRegister Reg) {
+std::vector<MCRegisterClass> LLVMEnvironment::getRegClasses(MCRegister Reg) {
+    std::vector<MCRegisterClass> result = {};
     for (unsigned i = 0; i < MRI->getNumRegClasses(); i++)
-        if (regInRegClass(Reg, i)) return {SUCCESS, MRI->getRegClass(i)};
+        if (regInRegClass(Reg, i)) result.emplace_back(MRI->getRegClass(i));
 
-    return {E_GENERIC, {}};
+    return result;
 }
 
 std::string LLVMEnvironment::getRegAsmName(MCRegister Reg) {
