@@ -44,10 +44,12 @@ enum class LatOperandKind { RegisterClass, Register };
  */
 struct Operand {
     LatOperandKind kind;
+
     union {
         unsigned regClass; ///< Register class ID
         MCRegister reg;    ///< Register
     };
+
     Operand() : kind(LatOperandKind::RegisterClass) {}
 
     static Operand fromRegClass(unsigned Val) {
@@ -69,6 +71,7 @@ struct Operand {
         if (kind == LatOperandKind::RegisterClass) return regClass == Other.regClass;
         return reg == Other.reg;
     }
+
     bool operator<(const Operand &Other) const {
         if (kind != Other.kind) return kind < Other.kind;
         if (kind == LatOperandKind::RegisterClass) return regClass < Other.regClass;
@@ -80,6 +83,7 @@ struct Operand {
      * \return True if register class, false if register.
      */
     bool isRegClass() const { return kind == LatOperandKind::RegisterClass; }
+
     /**
      * \brief Checks if this operand is a register.
      * \return True if register, false if register class.
@@ -94,6 +98,7 @@ struct Operand {
         assert(isRegClass());
         return regClass;
     }
+
     /**
      * \brief Gets the register.
      * \return MCRegister.
@@ -130,10 +135,13 @@ struct DependencyType {
     Operand useOp; ///< Using operand
 
     DependencyType() = default;
+
     DependencyType(Operand DefOp, Operand UseOp) : defOp(DefOp), useOp(UseOp) {}
+
     bool operator==(const DependencyType &Other) const {
         return defOp == Other.defOp && useOp == Other.useOp;
     }
+
     bool operator<(const DependencyType &Other) const {
         return std::tie(defOp, useOp) < std::tie(Other.defOp, Other.useOp);
     }
@@ -143,7 +151,9 @@ struct DependencyType {
     bool isComplementaryTypeAs(DependencyType &Other) {
         return defOp == Other.useOp && useOp == Other.defOp;
     }
+
     bool isSymmetric() { return defOp == useOp; }
+
     bool canCreateDependencyChain() {
         if (isSymmetric()) return true;
         if (defOp.isRegClass() && useOp.isRegister())
@@ -174,10 +184,12 @@ struct LatMeasurement {
     ErrorCode ec;        ///< Error code for measurement
 
     LatMeasurement() : lowerBound(-1), upperBound(-1), ec(NO_ERROR_CODE) {}
+
     LatMeasurement(unsigned Opcode, DependencyType Type, unsigned DefIndex, unsigned UseIndex,
                    double LowerBound = -1, double UpperBound = -1, ErrorCode EC = NO_ERROR_CODE)
         : opcode(Opcode), type(Type), defIndex(DefIndex), useIndex(UseIndex),
           lowerBound(LowerBound), upperBound(UpperBound), ec(EC) {}
+
     bool operator==(const LatMeasurement &Other) const {
         return opcode == Other.opcode && type == Other.type && defIndex == Other.defIndex &&
                useIndex == Other.useIndex;

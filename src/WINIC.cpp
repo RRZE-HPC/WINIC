@@ -681,7 +681,8 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, un
     if (pid == 0) { // Child process
         ErrorCode EC;
         std::vector<double> res;
-        std::tie(EC, res) = measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
+        std::tie(EC, res) =
+            measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
         *sharedEC = EC;
         for (unsigned i = 0; i < res.size() && i < Runs; i++)
             sharedResults[i] = res[i];

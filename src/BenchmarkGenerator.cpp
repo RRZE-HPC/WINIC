@@ -129,7 +129,7 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
              {std::make_pair(m.defIndex, m.type.defOp), std::make_pair(m.useIndex, m.type.useOp)}) {
             if (op.isRegClass()) {
                 // currently only the class is known, we have to specify which register to
-                // use for generating the instruciton
+                // use for generating the instruction
                 unsigned regClassID = op.getRegClass();
                 if (chosenRegisters.find(regClassID) != chosenRegisters.end()) {
                     // we already chose a register for this class
@@ -229,7 +229,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
         }
     }
 
-    // this is the hepler instruciton if needed.
+    // this is the hepler instruction if needed.
     std::vector<MCInst> instructions;
     ErrorCode EC;
     if (HelperOpcode != MAX_UNSIGNED) {
@@ -673,7 +673,7 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
         return S_IS_X87FP;
 
     // blacklist instructions writing to certain registers
-    // on AArch64 writing LR can indeterministicly lead to very long runtimes or get trapped 
+    // on AArch64 writing LR can indeterministicly lead to very long runtimes or get trapped
     // (didn't test which one)
     std::vector<MCRegister> registerBlacklist;
     if (getEnv().Arch == Triple::ArchType::x86_64)

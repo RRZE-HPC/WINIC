@@ -15,7 +15,7 @@ static std::string stripLine(std::string Line) {
 }
 
 // strip each line of a block of code and indents it with the specified number of tabs
-static std::string indentBlock(std::string Block, unsigned Tabs){
+static std::string indentBlock(std::string Block, unsigned Tabs) {
     std::string result;
     llvm::raw_string_ostream rso(result);
     std::string tabString(Tabs, '\t');
@@ -42,6 +42,7 @@ std::string replaceFunctionName(std::string Str, const std::string Name) {
     }
     return Str;
 }
+
 std::string replaceAllInstances(std::string Str, std::string ToReplace,
                                 const std::string Replacement) {
     size_t startPos = 0;
@@ -56,6 +57,7 @@ ErrorCode AssemblyFile::addInitFunction(std::string Name, std::string InitCode) 
     initFunctions.insert({Name, InitCode});
     return SUCCESS;
 }
+
 ErrorCode AssemblyFile::addBenchFunction(std::string Name, std::string PreLoopCode,
                                          std::string LoopCode, std::string PostLoopCode,
                                          std::string InitFunction) {
@@ -64,6 +66,7 @@ ErrorCode AssemblyFile::addBenchFunction(std::string Name, std::string PreLoopCo
     benchFunctions.insert({Name, PreLoopCode, LoopCode, PostLoopCode, InitFunction});
     return SUCCESS;
 }
+
 /**
  * @brief Returns a list of all function names in the assembly file.
  * @return std::list<std::string> List of function names.

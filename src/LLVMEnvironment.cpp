@@ -33,6 +33,7 @@
 #include <vector>
 
 using namespace llvm;
+
 namespace winic {
 
 LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("my_module", Ctx)) {}

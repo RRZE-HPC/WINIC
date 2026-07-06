@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 namespace llvm {
 class MCInstrDesc;
 }
@@ -16,6 +17,7 @@ class MCInstrDesc;
 namespace winic {
 struct LatMeasurement;
 struct TPMeasurement;
+
 // serializable structs for yaml output
 
 /**
@@ -174,6 +176,7 @@ template <> struct ScalarTraits<std::optional<double>> {
         else
             Out << "null";
     }
+
     static StringRef input(StringRef Scalar, void *, std::optional<double> &Val) {
         if (Scalar == "null" || Scalar == "~" || Scalar.empty()) {
             Val.reset();
@@ -184,6 +187,7 @@ template <> struct ScalarTraits<std::optional<double>> {
         if (Err.empty()) Val = tmp;
         return Err;
     }
+
     static QuotingType mustQuote(StringRef S) {
         if (S == "null" || S == "~" || S.empty()) return QuotingType::None;
         return ScalarTraits<double>::mustQuote(S);

@@ -47,7 +47,9 @@ std::string replaceAllInstances(std::string Str, std::string ToReplace,
 class AssemblyFile {
   public:
     AssemblyFile() = default;
+
     AssemblyFile(llvm::Triple::ArchType Arch) { this->arch = Arch; }
+
     ~AssemblyFile() = default;
 
     void setArch(llvm::Triple::ArchType Arch) { this->arch = Arch; }

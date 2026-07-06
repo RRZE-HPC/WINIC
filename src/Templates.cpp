@@ -24,6 +24,7 @@ static void replaceAll(std::string &Str, const std::string &From, const std::str
         startPos += To.length(); // move past the replacement
     }
 }
+
 // AI
 static size_t countOccurrences(const std::string &str, const std::string &sub) {
     if (sub.empty()) return 0; // avoid infinite loop
