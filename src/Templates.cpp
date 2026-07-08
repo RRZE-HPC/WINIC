@@ -123,6 +123,10 @@ Template X86Template = {
 #define i r8d
 
 .intel_syntax noprefix
+.bss
+.p2align 12 
+buffer:
+    .skip 4096
 .text
 )",
     R"(
@@ -130,6 +134,7 @@ Template X86Template = {
 .type init, @function
 .align 32
 init:
+    lea r9, [rip + buffer]
 )",
     R"(
     ret
@@ -143,6 +148,7 @@ init:
 functionName:
 )",
     R"(
+    lea r9, [rip + buffer]
     xor       i, i
     test      N, N
     jle       done_functionName
@@ -161,7 +167,7 @@ done_functionName:
     R"(
 .section .note.GNU-stack,"",@progbits
 )",
-    {"edi", "r8d", "rbp", "rsp"},
+    {"edi", "r8d", "rbp", "rsp", "r9"},
     {{
          R"(
     mov	reg, imm

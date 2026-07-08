@@ -347,8 +347,8 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     // first check if this instruction needs a helper
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
-    auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate);
-    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate);
+    auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate, 0);
+    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate, 32);
     std::list<DependencyType> dependencies = getDependencies(inst1, inst2);
     if (dependencies.empty()) return {SUCCESS, MAX_UNSIGNED, {}}; // no helper needed
     if (dependencies.size() > 1) {
@@ -393,9 +393,9 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
                 // explicit dependencies e.g. ADD16ri can define ax but if it does it also uses
                 // ax so it can't be used as helper
                 std::set<MCRegister> tmpUsedRegs;
-                auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate);
+                auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate, 0);
                 auto [ec2, helperInst] =
-                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
+                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate, 32);
                 if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
                 if (!getDependencies(inst, helperInst).empty()) continue;
                 helperOpcode = possibleHelper;
@@ -415,9 +415,9 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
             if (EC != SUCCESS) return {E_UNREACHABLE, MAX_UNSIGNED, {}};
             if (opIndex != -1) helperConstraints.insert({(unsigned)opIndex, useReg});
             std::set<MCRegister> tmpUsedRegs;
-            auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate);
+            auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate, 0);
             auto [ec2, helperInst] =
-                genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
+                genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate, 32);
             if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
             if (!getDependencies(inst, helperInst).empty()) continue;
             helperOpcode = possibleHelper;

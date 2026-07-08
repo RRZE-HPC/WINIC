@@ -63,6 +63,8 @@ class LLVMEnvironment {
      */
     ErrorCode setUp(std::string March = "", std::string Cpu = "");
 
+    unsigned getMemoryOperandWidthUpperBound(unsigned Opcode);
+
     /**
      * \brief Checks if a register belongs to a given register class.
      * \param Reg The register to check.

@@ -15,6 +15,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -123,6 +124,46 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     MaxReg = TRI->getNumSupportedRegs(*MF);
     Arch = MSTI->getTargetTriple().getArch(); // for convenience
     return SUCCESS;
+}
+
+unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
+    // this is an ugly workaround: assume the memory accessed is smaller than the widest register of
+    // the instruction. If you know better how llvm works, please replace this with a proper lookup
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    unsigned maxRegWidth = 0;
+
+    for (int i = 0; i < desc.getNumOperands(); i++) {
+        const MCOperandInfo &opInfo = desc.operands()[i];
+        if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
+            maxRegWidth = std::max(maxRegWidth, MRI->getRegClass(opInfo.RegClass).getSizeInBits());
+        }
+    }
+    return maxRegWidth / 8;
+
+    // failed try to do this properly
+    // #include "llvm/CodeGen/MachineBasicBlock.h"
+    // #include "llvm/CodeGen/MachineInstrBuilder.h"
+    // #include "llvm/CodeGen/TargetInstrInfo.h"
+
+    // TII = MF->getSubtarget().getInstrInfo();
+    // DebugLoc DL;
+    // MachineInstr *MI = BuildMI(*MF, DL, TII->get(Desc.getOpcode()));
+    // auto *MBB = MF->CreateMachineBasicBlock();
+    // MBB->insert(MBB->end(), MI);
+    // MF->push_back(MBB);
+    // SmallVector<const MachineOperand *, 2> baseOps;
+    // int64_t offset;
+    // bool offsetIsScalable;
+    // LocationSize size = LocationSize::mapEmpty();
+
+    // bool ok = TII->getMemOperandsWithOffsetWidth(*MI, baseOps, offset, offsetIsScalable, size,
+    // TRI); if (ok) {
+    //     dbg(__func__, "getValue");
+    //     return size.getValue().getFixedValue();
+    // } else {
+    //     dbg(__func__, "not ok ");
+    //     return -1;
+    // }
 }
 
 bool LLVMEnvironment::regInRegClass(MCRegister Reg, MCRegisterClass RegClass) {

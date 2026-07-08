@@ -108,7 +108,8 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
  * \return Pair of ErrorCode and generated MCInst instruction.
  */
 std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate);
+                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate,
+                                     unsigned MemDisplacement);
 
 /**
  * \brief Finds the supermost register for a given register.
