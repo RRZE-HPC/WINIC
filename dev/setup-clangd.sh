@@ -65,9 +65,24 @@ files=$(git diff --cached --name-only --diff-filter=ACM | \
 [ -z "$files" ] && exit 0
 
 for f in $files; do
-    "$(git rev-parse --show-toplevel)/llvm-build-clangd/bin/clang-format" --style=file -i "$f"
-    git add "$f"
+    "$(git rev-parse --show-toplevel)/llvm-build-clangd/bin/clang-format" --style=file "$f" | diff -u "$f" -
+    case $? in
+        0)
+            exit 0
+            ;;
+        1)
+            echo "file $f was not formatted, formatting it for you"
+            "$(git rev-parse --show-toplevel)/llvm-build-clangd/bin/clang-format" --style=file -i "$f"
+            exit 1
+            ;;
+        *)
+            echo "Error while checking formatting"
+            exit 2
+            ;;
+    esac
+    # git add "$f"
 done
+
 EOF
 
 chmod +x "$repo_root/.git/hooks/pre-commit"
