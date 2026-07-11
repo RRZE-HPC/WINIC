@@ -198,8 +198,8 @@ struct LatMeasurement {
     std::string toCompactString() const {
         std::string useIndexStr = useIndex == 999 ? "i" : std::to_string(useIndex);
         std::string defIndexStr = defIndex == 999 ? "i" : std::to_string(defIndex);
-        return str(getEnv().MCII->getName(opcode).str(), "_", useIndexStr, "_",
-                   type.useOp.toCompactString(), "_", defIndexStr, "_",
+        return str(getEnv().MCII->getName(opcode).str(), "_", useIndexStr, "-",
+                   type.useOp.toCompactString(), "->", defIndexStr, "-",
                    type.defOp.toCompactString());
     }
 
