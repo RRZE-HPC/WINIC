@@ -183,7 +183,7 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
     llvm::raw_string_ostream ico(initCode);
     llvm::raw_string_ostream rio(regInit);
     ico << saveRegs << "\n";
-    ico << genRegInitCode(instructions, RegInitValue);
+    rio << genRegInitCode(instructions, RegInitValue);
     for (auto inst : instructions) {
         // execute each instruction once in the init function to e.g. mark registers as avx
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, ico);
