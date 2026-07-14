@@ -26,6 +26,8 @@ LLVMEnvironment &getEnv();
 extern std::unique_ptr<std::ofstream> fileStream;
 extern std::ostream *ios;
 extern bool includeX87FP;
+extern bool includeMemory;
+extern bool includeNonMemory;
 extern bool keepEmptyEntries; // if true, entries with only null values are included in the output
 
 /**

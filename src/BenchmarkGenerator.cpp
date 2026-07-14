@@ -694,10 +694,17 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     dbg(__func__, "Opcode: ", Desc.getOpcode(),
         " Name: ", getEnv().MCII->getName(Desc.getOpcode()));
     if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
-    // if (Desc.mayLoad()) return S_MAY_LOAD;
-    // if (Desc.mayStore()) return S_MAY_STORE;
+    if (!includeMemory) {
+        if (Desc.mayLoad()) return S_MAY_LOAD;
+        if (Desc.mayStore()) return S_MAY_STORE;
+        for (auto op : Desc.operands())
+            if (op.OperandType == MCOI::OPERAND_MEMORY) return S_MEMORY_OPERAND;
+    }
+    if (!includeNonMemory) {
+        if (!Desc.mayLoad() && !Desc.mayStore()) return S_NON_MEMORY;
+    }
     if (Desc.isCall()) return S_IS_CALL;
-    // if (!Desc.mayLoad() && !Desc.mayStore()) return S_PSEUDO_INSTRUCTION;
+
     if (Desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
     if (Desc.isReturn()) return S_IS_RETURN;
     if (Desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?

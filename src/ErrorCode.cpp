@@ -26,6 +26,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_MAY_LOAD";
     case S_MAY_STORE:
         return "SKIP_MAY_STORE";
+    case S_NON_MEMORY:
+        return "SKIP_NON_MEMORY";
     case S_IS_CALL:
         return "SKIP_IS_CALL";
     case S_IS_META_INSTRUCTION:
@@ -81,7 +83,7 @@ std::string ecToString(ErrorCode EC) {
     case E_GENERIC:
         return "ERROR_GENERIC";
     }
-    return "UNREACHABLE";
+    return "unknown error code";
 }
 
 bool isError(ErrorCode EC) {

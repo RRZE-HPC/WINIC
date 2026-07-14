@@ -16,6 +16,7 @@ enum ErrorCode {
     S_INSTRUCION_PREFIX,
     S_MAY_LOAD,
     S_MAY_STORE,
+    S_NON_MEMORY,
     S_IS_CALL,
     S_IS_META_INSTRUCTION,
     S_IS_RETURN,

@@ -12,6 +12,8 @@ LLVMEnvironment &getEnv() {
 std::unique_ptr<std::ofstream> fileStream;
 std::ostream *ios = &std::cout;
 bool includeX87FP;
+bool includeMemory;
+bool includeNonMemory;
 bool keepEmptyEntries;
 
 void setOutputToFile(const std::string &Filename) {

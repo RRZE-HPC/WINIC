@@ -1065,6 +1065,8 @@ int run(int argc, char **argv) {
     std::string databasePath = "";
     std::string regInitValueString = "";
     std::string immValueString = "";
+    includeMemory = true;
+    includeNonMemory = true;
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     tp->add_option("-o,--output", databasePath,
@@ -1087,6 +1089,11 @@ int run(int argc, char **argv) {
         ->default_val(false);
     tp->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
         ->default_val(false);
+    tp->add_flag("--include-memory", includeMemory, "Include instructions accessing memory")
+        ->default_val(true);
+    tp->add_flag("--include-non-memory", includeNonMemory,
+                 "Include instructions not accessing memory")
+        ->default_val(true);
     tp->add_flag("--keep-empty-entries", keepEmptyEntries,
                  "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
@@ -1115,6 +1122,11 @@ int run(int argc, char **argv) {
         ->default_val(false);
     lat->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
         ->default_val(false);
+    lat->add_flag("--include-memory", includeMemory, "Include instructions accessing memory")
+        ->default_val(true);
+    lat->add_flag("--include-non-memory", includeNonMemory,
+                  "Include instructions not accessing memory")
+        ->default_val(true);
     lat->add_flag("--keep-empty-entries", keepEmptyEntries,
                   "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
