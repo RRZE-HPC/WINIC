@@ -59,7 +59,8 @@ class MCInstrDesc;
 
 namespace {
 double clockFrequency;
-unsigned nRuns; // number of repititions for each benchmark
+unsigned nRuns;          // number of repititions for each benchmark
+unsigned loopIterations; // number of iterations of the benchmarking kernel loop
 bool showProgress;
 bool outputASM;
 bool runInSubprocess;
@@ -456,7 +457,6 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
     unsigned numInst = 12;
-    unsigned n = 1e6; // loop count, 1e5 seems to be unreliable for TP
     AssemblyFile assembly;
     ErrorCode ec;
     std::set<MCRegister> usedRegs;
@@ -471,14 +471,14 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
                                             helperOpcode, RegInitValue, Immediate);
     if (ec != SUCCESS) return {ec, -1, -1};
     assembly.setName(getEnv().MCII->getName(Opcode).str());
-    std::tie(ec, benchResults) = runBenchmark(assembly, n, nRuns);
+    std::tie(ec, benchResults) = runBenchmark(assembly, loopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1, -1};
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
     double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
     double time2 = *std::min_element(benchResults["tp2"].begin(), benchResults["tp2"].end());
 
-    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, true);
+    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, loopIterations, true);
     if (EC != SUCCESS) {
         std::string msg =
             str("Anomaly detected when unrolling: time: ", time1, " timeUnrolled: ", time2);
@@ -789,7 +789,6 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
     std::set<DependencyType> completedTypes;
-    unsigned loopCount = 1e6; // loop count, 1e5 seems to be unreliable for LAT
 
     // classify measurements by operand combination, measure if trivial
     if (showProgress) std::cout << "phase1: trivial measurements" << std::endl;
@@ -800,7 +799,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
-            auto [EC, lat] = measureLatency({measurement}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({measurement}, loopIterations, RegInitValue, Immediate);
             measurement.ec = EC;
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
@@ -908,7 +907,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         }
         // measure the combined latency of the two instructions as a baseline
         auto [EC, lat] =
-            measureLatency({*smallestA, *smallestB}, loopCount, RegInitValue, Immediate);
+            measureLatency({*smallestA, *smallestB}, loopIterations, RegInitValue, Immediate);
         if (isError(EC)) {
             out(*ios,
                 "\tcannot measure type. very unusual: both instructions can be executed "
@@ -945,7 +944,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end() ||
                 mA->opcode == mB->opcode)
                 continue;
-            auto [EC, lat] = measureLatency({*mA, *mB}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({*mA, *mB}, loopIterations, RegInitValue, Immediate);
             if (isError(EC)) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
                     " was unsuccessful, EC: ", ecToString(EC));
@@ -1004,7 +1003,8 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         // Use them to measure everything else
         for (LatMeasurement *mA : measurementsA) {
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
-            auto [EC, lat] = measureLatency({*mA, *smallestB}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] =
+                measureLatency({*mA, *smallestB}, loopIterations, RegInitValue, Immediate);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
@@ -1019,7 +1019,8 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             // mB has to come first as the first instruction in the benchmark determines the name of
             // the debug .s file
-            auto [EC, lat] = measureLatency({*mB, *smallestA}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] =
+                measureLatency({*mB, *smallestA}, loopIterations, RegInitValue, Immediate);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
@@ -1067,6 +1068,7 @@ int run(int argc, char **argv) {
     std::string immValueString = "";
     includeMemory = true;
     includeNonMemory = true;
+    loopIterations = 1e6;
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     tp->add_option("-o,--output", databasePath,
@@ -1084,6 +1086,10 @@ int run(int argc, char **argv) {
     tp->add_option("--runs", nRuns,
                    "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(4);
+    tp->add_option("--loop-iterations", loopIterations,
+                   "Number of loop iterations of the kernel. Higher values increase precision but "
+                   "also increase runtime.")
+        ->default_val(1000000);
     tp->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     tp->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
@@ -1117,6 +1123,10 @@ int run(int argc, char **argv) {
     lat->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(4);
+    lat->add_option("--loop-iterations", loopIterations,
+                    "Number of loop iterations of the kernel. Higher values increase precision but "
+                    "also increase runtime.")
+        ->default_val(1000000);
     lat->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     lat->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
@@ -1143,6 +1153,10 @@ int run(int argc, char **argv) {
     man->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(4);
+    man->add_option("--loop-iterations", loopIterations,
+                    "Number of loop iterations of the kernel. Higher values increase precision but "
+                    "also increase runtime.")
+        ->default_val(1000000);
 
     app.require_subcommand(1, 1);
     CLI11_PARSE(app, argc, argv)
@@ -1360,7 +1374,7 @@ int run(int argc, char **argv) {
 
     if (*man) {
         auto [EC, times] =
-            measureManualInSubprocess(sPath, nRuns, numInst, 1e6, funcName, initName);
+            measureManualInSubprocess(sPath, nRuns, numInst, loopIterations, funcName, initName);
         if (EC != SUCCESS) {
             std::cout << "failed for reason: " << ecToString(EC) << std::endl;
             return 1;
