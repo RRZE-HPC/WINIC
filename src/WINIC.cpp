@@ -1373,8 +1373,7 @@ int run(int argc, char **argv) {
     }
 
     if (*man) {
-        auto [EC, times] =
-            measureManualInSubprocess(sPath, nRuns, numInst, loopIterations, funcName, initName);
+        auto [EC, times] = measureManual(sPath, nRuns, numInst, loopIterations, funcName, initName);
         if (EC != SUCCESS) {
             std::cout << "failed for reason: " << ecToString(EC) << std::endl;
             return 1;
