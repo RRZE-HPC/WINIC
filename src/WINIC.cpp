@@ -1432,7 +1432,9 @@ int run(int argc, char **argv) {
         std::cout << " min: " << minTime << std::endl;
 
         // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
-        double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
+        auto [ec, cyclesPerInstruction] =
+            calculateCycles(minTime, minTime * 2, numInst, loopIterations, false);
+        if (ec != SUCCESS) std::cout << "unreachable" << std::endl;
         std::cout << cyclesPerInstruction << " (clock cycles)" << std::endl;
     }
 
