@@ -76,26 +76,45 @@ static std::string generateTimestamp() {
     return ss.str();
 }
 
-void displayProgress(size_t Progress, size_t Total, std::optional<unsigned> Opcode) {
-    if (!showProgress) return;
-    int barWidth = 50;
-    float ratio = (float)Progress / (float)Total;
-    int pos = barWidth * ratio;
+unsigned lastLineLength = 0;
 
-    std::cout << "\r[";
+// supply tuples of (name, current, total), first one is used for progress bar
+void displayProgress(std::vector<std::tuple<std::string, size_t, size_t>> Progresses,
+                     std::string Message) {
+    if (!showProgress) return;
+    if (Progresses.size() == 0) return;
+
+    // print bar
+    int barWidth = 30;
+    auto [firstProgressName, firstProgress, firstTotal] = Progresses.at(0);
+    float ratio = (float)firstProgress / (float)firstTotal;
+    int pos = barWidth * ratio;
+    std::ostringstream line;
+    line << "\r[";
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos)
-            std::cout << "#";
+            line << "#";
         else if (i == pos)
-            std::cout << ">";
+            line << ">";
         else
-            std::cout << " ";
+            line << " ";
     }
-    if (Opcode.has_value())
-        std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total
-                  << " Opcode: " << Opcode.value() << std::flush;
-    else
-        std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
+    line << "] " << int(ratio * 100.0) << "% ";
+
+    // print progresses with names
+    for (unsigned i = 0; i < Progresses.size(); i++) {
+        auto [progressName, progress, total] = Progresses.at(i);
+        line << progressName << ": " << progress << "/" << total << " ";
+    }
+    line << Message;
+
+    // clear line
+    std::cout << "\r";
+    for (int i = 0; i < lastLineLength; i++)
+        std::cout << " ";
+    lastLineLength = line.str().size();
+
+    std::cout << line.str() << std::flush;
 }
 
 // create ./asm and clear all existing files
@@ -755,7 +774,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
         gotNewMeasurement = false;
         size_t progress = 0;
         for (unsigned opcode : Opcodes) {
-            displayProgress(progress++, Opcodes.size(), opcode);
+            displayProgress({{"Measurement", progress++, Opcodes.size()}}, str("Opcode: ", opcode));
             // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != E_NO_HELPER &&
@@ -792,10 +811,11 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
 
     // classify measurements by operand combination, measure if trivial
     if (showProgress) std::cout << "phase1: trivial measurements" << std::endl;
-    size_t progress = 0;
+    size_t progressPhaseOne = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
-        displayProgress(progress++, latencyDatabase.size(), measurement.opcode);
+        displayProgress({{"Measurement", ++progressPhaseOne, latencyDatabase.size()}},
+                        str("Opcode: ", measurement.opcode));
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
@@ -834,9 +854,11 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     // instructions in A and B
     if (showProgress) std::cout << "\nphase2: measurements with helpers" << std::endl;
     out(*ios, "\n\nReport on finding helpers for dependency types:");
-    progress = 0;
+    unsigned progressPhaseTwo = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
-        displayProgress(progress++, classifiedMeasurements.size(), std::nullopt);
+        displayProgress(
+            {{str("Latency Type: ", dTypeA), ++progressPhaseTwo, classifiedMeasurements.size()}},
+            "determining helpers");
         if (completedTypes.find(dTypeA) != completedTypes.end()) continue;
 
         DependencyType dTypeB = dTypeA.reversed();
@@ -1001,7 +1023,13 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             " with combined latency ", minCombinedLat);
         // smallestA and smallestB now are the measurements with the lowest combined latency
         // Use them to measure everything else
+        unsigned totalMeasurements = measurementsA.size() + measurementsB.size();
+        unsigned progressMeasurements = 0;
         for (LatMeasurement *mA : measurementsA) {
+            displayProgress(
+                {{str("Latency Type: ", dTypeA), progressPhaseTwo, classifiedMeasurements.size()},
+                 {"Measurement", ++progressMeasurements, totalMeasurements}},
+                "");
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             auto [EC, lat] =
                 measureLatency({*mA, *smallestB}, loopIterations, RegInitValue, Immediate);
@@ -1016,6 +1044,10 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             }
         }
         for (LatMeasurement *mB : measurementsB) {
+            displayProgress(
+                {{str("Latency Type: ", dTypeA), progressPhaseTwo, classifiedMeasurements.size()},
+                 {"Measurement", ++progressMeasurements, totalMeasurements}},
+                "");
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             // mB has to come first as the first instruction in the benchmark determines the name of
             // the debug .s file
