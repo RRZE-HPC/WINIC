@@ -24,14 +24,11 @@ class MCRegisterClass;
 namespace winic {
 
 /**
- * \brief Generates all possible latency measurements for all instructions.
- * \param MinOpcode Minimum opcode to consider.
- * \param MaxOpcode Maximum opcode to consider.
- * \param SkipOpcodes Set of opcodes to skip.
+ * \brief Generates all possible latency measurements for an instructions.
+ * \param Opcode Opcode of the instruction.
  * \return Vector of LatMeasurement objects.
  */
-std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
-                                               std::unordered_set<unsigned> SkipOpcodes);
+std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode);
 
 /**
  * \brief Generates a benchmark based on the list of latency measurements.

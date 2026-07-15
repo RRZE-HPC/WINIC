@@ -1364,7 +1364,9 @@ int run(int argc, char **argv) {
         } else if (*lat) {
             out(*ios, "Mode: Latency");
             for (auto opcode : opcodes) {
-                auto measurements = genLatMeasurements(opcode, opcode + 1, {});
+                if (opcodeBlacklist.find(opcode) != opcodeBlacklist.end()) continue;
+                
+                auto measurements = genLatMeasurements(opcode);
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
                                        measurements.end());
             }

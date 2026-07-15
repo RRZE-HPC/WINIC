@@ -32,98 +32,89 @@
 
 namespace winic {
 
-std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
-                                               std::unordered_set<unsigned> OpcodeBlacklist) {
-    dbg(__func__, "MinOpcode: ", MinOpcode, " MaxOpcode: ", MaxOpcode,
-        " OpcodeBlacklist.size(): ", OpcodeBlacklist.size());
-    if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
+std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     // generate a LatMeasurement for each read write dependency combination possible
     // assumes there are no implicit memory defs TODO think
     // llvm x86 memory operands are split into 5 regs/immediates, but are not indicated to be
     // written to by MCInstDesc::NumDefs
 
     std::vector<LatMeasurement> measurements;
-    for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
-        if (OpcodeBlacklist.find(opcode) != OpcodeBlacklist.end()) continue;
-        const MCInstrDesc &desc = getEnv().MCII->get(opcode);
-        ErrorCode ec = isValid(desc);
-        if (ec != SUCCESS) {
-            dbg(__func__, getEnv().MCII->getName(opcode), " skipped for reason ", ecToString(ec));
-            continue;
-        }
-        auto operands = desc.operands();
-        auto implDefs = desc.implicit_defs();
-        auto implUses = desc.implicit_uses();
-        unsigned realNumDefs = desc.getNumDefs();
-        if (desc.getNumOperands() > 0 && desc.operands()[0].OperandType == MCOI::OPERAND_MEMORY) {
-            // llvm lied
-            for (unsigned i = 0; i < desc.getNumOperands(); i++)
-                if (desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY) realNumDefs = i + 1;
-        }
-        dbg(__func__, "realNumDefs: ", realNumDefs);
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    ErrorCode ec = isValid(desc);
+    if (ec != SUCCESS) {
+        dbg(__func__, getEnv().MCII->getName(Opcode), " skipped for reason ", ecToString(ec));
+        return {};
+    }
+    auto operands = desc.operands();
+    auto implDefs = desc.implicit_defs();
+    auto implUses = desc.implicit_uses();
+    unsigned realNumDefs = desc.getNumDefs();
+    if (desc.getNumOperands() > 0 && desc.operands()[0].OperandType == MCOI::OPERAND_MEMORY) {
+        // llvm lied
+        for (unsigned i = 0; i < desc.getNumOperands(); i++)
+            if (desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY) realNumDefs = i + 1;
+    }
+    dbg(__func__, "realNumDefs: ", realNumDefs);
 
-        // collect operands (index, Operand)
-        std::vector<std::pair<unsigned, Operand>> defOperands;
-        std::vector<std::pair<unsigned, Operand>> useOperands;
-        unsigned defMemoryOperandCounter = 0;
-        unsigned useMemoryOperandCounter = 0;
-        // defs
-        for (unsigned i = 0; i < realNumDefs; i++) {
-            auto operandInfo = operands[i];
-            Operand operand;
-            if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
-                operand = Operand::fromRegClass(operandInfo.RegClass);
-            else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
-                     defMemoryOperandCounter++ == 0) {
-                operand = Operand::fromMemOffset(0);
-                if (desc.mayStore()) {
-                    defOperands.emplace_back(i, operand);
-                }
-                if (desc.mayLoad()) {
-                    useOperands.emplace_back(i, operand);
-                }
-                continue;
-            } else
-                continue;
-            defOperands.emplace_back(i, operand);
-        }
-        // uses
-        for (unsigned i = realNumDefs; i < operands.size(); i++) {
-            auto operandInfo = operands[i];
-            Operand operand;
-            if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
-                operand = Operand::fromRegClass(operandInfo.RegClass);
-            else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
-                     useMemoryOperandCounter++ == 0) {
-                operand = Operand::fromMemOffset(0);
-            } else
-                continue;
-            useOperands.emplace_back(i, operand);
-        }
-        // implicit defs
-        for (unsigned i = 0; i < implDefs.size(); i++) {
-            MCRegister defReg = implDefs[i];
-            Operand defOp = Operand::fromRegister(defReg);
-            defOperands.emplace_back(999, defOp);
-        }
-        // implicit uses
-        for (unsigned i = 0; i < implUses.size(); i++) {
-            MCRegister useReg = implUses[i];
-            Operand useOp = Operand::fromRegister(useReg);
-            useOperands.emplace_back(999, useOp);
-        }
-
-        // build measurements
-        for (auto [defIndex, defOp] : defOperands) {
-            for (auto [useIndex, useOp] : useOperands) {
-                LatMeasurement m =
-                    LatMeasurement(opcode, DependencyType(defOp, useOp), defIndex, useIndex);
-                measurements.emplace_back(m);
+    // collect operands (index, Operand)
+    std::vector<std::pair<unsigned, Operand>> defOperands;
+    std::vector<std::pair<unsigned, Operand>> useOperands;
+    unsigned defMemoryOperandCounter = 0;
+    unsigned useMemoryOperandCounter = 0;
+    // defs
+    for (unsigned i = 0; i < realNumDefs; i++) {
+        auto operandInfo = operands[i];
+        Operand operand;
+        if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
+            operand = Operand::fromRegClass(operandInfo.RegClass);
+        else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
+                 defMemoryOperandCounter++ == 0) {
+            operand = Operand::fromMemOffset(0);
+            if (desc.mayStore()) {
+                defOperands.emplace_back(i, operand);
             }
+            if (desc.mayLoad()) {
+                useOperands.emplace_back(i, operand);
+            }
+            continue;
+        } else
+            continue;
+        defOperands.emplace_back(i, operand);
+    }
+    // uses
+    for (unsigned i = realNumDefs; i < operands.size(); i++) {
+        auto operandInfo = operands[i];
+        Operand operand;
+        if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
+            operand = Operand::fromRegClass(operandInfo.RegClass);
+        else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
+                 useMemoryOperandCounter++ == 0) {
+            operand = Operand::fromMemOffset(0);
+        } else
+            continue;
+        useOperands.emplace_back(i, operand);
+    }
+    // implicit defs
+    for (unsigned i = 0; i < implDefs.size(); i++) {
+        MCRegister defReg = implDefs[i];
+        Operand defOp = Operand::fromRegister(defReg);
+        defOperands.emplace_back(999, defOp);
+    }
+    // implicit uses
+    for (unsigned i = 0; i < implUses.size(); i++) {
+        MCRegister useReg = implUses[i];
+        Operand useOp = Operand::fromRegister(useReg);
+        useOperands.emplace_back(999, useOp);
+    }
+
+    // build measurements
+    for (auto [defIndex, defOp] : defOperands) {
+        for (auto [useIndex, useOp] : useOperands) {
+            LatMeasurement m =
+                LatMeasurement(Opcode, DependencyType(defOp, useOp), defIndex, useIndex);
+            measurements.emplace_back(m);
         }
     }
-    // for (auto m : measurements)
-    //     dbg(__func__, m);
     return measurements;
 }
 
