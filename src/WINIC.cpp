@@ -976,6 +976,17 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end() ||
                 mA->opcode == mB->opcode)
                 continue;
+
+            // TODO this check technically should invalidate the combination of instructions not
+            // current one
+            unsigned numInst = 12;
+            auto [ec, assembly] =
+                genLatBenchmark({*mA, *mB}, &numInst, {}, RegInitValue, Immediate);
+            if (ec == W_MULTIPLE_DEPENDENCIES) {
+                out(*ios, "\tDetected multiple dependencies between ", *mA, " and ", *mB,
+                    "so they are not useful as helper combination");
+                continue;
+            }
             auto [EC, lat] = measureLatency({*mA, *mB}, loopIterations, RegInitValue, Immediate);
             if (isError(EC)) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
@@ -991,14 +1002,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 }
                 continue;
             }
-            // TODO this check technically should invalidate the combination of instructions not
-            // current one
-            if (EC == W_MULTIPLE_DEPENDENCIES) {
-                out(*ios, "\tDetected multiple dependencys between ", *mA, " and ", *mB,
-                    "so result of their combination will not be considered for finding "
-                    "helpers");
-                continue;
-            }
+
             if (lat < minCombinedLat) {
                 if (isUnusualLat(lat) && !isUnusualLat(minCombinedLat)) {
                     out(*ios, "\tUnusual ", lat, " from ", *mA, " and ", *mB,
