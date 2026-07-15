@@ -41,7 +41,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
  * \param UsedRegisters Set of registers to avoid using (optional).
  * \return Pair of ErrorCode and generated AssemblyFile.
  */
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
+std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::vector<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
                                                    std::set<MCRegister> UsedRegisters = {},
                                                    long RegInitValue = 4, long Immediate = 7);

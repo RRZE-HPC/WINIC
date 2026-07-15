@@ -140,7 +140,7 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
  * \param Immediate Immediate value to use during measurements.
  * \return Pair of error code and measured latency.
  */
-std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
+std::pair<ErrorCode, double> measureLatency(const std::vector<LatMeasurement> &Measurements,
                                             unsigned LoopCount, long RegInitValue, long Immediate);
 
 /**
@@ -153,7 +153,7 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double>
-measureLatencyInSubprocess(const std::list<LatMeasurement> &Measurements, unsigned LoopCount,
+measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopCount,
                            long RegInitValue, long Immediate);
 
 /**
@@ -169,7 +169,7 @@ measureLatencyInSubprocess(const std::list<LatMeasurement> &Measurements, unsign
  * \param Immediate Immediate value to use during measurements.
  * \return Pair of error code and measured latency.
  */
-std::pair<ErrorCode, double> measureLatencyInProcess(const std::list<LatMeasurement> &Measurements,
+std::pair<ErrorCode, double> measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements,
                                                      unsigned LoopCount, long RegInitValue,
                                                      long Immediate);
 

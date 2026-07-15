@@ -38,7 +38,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     // stores def operands which are also used (to set the flag)
     std::set<unsigned> tiedToOps;
-    // for (auto opInfo : desc.operands()) {
+    unsigned memOpCounter = 0;
     for (unsigned i = desc.getNumOperands(); i-- > 0;) {
         const MCOperandInfo &opInfo = desc.operands()[i];
         if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
@@ -65,9 +65,13 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
             opOp.opClass = "immediate";
             opOp.read = true;
             opOp.write = false;
-        } else if (opInfo.OperandType == MCOI::OPERAND_MEMORY)
-            continue; // TODO memory
-        else
+        } else if (opInfo.OperandType == MCOI::OPERAND_MEMORY) {
+            if (memOpCounter != 0) continue;
+            memOpCounter++;
+            opOp.opClass = "memory";
+            opOp.read = desc.mayLoad();
+            opOp.write = desc.mayStore();
+        } else
             continue;
         operands.insert(operands.begin(), opOp);
     }
@@ -128,18 +132,18 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
 }
 
 unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc) {
-    unsigned correctedOpNum = OpNum;
-    if (OpNum >= Desc.getNumDefs()) {
-        // this is a use operand, may have to shift it
-        unsigned shiftAmount = 0;
-        for (unsigned i = Desc.getNumDefs(); i <= OpNum && i < Desc.getNumOperands(); i++) {
-            const MCOperandInfo &opInfo = Desc.operands()[i];
-            if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-                // this operand is tied to another operand, therefore a duplicate
-                shiftAmount++;
-            }
-        }
-        correctedOpNum -= shiftAmount;
+    unsigned memOpCounter = 0;
+    unsigned correctedOpNum = 0;
+    for (unsigned i = 0; i < Desc.getNumOperands(); i++) {
+        if (i == OpNum) return correctedOpNum;
+        // memory operands are split into multiple parts
+        if (Desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY && memOpCounter != 0) continue;
+        if (Desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY) memOpCounter++;
+        const MCOperandInfo &opInfo = Desc.operands()[i];
+        // this operand is tied to another operand, therefore a duplicate, dont count
+        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) continue;
+
+        correctedOpNum++;
     }
     return correctedOpNum;
 }

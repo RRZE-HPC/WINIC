@@ -60,10 +60,10 @@ ErrorCode AssemblyFile::addInitFunction(std::string Name, std::string InitCode) 
 
 ErrorCode AssemblyFile::addBenchFunction(std::string Name, std::string PreLoopCode,
                                          std::string LoopCode, std::string PostLoopCode,
-                                         std::string InitFunction) {
+                                         std::string InitFunction, unsigned NumInst) {
     assert(getInitFunctionNames().find(InitFunction) != getInitFunctionNames().end() &&
            "Init function not found");
-    benchFunctions.insert({Name, PreLoopCode, LoopCode, PostLoopCode, InitFunction});
+    benchFunctions.insert({Name, PreLoopCode, LoopCode, PostLoopCode, InitFunction, NumInst});
     return SUCCESS;
 }
 
@@ -89,6 +89,12 @@ std::string AssemblyFile::getInitNameFor(std::string BenchName) {
     for (BenchFunction function : benchFunctions)
         if (function.name == BenchName) return function.initFunction;
     return "";
+}
+
+unsigned AssemblyFile::getNumInstFor(std::string BenchName) {
+    for (BenchFunction function : benchFunctions)
+        if (function.name == BenchName) return function.numInst;
+    return 0;
 }
 
 /**

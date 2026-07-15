@@ -37,7 +37,10 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
     dbg(__func__, "MinOpcode: ", MinOpcode, " MaxOpcode: ", MaxOpcode,
         " OpcodeBlacklist.size(): ", OpcodeBlacklist.size());
     if (MaxOpcode == 0) MaxOpcode = getEnv().MCII->getNumOpcodes();
-    // generate a function for each read write dependency combination possible
+    // generate a LatMeasurement for each read write dependency combination possible
+    // assumes there are no implicit memory defs TODO think
+    // llvm x86 memory operands are split into 5 regs/immediates, but are not indicated to be
+    // written to by MCInstDesc::NumDefs
 
     std::vector<LatMeasurement> measurements;
     for (unsigned opcode = MinOpcode; opcode < MaxOpcode; opcode++) {
@@ -49,63 +52,82 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
             continue;
         }
         auto operands = desc.operands();
-
-        for (unsigned i = 0; i < desc.getNumDefs(); i++) {
-            auto defOperand = operands[i];
-            // normal use -> normal def
-            for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
-                auto useOperand = operands[j];
-                if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
-                LatMeasurement m =
-                    LatMeasurement(opcode,
-                                   DependencyType(Operand::fromRegClass(defOperand.RegClass),
-                                                  Operand::fromRegClass(useOperand.RegClass)),
-                                   i, j);
-                measurements.emplace_back(m);
-            }
-            // implUse -> normal def
-            auto implUses = desc.implicit_uses();
-            for (unsigned j = 0; j < implUses.size(); j++) {
-                MCRegister useReg = implUses[j];
-                LatMeasurement m =
-                    LatMeasurement(opcode,
-                                   DependencyType(Operand::fromRegClass(defOperand.RegClass),
-                                                  Operand::fromRegister(useReg)),
-                                   i, 999);
-                measurements.emplace_back(m);
-            }
-        }
         auto implDefs = desc.implicit_defs();
+        auto implUses = desc.implicit_uses();
+        unsigned realNumDefs = desc.getNumDefs();
+        if (desc.getNumOperands() > 0 && desc.operands()[0].OperandType == MCOI::OPERAND_MEMORY) {
+            // llvm lied
+            for (unsigned i = 0; i < desc.getNumOperands(); i++)
+                if (desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY) realNumDefs = i + 1;
+        }
+        dbg(__func__, "realNumDefs: ", realNumDefs);
+
+        // collect operands (index, Operand)
+        std::vector<std::pair<unsigned, Operand>> defOperands;
+        std::vector<std::pair<unsigned, Operand>> useOperands;
+        unsigned defMemoryOperandCounter = 0;
+        unsigned useMemoryOperandCounter = 0;
+        // defs
+        for (unsigned i = 0; i < realNumDefs; i++) {
+            auto operandInfo = operands[i];
+            Operand operand;
+            if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
+                operand = Operand::fromRegClass(operandInfo.RegClass);
+            else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
+                     defMemoryOperandCounter++ == 0) {
+                operand = Operand::fromMemOffset(0);
+                if (desc.mayStore()) {
+                    defOperands.emplace_back(i, operand);
+                }
+                if (desc.mayLoad()) {
+                    useOperands.emplace_back(i, operand);
+                }
+                continue;
+            } else
+                continue;
+            defOperands.emplace_back(i, operand);
+        }
+        // uses
+        for (unsigned i = realNumDefs; i < operands.size(); i++) {
+            auto operandInfo = operands[i];
+            Operand operand;
+            if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
+                operand = Operand::fromRegClass(operandInfo.RegClass);
+            else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
+                     useMemoryOperandCounter++ == 0) {
+                operand = Operand::fromMemOffset(0);
+            } else
+                continue;
+            useOperands.emplace_back(i, operand);
+        }
+        // implicit defs
         for (unsigned i = 0; i < implDefs.size(); i++) {
             MCRegister defReg = implDefs[i];
-            // normal Use -> implDef
-            for (unsigned j = desc.getNumDefs(); j < operands.size(); j++) {
-                auto useOperand = operands[j];
-                if (useOperand.OperandType != MCOI::OPERAND_REGISTER) continue;
-                auto m = LatMeasurement(opcode,
-                                        DependencyType(Operand::fromRegister(defReg),
-                                                       Operand::fromRegClass(useOperand.RegClass)),
-                                        999, j);
+            Operand defOp = Operand::fromRegister(defReg);
+            defOperands.emplace_back(999, defOp);
+        }
+        // implicit uses
+        for (unsigned i = 0; i < implUses.size(); i++) {
+            MCRegister useReg = implUses[i];
+            Operand useOp = Operand::fromRegister(useReg);
+            useOperands.emplace_back(999, useOp);
+        }
 
-                measurements.emplace_back(m);
-            }
-            // implUse -> implDef
-            auto implUses = desc.implicit_uses();
-            for (unsigned j = 0; j < implUses.size(); j++) {
-                MCRegister useReg = implUses[j];
-                auto m = LatMeasurement(
-                    opcode,
-                    DependencyType(Operand::fromRegister(defReg), Operand::fromRegister(useReg)),
-                    999, 999);
-
+        // build measurements
+        for (auto [defIndex, defOp] : defOperands) {
+            for (auto [useIndex, useOp] : useOperands) {
+                LatMeasurement m =
+                    LatMeasurement(opcode, DependencyType(defOp, useOp), defIndex, useIndex);
                 measurements.emplace_back(m);
             }
         }
     }
+    // for (auto m : measurements)
+    //     dbg(__func__, m);
     return measurements;
 }
 
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
+std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::vector<LatMeasurement> &Measurements,
                                                    unsigned *TargetInstrCount,
                                                    std::set<MCRegister> UsedRegisters,
                                                    long RegInitValue, long Immediate) {
@@ -119,11 +141,16 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
             benchTemplate.usedRegisters.end())
             UsedRegisters.insert(reg);
     }
+
+    // generate an instruction for every measurement. When e.g. two instructions are interleaved to
+    // form a latency chain, Measurements.size is 2
     std::map<unsigned, MCRegister> chosenRegisters;
-    // generate an instruction for every measurement
     std::vector<MCInst> instructions;
-    for (auto m : Measurements) {
+    for (unsigned i = 0; i < Measurements.size(); i++) {
+        LatMeasurement m = Measurements.at(i);
+        unsigned memDisplacement = i * getEnv().getMemoryOperandWidthUpperBound(m.opcode);
         std::map<unsigned, MCRegister> constraints;
+
         // choose registers for the operands building the latency chain
         for (auto [opIndex, op] :
              {std::make_pair(m.defIndex, m.type.defOp), std::make_pair(m.useIndex, m.type.useOp)}) {
@@ -143,12 +170,15 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
                     chosenRegisters.insert({regClassID, chosenReg});
                     UsedRegisters.insert(chosenReg);
                 }
-            } else // implicit def/use -> this provides a register directly
+            } else if (op.isRegister()) // implicit def/use -> this provides a register directly
                 UsedRegisters.insert(op.getRegister());
+            else if (op.isMemory()) {
+                memDisplacement = 0;
+            }
         }
 
         auto [EC, instruction] =
-            genInst(m.opcode, constraints, UsedRegisters, Immediate, 0); // TODO mem
+            genInst(m.opcode, constraints, UsedRegisters, Immediate, memDisplacement);
         if (EC != SUCCESS) return {EC, AssemblyFile()};
         instructions.emplace_back(instruction);
     }
@@ -193,9 +223,10 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
 
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("lat", saveRegs + regInit, loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("lat", saveRegs + regInit, loopCode, restoreRegs, "init",
+                                  *TargetInstrCount * instructions.size());
     assemblyFile.addBenchFunction("lat2", saveRegs + regInit, loopCode + loopCode, restoreRegs,
-                                  "init");
+                                  "init", *TargetInstrCount * instructions.size() * 2);
 
     // check if each instruction of the sequence has exactly one dependency to the next one.
     // otherwise return a warning
@@ -283,9 +314,10 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
 
     AssemblyFile assemblyFile(getEnv().Arch);
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("tp", saveRegs + regInit, loopCode, restoreRegs, "init");
+    assemblyFile.addBenchFunction("tp", saveRegs + regInit, loopCode, restoreRegs, "init",
+                                  instructions.size());
     assemblyFile.addBenchFunction("tp2", saveRegs + regInit, loopCode + loopCode, restoreRegs,
-                                  "init");
+                                  "init", instructions.size() * 2);
     return {SUCCESS, assemblyFile};
 }
 
@@ -513,6 +545,7 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
         if (getEnv().TRI->superregs(Reg).empty()) return {SUCCESS, Reg};
         Reg = *getEnv().TRI->superregs(Reg).begin(); // take first superreg
     }
+    std::cerr << "cannot get supermost register" << std::endl;
     return {E_UNREACHABLE, NULL};
 }
 
@@ -664,9 +697,12 @@ std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitVal
     llvm::raw_string_ostream rio(regInit);
     std::set<MCRegister> initialized;
     for (auto inst : Instructions) {
+        const MCInstrDesc &desc = getEnv().MCII->get(inst.getOpcode());
         // initialize all registers used by the instructions
         for (unsigned i = 0; i < inst.getNumOperands(); i++) {
-            if (!inst.getOperand(i).isReg()) continue;
+            // need to check using MCOI because there are registers hiding in memory operands and
+            // initialising those will break the memory accesses
+            if (desc.operands()[i].OperandType != MCOI::OPERAND_REGISTER) continue;
             MCRegister reg = inst.getOperand(i).getReg();
             if (initialized.find(reg) != initialized.end()) continue;
 

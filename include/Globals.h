@@ -39,44 +39,54 @@ void setOutputToFile(const std::string &Filename);
 
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
 
-enum class LatOperandKind { RegisterClass, Register };
+enum class LatOperandType { RegisterClass, Register, Memory };
 
 /**
  * \brief Represents an operand, which can be a register class or a specific register.
  */
 struct Operand {
-    LatOperandKind kind;
+    LatOperandType type;
 
     union {
-        unsigned regClass; ///< Register class ID
-        MCRegister reg;    ///< Register
+        unsigned regClass;  ///< Register class ID
+        MCRegister reg;     ///< Register
+        unsigned memOffset; ///< Register
     };
 
-    Operand() : kind(LatOperandKind::RegisterClass) {}
+    Operand() : type(LatOperandType::RegisterClass) {}
 
     static Operand fromRegClass(unsigned Val) {
         Operand op;
-        op.kind = LatOperandKind::RegisterClass;
+        op.type = LatOperandType::RegisterClass;
         op.regClass = Val;
         return op;
     }
 
-    static Operand fromRegister(MCRegister R) {
+    static Operand fromRegister(MCRegister Reg) {
         Operand op;
-        op.kind = LatOperandKind::Register;
-        op.reg = R;
+        op.type = LatOperandType::Register;
+        op.reg = Reg;
+        return op;
+    }
+
+    static Operand fromMemOffset(unsigned Offset) {
+        Operand op;
+        op.type = LatOperandType::Memory;
+        op.memOffset = Offset;
         return op;
     }
 
     bool operator==(const Operand &Other) const {
-        if (kind != Other.kind) return false;
-        if (kind == LatOperandKind::RegisterClass) return regClass == Other.regClass;
+        if (type != Other.type) return false;
+        if (type == LatOperandType::RegisterClass) return regClass == Other.regClass;
+        if (type == LatOperandType::Memory) return memOffset == Other.memOffset;
         return reg == Other.reg;
     }
 
     bool operator<(const Operand &Other) const {
-        if (kind != Other.kind) return kind < Other.kind;
-        if (kind == LatOperandKind::RegisterClass) return regClass < Other.regClass;
+        if (type != Other.type) return type < Other.type;
+        if (type == LatOperandType::RegisterClass) return regClass < Other.regClass;
+        if (type == LatOperandType::Memory) return memOffset < Other.memOffset;
         return reg < Other.reg;
     }
 
@@ -84,13 +94,19 @@ struct Operand {
      * \brief Checks if this operand is a register class.
      * \return True if register class, false if register.
      */
-    bool isRegClass() const { return kind == LatOperandKind::RegisterClass; }
+    bool isRegClass() const { return type == LatOperandType::RegisterClass; }
 
     /**
      * \brief Checks if this operand is a register.
      * \return True if register, false if register class.
      */
-    bool isRegister() const { return kind == LatOperandKind::Register; }
+    bool isRegister() const { return type == LatOperandType::Register; }
+
+    /**
+     * \brief Checks if this operand is a register.
+     * \return True if register, false if register class.
+     */
+    bool isMemory() const { return type == LatOperandType::Memory; }
 
     /**
      * \brief Gets the register class ID.
@@ -110,10 +126,21 @@ struct Operand {
         return reg;
     }
 
+    /**
+     * \brief Gets memory offset.
+     * \return memory offset.
+     */
+    MCRegister getMemory() const {
+        assert(isMemory());
+        return memOffset;
+    }
+
     std::string toCompactString() const {
         if (isRegClass())
             return getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClass));
-        return getEnv().MRI->getName(reg);
+        if (isRegister()) return getEnv().MRI->getName(reg);
+        if (isMemory()) return "mem";
+        return "Operand type compact printing not implemented\n";
     }
 };
 
@@ -125,8 +152,9 @@ inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
         return OS << "Class<"
                   << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
                   << ">";
-
-    return OS << "Reg<" << getEnv().MRI->getName(Op.getRegister()) << ">";
+    if (Op.isRegister()) return OS << "Reg<" << getEnv().MRI->getName(Op.getRegister()) << ">";
+    if (Op.isMemory()) return OS << "Mem";
+    return OS << "Operand type printing not implemented\n";
 }
 
 /**

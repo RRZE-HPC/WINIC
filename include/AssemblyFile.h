@@ -15,6 +15,7 @@ struct BenchFunction {
     std::string postLoopCode;
     /// this initfunction will be called before the benchmark
     std::string initFunction;
+    unsigned numInst;
 
     bool operator<(const BenchFunction &Other) const { return name < Other.name; }
 };
@@ -72,7 +73,8 @@ class AssemblyFile {
      * \return ErrorCode indicating success or failure.
      */
     ErrorCode addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
-                               std::string PostLoopCode, std::string InitFunction);
+                               std::string PostLoopCode, std::string InitFunction,
+                               unsigned NumInst);
 
     /**
      * \brief Returns a set of all benchmark function names in the assembly file.
@@ -92,6 +94,8 @@ class AssemblyFile {
      * \return Name of the initialization function.
      */
     std::string getInitNameFor(std::string BenchName);
+
+    unsigned getNumInstFor(std::string BenchName);
 
     std::string getName() const { return name; }
 

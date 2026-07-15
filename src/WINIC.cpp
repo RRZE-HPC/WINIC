@@ -460,7 +460,7 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long Re
                            : measureThroughputInProcess(Opcode, RegInitValue, Immediate);
 }
 
-std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
+std::pair<ErrorCode, double> measureLatency(const std::vector<LatMeasurement> &Measurements,
                                             unsigned LoopCount, long RegInitValue, long Immediate) {
     return runInSubprocess
                ? measureLatencyInSubprocess(Measurements, LoopCount, RegInitValue, Immediate)
@@ -533,9 +533,9 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
     return {SUCCESS, correctedTP, correctedTP};
 }
 
-std::pair<ErrorCode, double> measureLatencyInProcess(const std::list<LatMeasurement> &Measurements,
-                                                     unsigned LoopCount, long RegInitValue,
-                                                     long Immediate) {
+std::pair<ErrorCode, double>
+measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopCount,
+                        long RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
         " Immediate: ", Immediate);
 
@@ -568,6 +568,10 @@ std::pair<ErrorCode, double> measureLatencyInProcess(const std::list<LatMeasurem
             chainString += getEnv().MCII->getName(m.opcode).data();
             chainString += " -> ";
         }
+        for (auto time : benchResults["lat"]) {
+            chainString += std::to_string(time) + " ";
+        }
+        chainString += "unrolled: ";
         for (auto time : benchResults["lat2"]) {
             chainString += std::to_string(time) + " ";
         }
@@ -640,7 +644,7 @@ measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate
 }
 
 std::pair<ErrorCode, double>
-measureLatencyInSubprocess(const std::list<LatMeasurement> &Measurements, unsigned LoopCount,
+measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopCount,
                            long RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
