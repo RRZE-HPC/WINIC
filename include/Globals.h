@@ -214,9 +214,9 @@ struct LatMeasurement {
 
     std::string toStringWithBounds() const {
         std::string outputString = toString();
-        if (!isError(ec))
+        if (hasResultWith(ec))
             outputString += str(" [", lowerBound, ";", upperBound, "]");
-        else if (ec != NO_ERROR_CODE)
+        else
             outputString += str(" [", ecToString(ec), "]");
         return outputString;
     }
@@ -234,6 +234,15 @@ struct TPMeasurement {
     ErrorCode ec;
     double lowerTP;
     double upperTP;
+
+    std::string toStringWithBounds() const {
+        std::string outputString = getEnv().MCII->getName(opcode).str();
+        if (hasResultWith(ec))
+            outputString += str(" [", lowerTP, ";", upperTP, "]");
+        else
+            outputString += str(" [", ecToString(ec), "]");
+        return outputString;
+    }
 };
 
 /**

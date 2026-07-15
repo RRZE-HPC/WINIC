@@ -64,6 +64,7 @@ unsigned loopIterations; // number of iterations of the benchmarking kernel loop
 bool showProgress;
 bool outputASM;
 bool runInSubprocess;
+double maxCyclesPerInstruction;
 
 static std::string generateTimestamp() {
     // Get current time
@@ -249,7 +250,11 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     for (auto [benchFunctionName, benchFunctionPointer] : benchFunctionMap) {
         auto benchFunction = benchFunctionPointer;
         auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionName)];
-        dbg(__func__, "running ", benchFunctionName);
+        auto &list = benchtimes[benchFunctionName];
+        unsigned numInst = Assembly.getNumInstFor(benchFunctionName);
+        double runtimeLimit = maxCyclesPerInstruction * (numInst * N) / (clockFrequency * 1e3);
+
+        dbg(__func__, "running ", Assembly.getName(), " function: ", benchFunctionName);
         for (unsigned i = 0; i < Runs; i++) {
             if (initFunction) (*initFunction)();
 
@@ -257,9 +262,10 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
             (*benchFunction)(N);
             gettimeofday(&end, NULL);
 
-            auto &list = benchtimes[benchFunctionName];
-            list.insert(list.end(),
-                        (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
+            double benchtime =
+                (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
+            list.insert(list.end(), benchtime);
+            if (benchtime > runtimeLimit) return {S_RUNTIME_LIMIT, benchtimes};
         }
     }
 
@@ -1100,6 +1106,7 @@ int run(int argc, char **argv) {
     std::string immValueString = "";
     includeMemory = true;
     includeNonMemory = true;
+    maxCyclesPerInstruction = 300;
     loopIterations = 1e6;
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
@@ -1132,6 +1139,10 @@ int run(int argc, char **argv) {
     tp->add_flag("--include-non-memory", includeNonMemory,
                  "Include instructions not accessing memory")
         ->default_val(true);
+    tp->add_option("--runtime-limit", maxCyclesPerInstruction,
+                   "Set a limit for the time spent on an instruction in cycles. If a run takes "
+                   "longer than the limit it gets aborted")
+        ->default_val("300");
     tp->add_flag("--keep-empty-entries", keepEmptyEntries,
                  "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
@@ -1169,6 +1180,10 @@ int run(int argc, char **argv) {
     lat->add_flag("--include-non-memory", includeNonMemory,
                   "Include instructions not accessing memory")
         ->default_val(true);
+    lat->add_option("--runtime-limit", maxCyclesPerInstruction,
+                    "Set a limit for the time spent on an instruction in cycles. If a run takes "
+                    "longer than the limit it gets aborted")
+        ->default_val("300");
     lat->add_flag("--keep-empty-entries", keepEmptyEntries,
                   "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
@@ -1355,8 +1370,8 @@ int run(int argc, char **argv) {
                     continue; // skip prio helpers
                 std::cout << m.toStringWithBounds() << std::endl;
             }
-            for (auto [opcode, measurement] : throughputDatabase)
-                std::cout << str(measurement) << std::endl;
+            for (auto [opcode, m] : throughputDatabase)
+                std::cout << m.toStringWithBounds() << std::endl;
         }
 
         // save database

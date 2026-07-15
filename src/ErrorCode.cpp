@@ -46,6 +46,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_NO_MNEMONIC";
     case S_BLACKLISTED_REGISTER:
         return "SKIP_BLACKLISTED_REGISTER";
+    case S_RUNTIME_LIMIT:
+        return "S_RUNTIME_LIMIT";
     case E_TEMPLATE:
         return "ERROR_TEMPLATE";
     case E_NO_RUNS:
@@ -87,7 +89,12 @@ std::string ecToString(ErrorCode EC) {
 }
 
 bool isError(ErrorCode EC) {
-    return EC != SUCCESS && EC != W_MULTIPLE_DEPENDENCIES && EC != NO_ERROR_CODE;
+    return EC != SUCCESS && EC != W_MULTIPLE_DEPENDENCIES && EC != NO_ERROR_CODE &&
+           EC != S_RUNTIME_LIMIT;
+}
+
+bool hasResultWith(ErrorCode EC) {
+    return EC == SUCCESS || EC == W_MULTIPLE_DEPENDENCIES || EC == NO_ERROR_CODE;
 }
 
 } // namespace winic

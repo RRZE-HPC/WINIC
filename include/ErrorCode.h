@@ -26,6 +26,7 @@ enum ErrorCode {
     S_MANUALLY,
     S_NO_MNEMONIC,
     S_BLACKLISTED_REGISTER,
+    S_RUNTIME_LIMIT,
     E_TEMPLATE, // errors
     E_NO_RUNS,
     E_NO_HELPER,
@@ -50,6 +51,9 @@ std::string ecToString(ErrorCode EC);
 
 // returns true if EC is SUCCESS, a warning or the default EC
 bool isError(ErrorCode EC);
+
+// returns true a measurement with this EC has a value
+bool hasResultWith(ErrorCode EC);
 
 } // namespace winic
 
