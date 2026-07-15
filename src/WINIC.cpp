@@ -374,7 +374,7 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     // generate two instructions and check for dependencys
     std::set<MCRegister> usedRegs;
     auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate, 0);
-    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate, 32);
+    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate, 512);
     std::list<DependencyType> dependencies = getDependencies(inst1, inst2);
     if (dependencies.empty()) return {SUCCESS, MAX_UNSIGNED, {}}; // no helper needed
     if (dependencies.size() > 1) {
@@ -383,13 +383,17 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
         // is currently not supported
         return {E_NO_HELPER, MAX_UNSIGNED, {}};
     }
+
+    // we can assume there are only register dependencies here, as we used different memory offsets
+    // earlier and there are no implicit memory accesses
+    auto depType = dependencies.front();
+    auto useReg = depType.useOp.getRegister();
+    
     // this instruction will always have one dependency on itself. We have to break this by
     // interleaving another instruction. The other instruction has to:
     // 1. be measured already
     // 2. define the used register of the dependency
     // 3. not be dependent on the current instruction
-    auto dep = dependencies.front();
-    auto useReg = dep.useOp.getRegister();
 
     unsigned helperOpcode = MAX_UNSIGNED;
     std::map<unsigned, MCRegister> helperConstraints;
@@ -421,7 +425,7 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
                 std::set<MCRegister> tmpUsedRegs;
                 auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate, 0);
                 auto [ec2, helperInst] =
-                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate, 32);
+                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate, 512);
                 if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
                 if (!getDependencies(inst, helperInst).empty()) continue;
                 helperOpcode = possibleHelper;

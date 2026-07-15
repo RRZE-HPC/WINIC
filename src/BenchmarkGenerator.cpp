@@ -557,18 +557,66 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
     std::list<DependencyType> dependencies;
     const MCInstrDesc &desc1 = getEnv().MCII->get(Inst1.getOpcode());
     const MCInstrDesc &desc2 = getEnv().MCII->get(Inst2.getOpcode());
-    // collect all registers Inst1 will define
+
+    // adjust numDefs for LLVM memory operands not being included
+    unsigned realNumDefs1 = desc1.getNumDefs();
+    unsigned realNumDefs2 = desc2.getNumDefs();
+    if (desc1.getNumOperands() > 0 && desc1.operands()[0].OperandType == MCOI::OPERAND_MEMORY)
+        for (unsigned i = 0; i < desc1.getNumOperands(); i++)
+            if (desc1.operands()[i].OperandType == MCOI::OPERAND_MEMORY) realNumDefs1 = i + 1;
+
+    if (desc2.getNumOperands() > 0 && desc2.operands()[0].OperandType == MCOI::OPERAND_MEMORY)
+        for (unsigned i = 0; i < desc2.getNumOperands(); i++)
+            if (desc2.operands()[i].OperandType == MCOI::OPERAND_MEMORY) realNumDefs2 = i + 1;
+
+    // collect all registers and memory locations Inst1 will define
     std::set<MCRegister> defs1;
-    for (unsigned i = 0; i < desc1.getNumDefs() && i < Inst1.getNumOperands(); i++) {
-        if (Inst1.getOperand(i).isReg()) defs1.insert(Inst1.getOperand(i).getReg());
+    std::set<int64_t> memOffsets1;
+    unsigned memOpCounter1 = 0;
+    for (unsigned i = 0; i < realNumDefs1 && i < Inst1.getNumOperands(); i++) {
+        if (desc1.operands()[i].OperandType == MCOI::OPERAND_REGISTER)
+            defs1.insert(Inst1.getOperand(i).getReg());
+        if (desc1.operands()[i].OperandType == MCOI::OPERAND_MEMORY) {
+
+            if (memOpCounter1 == 3) {
+                if (!Inst1.getOperand(i).isImm()) {
+                    std::cerr << str(
+                        "very bad: memory operand has no immediate at expected position. "
+                        "Dependency check not complete ",
+                        Inst1, "\n");
+                    continue;
+                }
+                // make sure this operand is not load only
+                if (desc1.mayStore()) memOffsets1.insert(Inst1.getOperand(i).getImm());
+            }
+            memOpCounter1++;
+        }
     }
     for (MCRegister implDef : desc1.implicit_defs()) {
         defs1.insert(implDef);
     }
-    // collect all registers Inst2 will use
+    // collect all registers and memory locations Inst2 will use
     std::set<MCRegister> uses2;
-    for (unsigned i = desc2.getNumDefs(); i < desc2.getNumOperands(); i++) {
-        if (Inst2.getOperand(i).isReg()) uses2.insert(Inst2.getOperand(i).getReg());
+    std::set<int64_t> memOffsets2;
+    unsigned memOpCounter2 = 0;
+    for (unsigned i = realNumDefs2; i < desc2.getNumOperands(); i++) {
+        if (desc2.operands()[i].OperandType == MCOI::OPERAND_REGISTER)
+            uses2.insert(Inst2.getOperand(i).getReg());
+        if (desc2.operands()[i].OperandType == MCOI::OPERAND_MEMORY) {
+
+            if (memOpCounter2 == 3) {
+                if (!Inst2.getOperand(i).isImm()) {
+                    std::cerr << str(
+                        "very bad: memory operand has no immediate at expected position. "
+                        "Dependency check not complete ",
+                        Inst2, "\n");
+                    continue;
+                }
+                // make sure this operand is not store only
+                if (desc2.mayLoad()) memOffsets2.insert(Inst2.getOperand(i).getImm());
+            }
+            memOpCounter2++;
+        }
     }
     for (MCRegister implUse : desc2.implicit_uses()) {
         uses2.insert(implUse);
@@ -579,6 +627,14 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
             if (def == use)
                 dependencies.emplace_back(
                     DependencyType(Operand::fromRegister(def), Operand::fromRegister(use)));
+
+    // repeat for memory accesses
+    for (int64_t def : memOffsets1)
+        for (int64_t use : memOffsets2)
+            if (def == use)
+                dependencies.emplace_back(
+                    DependencyType(Operand::fromMemOffset(def), Operand::fromMemOffset(use)));
+
     return dependencies;
 }
 

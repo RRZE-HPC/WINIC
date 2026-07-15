@@ -135,7 +135,9 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
 
 /**
  * \brief Returns a list of dependencies between two instructions, taking into account implicit and
- * explicit defs/uses.
+ * explicit defs/uses and memory locations. This does ONLY check if the memory offsets
+ * are identical, however it does not check if accessed memory overlaps or if the base registers,
+ * index registers etc. are really different.
  * \param Inst1 The first instruction.
  * \param Inst2 The second instruction.
  * \return List of DependencyType objects.
