@@ -37,10 +37,9 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode);
  * \param UsedRegisters Set of registers to avoid using (optional).
  * \return Pair of ErrorCode and generated AssemblyFile.
  */
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::vector<LatMeasurement> &Measurements,
-                                                   unsigned *TargetInstrCount,
-                                                   std::set<MCRegister> UsedRegisters = {},
-                                                   long RegInitValue = 4, long Immediate = 7);
+std::pair<ErrorCode, AssemblyFile>
+genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *TargetInstrCount,
+                std::set<MCRegister> UsedRegisters = {}, long RegInitValue = 4, long Immediate = 7);
 
 /**
  * \brief Generates a throughput benchmark for a given opcode.
@@ -86,8 +85,8 @@ genTPLoop(std::vector<unsigned> Opcodes,
  * \return Tuple of ErrorCode and operand number. Returns SUCCESS and -1 if the instruction
  * defs/uses the register implicitly. Returns Error if no operand can use/def the register.
  */
-std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
-                                              MCRegister RequiredRegister);
+std::tuple<ErrorCode, int>
+whichOperandCanUse(unsigned Opcode, std::string Type, MCRegister RequiredRegister);
 
 /**
  * \brief Generates an instruction for a given opcode and constraints.
@@ -103,9 +102,9 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
  * demand for a register to be used this will be overridden.
  * \return Pair of ErrorCode and generated MCInst instruction.
  */
-std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate,
-                                     unsigned MemDisplacement);
+std::pair<ErrorCode, MCInst>
+genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
+        std::set<MCRegister> &UsedRegisters, unsigned Immediate, unsigned MemDisplacement);
 
 /**
  * \brief Finds the supermost register for a given register.
@@ -120,8 +119,8 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg);
  * \param UsedRegisters Set of registers to avoid using.
  * \return Pair of ErrorCode and a free MCRegister.
  */
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &RegClass,
-                                                        std::set<MCRegister> UsedRegisters);
+std::pair<ErrorCode, MCRegister>
+getFreeRegisterInClass(const MCRegisterClass &RegClass, std::set<MCRegister> UsedRegisters);
 
 /**
  * \brief Finds a free register in the register class with the given ID.
@@ -129,8 +128,8 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &R
  * \param UsedRegisters Set of registers to avoid using.
  * \return Pair of ErrorCode and a free MCRegister.
  */
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
-                                                        std::set<MCRegister> UsedRegisters);
+std::pair<ErrorCode, MCRegister>
+getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters);
 
 /**
  * \brief Returns a list of dependencies between two instructions, taking into account implicit and

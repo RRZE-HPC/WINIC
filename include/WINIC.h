@@ -70,13 +70,14 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
  * \param Runtime Time for the original loop.
  * \param UnrolledRuntime Time for the unrolled loop.
  * \param NumInst Number of instructions in loop.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param Throughput Whether this is a throughput measurement.
  * \return Pair of error code and cycles per instruction.
  */
-std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount, bool Throughput);
+std::pair<ErrorCode, double>
+calculateCycles(double Runtime, double UnrolledRuntime, unsigned NumInst, unsigned LoopIterations,
+                bool Throughput);
 
 /**
  * \brief Finds a helper instruction for throughput measurement if needed.
@@ -86,7 +87,7 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
  * constraints. Returns ERROR_NO_HELPER if a helper is needed but none can be found.
  */
 std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
-getTPHelperInstruction(unsigned Opcode, long Immediate);
+findTPHelperInstruction(unsigned Opcode, long Immediate);
 
 /**
  * \brief Measures the throughput of the instruction with the given opcode.
@@ -97,8 +98,8 @@ getTPHelperInstruction(unsigned Opcode, long Immediate);
  * \param Immediate Immediate value to use during measurements.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
-std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
-                                                        long Immediate);
+std::tuple<ErrorCode, double, double>
+measureThroughput(unsigned Opcode, long RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureThroughput in a subprocess to recover from segfaults during benchmarking.
@@ -124,8 +125,8 @@ measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate
  * \param Immediate Immediate value to use during measurements.
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
-std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode, long RegInitValue,
-                                                                 long Immediate);
+std::tuple<ErrorCode, double, double>
+measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate);
 
 /**
  * \brief Measures the latency of the provided instruction chain.
@@ -134,26 +135,27 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
  * This may segfault e.g. on privileged instructions like CLGI.
  *
  * \param Measurements List of latency measurements to perform.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
  * \param Immediate Immediate value to use during measurements.
  * \return Pair of error code and measured latency.
  */
-std::pair<ErrorCode, double> measureLatency(const std::vector<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, long RegInitValue, long Immediate);
+std::pair<ErrorCode, double>
+measureLatency(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
+               long RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureLatency in a subprocess to recover from segfaults during benchmarking.
  *
  * \param Measurements List of latency measurements to perform.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
  * \return Pair of error code and measured latency.
  */
 std::pair<ErrorCode, double>
-measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopCount,
+measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
                            long RegInitValue, long Immediate);
 
 /**
@@ -163,15 +165,15 @@ measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsi
  * This may segfault e.g. on privileged instructions like CLGI.
  *
  * \param Measurements List of latency measurements to perform.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param RegInitValue Value to initialize registers with.
  * \param Immediate Immediate value to use during measurements.
  * \return Pair of error code and measured latency.
  */
-std::pair<ErrorCode, double> measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements,
-                                                     unsigned LoopCount, long RegInitValue,
-                                                     long Immediate);
+std::pair<ErrorCode, double>
+measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
+                        long RegInitValue, long Immediate);
 
 /**
  * \brief Manually runs a benchmark from an assembly file at a given path.
@@ -179,16 +181,15 @@ std::pair<ErrorCode, double> measureLatencyInProcess(const std::vector<LatMeasur
  * \param SPath Path to the assembly file.
  * \param Runs Number of benchmark runs.
  * \param NumInst Number of instructions in the loop.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param FunctionName Name of the function to benchmark.
  * \param InitName (Optional) Name of the initialization function.
  * \return Pair of error code and a vector of measured times.
  */
-std::pair<ErrorCode, std::vector<double>> measureManual(std::string SPath, unsigned Runs,
-                                                        unsigned NumInst, int LoopCount,
-                                                        std::string FunctionName,
-                                                        std::string InitName = "");
+std::pair<ErrorCode, std::vector<double>>
+measureManual(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
+              std::string FunctionName, std::string InitName = "");
 
 /**
  * \brief Calls runManual in a subprocess to recover from segfaults during benchmarking.
@@ -196,15 +197,16 @@ std::pair<ErrorCode, std::vector<double>> measureManual(std::string SPath, unsig
  * \param SPath Path to the assembly file.
  * \param Runs Number of benchmark runs.
  * \param NumInst Number of instructions in the loop.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param FunctionName Name of the function to benchmark.
  * \param InitName (Optional) Name of the initialization function.
  * \return Pair of error code and a vector of measured times.
  */
 std::pair<ErrorCode, std::vector<double>>
-measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
-                          std::string FunctionName, std::string InitName = "");
+measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst,
+                          unsigned LoopIterations, std::string FunctionName,
+                          std::string InitName = "");
 
 /**
  * \brief Manually runs a benchmark from an assembly file at a given path.
@@ -212,16 +214,15 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, un
  * \param SPath Path to the assembly file.
  * \param Runs Number of benchmark runs.
  * \param NumInst Number of instructions in the loop.
- * \param LoopCount Number of loop iterations.
+ * \param LoopIterations Number of loop iterations.
  * \param Frequency CPU frequency in GHz.
  * \param FunctionName Name of the function to benchmark.
  * \param InitName (Optional) Name of the initialization function.
  * \return Pair of error code and a vector of measured times.
  */
-std::pair<ErrorCode, std::vector<double>> measureManualInProcess(std::string SPath, unsigned Runs,
-                                                                 unsigned NumInst, int LoopCount,
-                                                                 std::string FunctionName,
-                                                                 std::string InitName = "");
+std::pair<ErrorCode, std::vector<double>>
+measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
+                       std::string FunctionName, std::string InitName = "");
 
 /**
  * \brief Checks if two opcodes are variants of the same instruction with different operands.

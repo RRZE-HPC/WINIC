@@ -137,9 +137,9 @@ void prepAsmDir() {
 namespace winic {
 
 std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
+runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, unsigned Runs) {
     if (Runs == 0) return {E_NO_RUNS, {}};
-    dbg(__func__, "N: ", N, " Runs: ", Runs);
+    dbg(__func__, "N: ", LoopIterations, " Runs: ", Runs);
     std::string clangPath = CLANG_PATH;
     if (clangPath == "usr/bin/clang") {
         std::cerr << "CLANG_PATH not set, using default" << std::endl;
@@ -165,17 +165,7 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         }
     }
 
-    // slightly worse performance than fork
-    //  std::string compiler = CLANG_PATH;
-    //  std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " +
-    // oPath;
-    //  if (outputASM)
-    //      command += " 2> assembler_out.log";
-    //  else
-    //      command += " 2> /dev/null";
-    //  if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {-1}};
-
-    // slightly better performance
+    // assemble benchmark
     pid_t pid = fork();
     if (pid == 0) { // Child
         int fd;
@@ -251,14 +241,15 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
         auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionName)];
         auto &list = benchtimes[benchFunctionName];
         unsigned numInst = Assembly.getNumInstFor(benchFunctionName);
-        double runtimeLimit = maxCyclesPerInstruction * (numInst * N) / (clockFrequency * 1e3);
+        double runtimeLimit =
+            maxCyclesPerInstruction * (numInst * LoopIterations) / (clockFrequency * 1e3);
 
         dbg(__func__, "running ", Assembly.getName(), " function: ", benchFunctionName);
         for (unsigned i = 0; i < Runs; i++) {
             if (initFunction) (*initFunction)();
 
             gettimeofday(&start, NULL);
-            (*benchFunction)(N);
+            (*benchFunction)(LoopIterations);
             gettimeofday(&end, NULL);
 
             double benchtime =
@@ -276,12 +267,12 @@ runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
     return {SUCCESS, benchtimes};
 }
 
-std::pair<ErrorCode, std::vector<double>> measureManualInProcess(std::string SPath, unsigned Runs,
-                                                                 unsigned NumInst, int LoopCount,
-                                                                 std::string FunctionName,
-                                                                 std::string InitName) {
+std::pair<ErrorCode, std::vector<double>>
+measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
+                       std::string FunctionName, std::string InitName) {
     dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
-        " LoopCount: ", LoopCount, " FunctionName: ", FunctionName, " InitName: ", InitName);
+        " LoopIterations: ", LoopIterations, " FunctionName: ", FunctionName,
+        " InitName: ", InitName);
     std::string clangPath = CLANG_PATH;
     std::string oPath = "/dev/shm/temp.so";
     std::string cpu = getEnv().Machine->getTargetCPU().data();
@@ -323,7 +314,7 @@ std::pair<ErrorCode, std::vector<double>> measureManualInProcess(std::string SPa
         if (init) (*init)();
         gettimeofday(&start, NULL);
         // actual call to benchmarked function
-        (*function)(LoopCount);
+        (*function)(LoopIterations);
         gettimeofday(&end, NULL);
         benchtimes.insert(benchtimes.end(),
                           (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
@@ -333,17 +324,17 @@ std::pair<ErrorCode, std::vector<double>> measureManualInProcess(std::string SPa
     return {SUCCESS, benchtimes};
 }
 
-std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount,
-                                             bool Throughput) {
+std::pair<ErrorCode, double>
+calculateCycles(double Runtime, double UnrolledRuntime, unsigned NumInst, unsigned LoopIterations,
+                bool Throughput) {
     dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime,
-        " NumInst: ", NumInst, " LoopCount: ", LoopCount);
+        " NumInst: ", NumInst, " LoopIterations: ", LoopIterations);
     // correct the result using one measurement with NumInst and one with 2*NumInst. This
     // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
     // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
     double cyclesPerInstruction =
-        (instRuntime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopCount);
+        (instRuntime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopIterations);
     if (instRuntime * 2 > UnrolledRuntime * 1.1) {
         // Execution time increases overproportional when unrolling, which should not happen.
         // This is unlikely to be a good measurement, report an error and let the user measure it
@@ -361,16 +352,17 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     // with helper TEST64rr In those cases the unrolled time should not be used for correction.
     // This is why the following check is only enabled for throughput
     if (Throughput && instRuntime * 2 > UnrolledRuntime) {
-        cyclesPerInstruction = (Runtime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopCount);
+        cyclesPerInstruction =
+            (Runtime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopIterations);
     }
     return {SUCCESS, cyclesPerInstruction};
 }
 
 std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
-getTPHelperInstruction(unsigned Opcode, long Immediate) {
+findTPHelperInstruction(unsigned Opcode, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode, " priorityTPHelper.size(): ", priorityTPHelper.size());
     // first check if this instruction needs a helper
-    // generate two instructions and check for dependencys
+    // generate two instructions and check for dependencies
     std::set<MCRegister> usedRegs;
     auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate, 0);
     auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate, 512);
@@ -457,30 +449,31 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     return {SUCCESS, helperOpcode, helperConstraints};
 }
 
-std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
-                                                        long Immediate) {
+std::tuple<ErrorCode, double, double>
+measureThroughput(unsigned Opcode, long RegInitValue, long Immediate) {
     return runInSubprocess ? measureThroughputInSubprocess(Opcode, RegInitValue, Immediate)
                            : measureThroughputInProcess(Opcode, RegInitValue, Immediate);
 }
 
-std::pair<ErrorCode, double> measureLatency(const std::vector<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, long RegInitValue, long Immediate) {
+std::pair<ErrorCode, double>
+measureLatency(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
+               long RegInitValue, long Immediate) {
     return runInSubprocess
-               ? measureLatencyInSubprocess(Measurements, LoopCount, RegInitValue, Immediate)
-               : measureLatencyInProcess(Measurements, LoopCount, RegInitValue, Immediate);
+               ? measureLatencyInSubprocess(Measurements, LoopIterations, RegInitValue, Immediate)
+               : measureLatencyInProcess(Measurements, LoopIterations, RegInitValue, Immediate);
 }
 
-std::pair<ErrorCode, std::vector<double>> measureManual(std::string SPath, unsigned Runs,
-                                                        unsigned NumInst, int LoopCount,
-                                                        std::string FunctionName,
-                                                        std::string InitName) {
-    return runInSubprocess
-               ? measureManualInSubprocess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName)
-               : measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
+std::pair<ErrorCode, std::vector<double>>
+measureManual(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
+              std::string FunctionName, std::string InitName) {
+    return runInSubprocess ? measureManualInSubprocess(SPath, Runs, NumInst, LoopIterations,
+                                                       FunctionName, InitName)
+                           : measureManualInProcess(SPath, Runs, NumInst, LoopIterations,
+                                                    FunctionName, InitName);
 }
 
-std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode, long RegInitValue,
-                                                                 long Immediate) {
+std::tuple<ErrorCode, double, double>
+measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode);
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
@@ -490,7 +483,7 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
     std::set<MCRegister> usedRegs;
     std::unordered_map<std::string, std::list<double>> benchResults;
 
-    auto [ec1, helperOpcode, helperConstraints] = getTPHelperInstruction(Opcode, Immediate);
+    auto [ec1, helperOpcode, helperConstraints] = findTPHelperInstruction(Opcode, Immediate);
     if (ec1 != SUCCESS) return {ec1, -1, -1};
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
@@ -537,26 +530,26 @@ std::tuple<ErrorCode, double, double> measureThroughputInProcess(unsigned Opcode
 }
 
 std::pair<ErrorCode, double>
-measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopCount,
+measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
                         long RegInitValue, long Immediate) {
-    dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
+    dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopIterations: ", LoopIterations,
         " Immediate: ", Immediate);
 
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
-    unsigned numInst1 = 12;
-    unsigned n = LoopCount;
+    unsigned instructionCount = 12;
     ErrorCode ec;
     ErrorCode warning = NO_ERROR_CODE;
     AssemblyFile assembly;
     std::unordered_map<std::string, std::list<double>> benchResults;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    std::tie(ec, assembly) = genLatBenchmark(Measurements, &numInst1, {}, RegInitValue, Immediate);
+    std::tie(ec, assembly) =
+        genLatBenchmark(Measurements, &instructionCount, {}, RegInitValue, Immediate);
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
     assembly.setName(Measurements.front().toCompactString());
-    std::tie(ec, benchResults) = runBenchmark(assembly, n, nRuns);
+    std::tie(ec, benchResults) = runBenchmark(assembly, LoopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1};
 
     // take minimum of runs. "lat" and "lat2" is naming convention defined in
@@ -564,7 +557,7 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
     double time1 = *std::min_element(benchResults["lat"].begin(), benchResults["lat"].end());
     double time2 = *std::min_element(benchResults["lat2"].begin(), benchResults["lat2"].end());
     double cycles;
-    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, false);
+    std::tie(ec, cycles) = calculateCycles(time1, time2, instructionCount, LoopIterations, false);
     if (ec != SUCCESS) {
         std::string chainString = "";
         for (auto m : Measurements) {
@@ -647,7 +640,7 @@ measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate
 }
 
 std::pair<ErrorCode, double>
-measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopCount,
+measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
                            long RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
@@ -667,7 +660,7 @@ measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsi
         ErrorCode ec;
         double res;
         std::tie(ec, res) =
-            measureLatencyInProcess(Measurements, LoopCount, RegInitValue, Immediate);
+            measureLatencyInProcess(Measurements, LoopIterations, RegInitValue, Immediate);
 
         *sharedResult = res;
         *sharedEC = ec;
@@ -694,8 +687,8 @@ measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsi
 }
 
 std::pair<ErrorCode, std::vector<double>>
-measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopCount,
-                          std::string FunctionName, std::string InitName) {
+measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst,
+                          unsigned LoopIterations, std::string FunctionName, std::string InitName) {
     // allocate memory to communicate result
     double *sharedResults = static_cast<double *>(mmap(
         NULL, Runs * sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -712,7 +705,7 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, un
 
     if (pid == 0) { // Child process
         auto [EC, res] =
-            measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
+            measureManualInProcess(SPath, Runs, NumInst, LoopIterations, FunctionName, InitName);
         *sharedEC = EC;
         for (unsigned i = 0; i < res.size() && i < Runs; i++)
             sharedResults[i] = res[i];
@@ -1242,7 +1235,7 @@ int run(int Argc, char **Argv) {
             // loading the database is delayed as doing it before the measurements has a
             // negative performance impact, probably due to the frequent forking
         } else
-            out(*ios, "Creating new database: ", databasePath);
+            out(*ios, "Will create new database: ", databasePath);
     }
 
     std::ostringstream ss;

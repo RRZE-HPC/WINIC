@@ -71,9 +71,9 @@ class AssemblyFile {
      * \param InitFunction Name of the initialization function to run before this benchmark.
      * \return ErrorCode indicating success or failure.
      */
-    ErrorCode addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
-                               std::string PostLoopCode, std::string InitFunction,
-                               unsigned NumInst);
+    ErrorCode
+    addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
+                     std::string PostLoopCode, std::string InitFunction, unsigned NumInst);
 
     /**
      * \brief Returns a set of all benchmark function names in the assembly file.

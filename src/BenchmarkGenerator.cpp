@@ -31,7 +31,6 @@
 #include <variant>
 #include <vector>
 
-
 namespace winic {
 
 std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
@@ -120,10 +119,9 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     return measurements;
 }
 
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::vector<LatMeasurement> &Measurements,
-                                                   unsigned *TargetInstrCount,
-                                                   std::set<MCRegister> UsedRegisters,
-                                                   long RegInitValue, long Immediate) {
+std::pair<ErrorCode, AssemblyFile>
+genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *TargetInstrCount,
+                std::set<MCRegister> UsedRegisters, long RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(),
         " TargetInstrCount: ", *TargetInstrCount, " UsedRegisters.size(): ", UsedRegisters.size());
     auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
@@ -254,7 +252,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
         }
     }
 
-    // this is the hepler instruction if needed.
+    // this is the helper instruction if needed.
     std::vector<unsigned> opcodes = {Opcode};
     if (HelperOpcode != MAX_UNSIGNED) opcodes.emplace_back(HelperOpcode);
     auto [EC, instructions] =
@@ -362,8 +360,8 @@ genTPLoop(std::vector<unsigned> Opcodes,
     return {SUCCESS, instructions};
 }
 
-std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
-                                              MCRegister RequiredRegister) {
+std::tuple<ErrorCode, int>
+whichOperandCanUse(unsigned Opcode, std::string Type, MCRegister RequiredRegister) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     if (Type == "use") {
         if (desc.hasImplicitUseOfPhysReg(RequiredRegister)) return {SUCCESS, -1};
@@ -411,9 +409,9 @@ expandConstraints(unsigned Opcode, std::map<unsigned, MCRegister> Constraints) {
     return newConstraints;
 }
 
-std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate,
-                                     unsigned MemDisplacement) {
+std::pair<ErrorCode, MCInst>
+genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
+        std::set<MCRegister> &UsedRegisters, unsigned Immediate, unsigned MemDisplacement) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     unsigned numOperands = desc.getNumOperands();
 
@@ -535,15 +533,15 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
     return {E_UNREACHABLE, NULL};
 }
 
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &RegClass,
-                                                        std::set<MCRegister> UsedRegisters) {
+std::pair<ErrorCode, MCRegister>
+getFreeRegisterInClass(const MCRegisterClass &RegClass, std::set<MCRegister> UsedRegisters) {
     for (auto reg : RegClass)
         if (UsedRegisters.find(reg) == UsedRegisters.end()) return {SUCCESS, reg};
     return {E_NO_REGISTERS, MAX_UNSIGNED};
 }
 
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
-                                                        std::set<MCRegister> UsedRegisters) {
+std::pair<ErrorCode, MCRegister>
+getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters) {
     const MCRegisterClass &regClass = getEnv().MRI->getRegClass(RegClassID);
     return getFreeRegisterInClass(regClass, UsedRegisters);
 }

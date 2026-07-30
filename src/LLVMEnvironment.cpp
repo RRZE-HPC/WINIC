@@ -2,8 +2,8 @@
 
 #include "CustomDebug.h"
 #include "ErrorCode.h"
-#include "LLVMDebug.h"
 #include "Globals.h"
+#include "LLVMDebug.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
@@ -251,8 +251,8 @@ std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::
     return result;
 }
 
-std::set<MCRegister> LLVMEnvironment::regDifference(std::set<MCRegister> A,
-                                                    std::set<MCRegister> B) {
+std::set<MCRegister>
+LLVMEnvironment::regDifference(std::set<MCRegister> A, std::set<MCRegister> B) {
     std::set<MCRegister> result;
     std::set_difference(A.begin(), A.end(), B.begin(), B.end(),
                         std::inserter(result, result.begin()));
