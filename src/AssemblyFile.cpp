@@ -34,7 +34,7 @@ static std::string indentBlock(std::string Block, unsigned Tabs) {
 
 namespace winic {
 
-std::string replaceFunctionName(std::string Str, const std::string Name) {
+std::string replaceFunctionName(std::string Str, std::string Name) {
     size_t startPos = 0;
     while ((startPos = Str.find("functionName", startPos)) != std::string::npos) {
         Str.replace(startPos, 12, Name);
@@ -43,8 +43,7 @@ std::string replaceFunctionName(std::string Str, const std::string Name) {
     return Str;
 }
 
-std::string replaceAllInstances(std::string Str, std::string ToReplace,
-                                const std::string Replacement) {
+std::string replaceAllInstances(std::string Str, std::string ToReplace, std::string Replacement) {
     size_t startPos = 0;
     while ((startPos = Str.find(ToReplace, startPos)) != std::string::npos) {
         Str.replace(startPos, ToReplace.size(), Replacement);

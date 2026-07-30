@@ -12,7 +12,7 @@
 
 namespace llvm {
 class MCInstrDesc;
-}
+} // namespace llvm
 
 namespace winic {
 struct LatMeasurement;
@@ -183,9 +183,9 @@ template <> struct ScalarTraits<std::optional<double>> {
             return {};
         }
         double tmp;
-        auto Err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
-        if (Err.empty()) Val = tmp;
-        return Err;
+        StringRef err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
+        if (err.empty()) Val = tmp;
+        return err;
     }
 
     static QuotingType mustQuote(StringRef S) {

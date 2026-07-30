@@ -35,7 +35,6 @@
 #include <limits>
 #include <map>
 #include <memory>
-#include <optional>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -51,7 +50,7 @@
 
 namespace llvm {
 class MCInstrDesc;
-}
+} // namespace llvm
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
@@ -712,9 +711,7 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, un
     if (pid == -1) return {E_FORK, {}};
 
     if (pid == 0) { // Child process
-        ErrorCode EC;
-        std::vector<double> res;
-        std::tie(EC, res) =
+        auto [EC, res] =
             measureManualInProcess(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
         *sharedEC = EC;
         for (unsigned i = 0; i < res.size() && i < Runs; i++)
@@ -734,7 +731,7 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst, un
         }
         if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {E_UNREACHABLE, {}};
 
-        ErrorCode EC = *sharedEC;
+        const ErrorCode EC = *sharedEC;
         std::vector<double> res;
         for (unsigned i = 0; i < Runs; i++)
             res.push_back(sharedResults[i]);
@@ -910,7 +907,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         while (itA != measurementsA.end()) {
             LatMeasurement *m = *(itA++);
             if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
+            const ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
             if (EC == SUCCESS) {
                 smallestA = m;
                 break;
@@ -927,7 +924,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         while (itB != measurementsB.end()) {
             LatMeasurement *m = *(itB++);
             if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
+            const ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
             if (EC == SUCCESS) {
                 smallestB = m;
                 break;
@@ -1093,7 +1090,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     }
 }
 
-int run(int argc, char **argv) {
+int run(int Argc, char **Argv) {
     double frequency;
     std::string cpu = "";
     std::string march = "";
@@ -1218,7 +1215,7 @@ int run(int argc, char **argv) {
         ->default_val(1000000);
 
     app.require_subcommand(1, 1);
-    CLI11_PARSE(app, argc, argv)
+    CLI11_PARSE(app, Argc, Argv)
 
     // process regInitValue
     long regInitValue = std::stol(regInitValueString, nullptr, 0);
@@ -1249,8 +1246,8 @@ int run(int argc, char **argv) {
     }
 
     std::ostringstream ss;
-    for (int i = 0; i < argc; ++i)
-        ss << argv[i] << " ";
+    for (int i = 0; i < Argc; ++i)
+        ss << Argv[i] << " ";
 
     out(*ios, "Timestamp: ", timestamp);
     out(*ios, "Command: ", ss.str());
@@ -1399,7 +1396,7 @@ int run(int argc, char **argv) {
             // load database if it exists or create new one
             if (std::filesystem::exists(databasePath)) {
                 out(*ios, "Loading existing database: ", databasePath);
-                ErrorCode EC = loadYaml(databasePath);
+                const ErrorCode EC = loadYaml(databasePath);
                 out(*ios, ecToString(EC));
                 if (EC != SUCCESS) {
                     std::string err = str("The database at: ", databasePath,
@@ -1414,7 +1411,7 @@ int run(int argc, char **argv) {
             // update output database with new TP values
             for (auto &[opcode, result] : throughputDatabase) {
                 if (result.ec != SUCCESS) continue;
-                ErrorCode EC = updateDatabaseEntryTP(result);
+                const ErrorCode EC = updateDatabaseEntryTP(result);
                 if (EC != SUCCESS) {
                     std::string msg =
                         str("failed to update database entry for ", result, ": ", ecToString(EC));
@@ -1425,7 +1422,7 @@ int run(int argc, char **argv) {
 
             // update database with new LAT values
             for (LatMeasurement result : latencyDatabase) {
-                ErrorCode EC = updateDatabaseEntryLAT(result);
+                const ErrorCode EC = updateDatabaseEntryLAT(result);
                 if (EC != SUCCESS) {
                     std::string msg =
                         str("failed to update database entry for ", result, ": ", ecToString(EC));
@@ -1434,7 +1431,7 @@ int run(int argc, char **argv) {
                 }
             }
             out(*ios, "Saving database to: ", databasePath);
-            ErrorCode EC = saveYaml(databasePath);
+            const ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
     }

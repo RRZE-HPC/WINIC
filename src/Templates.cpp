@@ -26,14 +26,14 @@ static void replaceAll(std::string &Str, const std::string &From, const std::str
 }
 
 // AI
-static size_t countOccurrences(const std::string &str, const std::string &sub) {
-    if (sub.empty()) return 0; // avoid infinite loop
+static size_t countOccurrences(const std::string &Str, const std::string &Sub) {
+    if (Sub.empty()) return 0; // avoid infinite loop
 
     size_t count = 0;
     size_t pos = 0;
-    while ((pos = str.find(sub, pos)) != std::string::npos) {
+    while ((pos = Str.find(Sub, pos)) != std::string::npos) {
         ++count;
-        pos += sub.length(); // move past this occurrence
+        pos += Sub.length(); // move past this occurrence
     }
     return count;
 }

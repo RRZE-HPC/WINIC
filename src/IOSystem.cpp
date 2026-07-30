@@ -85,7 +85,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
 
     std::string s = iName;
     // remove trailing spaces
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); })
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char Ch) { return !std::isspace(Ch); })
                 .base(),
             s.end());
     opInst.name = s;

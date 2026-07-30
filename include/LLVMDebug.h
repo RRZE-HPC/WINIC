@@ -3,15 +3,17 @@
 
 #include "Globals.h"
 #include "LLVMEnvironment.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include <cstdint>
-#include <llvm/MC/MCInstrDesc.h>
 #include <memory>
 #include <ostream>
+#include <string_view>
 
 namespace llvm {
 

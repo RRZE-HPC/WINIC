@@ -17,7 +17,7 @@
 
 namespace winic {
 class LLVMEnvironment;
-}
+} // namespace winic
 
 #ifndef CLANG_PATH
 #define CLANG_PATH "usr/bin/clang"
@@ -270,7 +270,7 @@ void buildLatDatabase(long RegInitValue, long Immediate);
  * \param argv Argument vector.
  * \return Program exit code.
  */
-int run(int argc, char **argv);
+int run(int Argc, char **Argv);
 
 } // namespace winic
 

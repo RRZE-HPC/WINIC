@@ -33,7 +33,7 @@ struct InitFunction {
  * \param Name The function name to insert.
  * \return Modified string with replacements.
  */
-std::string replaceFunctionName(std::string Str, const std::string Name);
+std::string replaceFunctionName(std::string Str, std::string Name);
 
 /**
  * \brief Replaces all instances of a substring in a string with another string.
@@ -42,8 +42,7 @@ std::string replaceFunctionName(std::string Str, const std::string Name);
  * \param Replacement The string to replace with.
  * \return Modified string with replacements.
  */
-std::string replaceAllInstances(std::string Str, std::string ToReplace,
-                                const std::string Replacement);
+std::string replaceAllInstances(std::string Str, std::string ToReplace, std::string Replacement);
 
 class AssemblyFile {
   public:

@@ -28,7 +28,9 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <variant>
 #include <vector>
+
 
 namespace winic {
 
@@ -253,23 +255,16 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
     }
 
     // this is the hepler instruction if needed.
-    std::vector<MCInst> instructions;
-    ErrorCode EC;
-    if (HelperOpcode != MAX_UNSIGNED) {
-        std::tie(EC, instructions) = genTPLoop({Opcode, HelperOpcode}, {{}, HelperConstraints},
-                                               *TargetInstrCount, UsedRegisters, Immediate);
-        if (EC != SUCCESS) return {EC, AssemblyFile()};
-        // update TargetInstructionCount to actual number of instructions generated, dont
-        // include helper instructions
-        *TargetInstrCount = UnrollCount * instructions.size() / 2;
-    } else {
-        // ho helper
-        std::tie(EC, instructions) =
-            genTPLoop({Opcode}, {{}}, *TargetInstrCount, UsedRegisters, Immediate);
-        if (EC != SUCCESS) return {EC, AssemblyFile()};
-        // update TargetInstructionCount to actual number of instructions generated
-        *TargetInstrCount = UnrollCount * instructions.size();
-    }
+    std::vector<unsigned> opcodes = {Opcode};
+    if (HelperOpcode != MAX_UNSIGNED) opcodes.emplace_back(HelperOpcode);
+    auto [EC, instructions] =
+        genTPLoop(opcodes, {{}, HelperConstraints}, *TargetInstrCount, UsedRegisters, Immediate);
+    if (EC != SUCCESS) return {EC, AssemblyFile()};
+
+    // update TargetInstructionCount to actual number of instructions generated, not
+    // including helper instructions
+    *TargetInstrCount = UnrollCount * instructions.size();
+    if (HelperOpcode != MAX_UNSIGNED) *TargetInstrCount = *TargetInstrCount / 2;
 
     // save registers used (genTPInnerLoop updates usedRegisters)
     std::string saveRegs;
