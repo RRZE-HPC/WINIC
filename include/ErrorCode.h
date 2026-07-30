@@ -23,6 +23,7 @@ enum ErrorCode {
     S_IS_BRANCH,
     S_IS_CODE_GEN_ONLY,
     S_IS_X87FP,
+    S_IS_NON_X87FP,
     S_MANUALLY,
     S_NO_MNEMONIC,
     S_BLACKLISTED_REGISTER,

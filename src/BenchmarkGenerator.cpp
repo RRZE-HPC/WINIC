@@ -794,6 +794,9 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     if (!includeX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
         Desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
+    if (!includeNonX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
+        !Desc.hasImplicitDefOfPhysReg(X86::FPSW))
+        return S_IS_NON_X87FP;
 
     // blacklist instructions writing to certain registers
     // on AArch64 writing LR can indeterministicly lead to very long runtimes or get trapped

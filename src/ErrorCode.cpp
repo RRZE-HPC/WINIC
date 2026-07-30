@@ -40,6 +40,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_IS_CODE_GEN_ONLY";
     case S_IS_X87FP:
         return "SKIP_IS_X87FP";
+    case S_IS_NON_X87FP:
+        return "S_IS_NON_X87FP";
     case S_MANUALLY:
         return "SKIP_MANUALLY";
     case S_NO_MNEMONIC:

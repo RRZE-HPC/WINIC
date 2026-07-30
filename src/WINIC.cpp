@@ -388,7 +388,7 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     // earlier and there are no implicit memory accesses
     auto depType = dependencies.front();
     auto useReg = depType.useOp.getRegister();
-    
+
     // this instruction will always have one dependency on itself. We have to break this by
     // interleaving another instruction. The other instruction has to:
     // 1. be measured already
@@ -1116,6 +1116,8 @@ int run(int argc, char **argv) {
     std::string databasePath = "";
     std::string regInitValueString = "";
     std::string immValueString = "";
+    std::string memory;
+    std::string x87fp;
     includeMemory = true;
     includeNonMemory = true;
     maxCyclesPerInstruction = 300;
@@ -1144,13 +1146,12 @@ int run(int argc, char **argv) {
     tp->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     tp->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
-    tp->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
-        ->default_val(false);
-    tp->add_flag("--include-memory", includeMemory, "Include instructions accessing memory")
-        ->default_val(true);
-    tp->add_flag("--include-non-memory", includeNonMemory,
-                 "Include instructions not accessing memory")
-        ->default_val(true);
+    tp->add_option("--memory", memory, "Include instructions accessing memory")
+        ->default_val("all")
+        ->check(CLI::IsMember({"all", "only", "none"}));
+    tp->add_option("--x87-fp", x87fp, "Include x87 floating point instructions")
+        ->default_val("none")
+        ->check(CLI::IsMember({"all", "only", "none"}));
     tp->add_option("--runtime-limit", maxCyclesPerInstruction,
                    "Set a limit for the time spent on an instruction in cycles. If a run takes "
                    "longer than the limit it gets aborted")
@@ -1185,13 +1186,12 @@ int run(int argc, char **argv) {
     lat->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     lat->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
-    lat->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
-        ->default_val(false);
-    lat->add_flag("--include-memory", includeMemory, "Include instructions accessing memory")
-        ->default_val(true);
-    lat->add_flag("--include-non-memory", includeNonMemory,
-                  "Include instructions not accessing memory")
-        ->default_val(true);
+    lat->add_option("--memory", memory, "Include instructions accessing memory")
+        ->default_val("all")
+        ->check(CLI::IsMember({"all", "only", "none"}));
+    lat->add_option("--x87-fp", x87fp, "Include x87 floating point instructions")
+        ->default_val("none")
+        ->check(CLI::IsMember({"all", "only", "none"}));
     lat->add_option("--runtime-limit", maxCyclesPerInstruction,
                     "Set a limit for the time spent on an instruction in cycles. If a run takes "
                     "longer than the limit it gets aborted")
@@ -1268,6 +1268,12 @@ int run(int argc, char **argv) {
     }
     out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
     if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
+
+    // process filters
+    includeNonMemory = memory == "all" || memory == "none";
+    includeMemory = memory == "all" || memory == "only";
+    includeNonX87FP = x87fp == "all" || x87fp == "none";
+    includeX87FP = x87fp == "all" || x87fp == "only";
 
     // skip instructions which take long and are irrelevant
     std::set<std::string> skipInstructions;
@@ -1369,7 +1375,7 @@ int run(int argc, char **argv) {
             out(*ios, "Mode: Latency");
             for (auto opcode : opcodes) {
                 if (opcodeBlacklist.find(opcode) != opcodeBlacklist.end()) continue;
-                
+
                 auto measurements = genLatMeasurements(opcode);
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
                                        measurements.end());
