@@ -40,13 +40,13 @@ void setOutputToFile(const std::string &Filename);
 
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
 
-enum class LatOperandType { REGISTER_CLASS, REGISTER, MEMORY };
+enum class OperandType { REGISTER_CLASS, REGISTER, MEMORY };
 
 /**
  * \brief Represents an operand, which can be a register class or a specific register.
  */
 struct Operand {
-    LatOperandType type;
+    OperandType type;
 
     union {
         unsigned regClass;  ///< Register class ID
@@ -54,40 +54,40 @@ struct Operand {
         unsigned memOffset; ///< Register
     };
 
-    Operand() : type(LatOperandType::REGISTER_CLASS) {}
+    Operand() : type(OperandType::REGISTER_CLASS) {}
 
     static Operand fromRegClass(unsigned Val) {
         Operand op;
-        op.type = LatOperandType::REGISTER_CLASS;
+        op.type = OperandType::REGISTER_CLASS;
         op.regClass = Val;
         return op;
     }
 
     static Operand fromRegister(MCRegister Reg) {
         Operand op;
-        op.type = LatOperandType::REGISTER;
+        op.type = OperandType::REGISTER;
         op.reg = Reg;
         return op;
     }
 
     static Operand fromMemOffset(unsigned Offset) {
         Operand op;
-        op.type = LatOperandType::MEMORY;
+        op.type = OperandType::MEMORY;
         op.memOffset = Offset;
         return op;
     }
 
     bool operator==(const Operand &Other) const {
         if (type != Other.type) return false;
-        if (type == LatOperandType::REGISTER_CLASS) return regClass == Other.regClass;
-        if (type == LatOperandType::MEMORY) return memOffset == Other.memOffset;
+        if (type == OperandType::REGISTER_CLASS) return regClass == Other.regClass;
+        if (type == OperandType::MEMORY) return memOffset == Other.memOffset;
         return reg == Other.reg;
     }
 
     bool operator<(const Operand &Other) const {
         if (type != Other.type) return type < Other.type;
-        if (type == LatOperandType::REGISTER_CLASS) return regClass < Other.regClass;
-        if (type == LatOperandType::MEMORY) return memOffset < Other.memOffset;
+        if (type == OperandType::REGISTER_CLASS) return regClass < Other.regClass;
+        if (type == OperandType::MEMORY) return memOffset < Other.memOffset;
         return reg < Other.reg;
     }
 
@@ -95,19 +95,19 @@ struct Operand {
      * \brief Checks if this operand is a register class.
      * \return True if register class, false if register.
      */
-    bool isRegClass() const { return type == LatOperandType::REGISTER_CLASS; }
+    bool isRegClass() const { return type == OperandType::REGISTER_CLASS; }
 
     /**
      * \brief Checks if this operand is a register.
      * \return True if register, false if register class.
      */
-    bool isRegister() const { return type == LatOperandType::REGISTER; }
+    bool isRegister() const { return type == OperandType::REGISTER; }
 
     /**
      * \brief Checks if this operand is a register.
      * \return True if register, false if register class.
      */
-    bool isMemory() const { return type == LatOperandType::MEMORY; }
+    bool isMemory() const { return type == OperandType::MEMORY; }
 
     /**
      * \brief Gets the register class ID.
