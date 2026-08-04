@@ -33,19 +33,9 @@
 
 namespace winic {
 
-std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
-    // generate a LatMeasurement for each read write dependency combination possible
-    // assumes there are no implicit memory defs TODO think
-    // llvm x86 memory operands are split into 5 regs/immediates, but are not indicated to be
-    // written to by MCInstDesc::NumDefs
-
-    std::vector<LatMeasurement> measurements;
+Instruction genInstruction(unsigned Opcode) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    ErrorCode ec = isValid(desc);
-    if (ec != SUCCESS) {
-        dbg(__func__, getEnv().MCII->getName(Opcode), " skipped for reason ", ecToString(ec));
-        return {};
-    }
+
     auto operands = desc.operands();
     auto implDefs = desc.implicit_defs();
     auto implUses = desc.implicit_uses();
@@ -107,10 +97,27 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
         Operand useOp = Operand::fromRegister(useReg);
         useOperands.emplace_back(999, useOp);
     }
+    return Instruction(Opcode, useOperands, defOperands);
+}
+
+std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
+    // generate a LatMeasurement for each read write dependency combination possible
+    // assumes there are no implicit memory defs TODO think
+    // llvm x86 memory operands are split into 5 regs/immediates, but are not indicated to be
+    // written to by MCInstDesc::NumDefs
+
+    std::vector<LatMeasurement> measurements;
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    ErrorCode ec = isValid(desc);
+    if (ec != SUCCESS) {
+        dbg(__func__, getEnv().MCII->getName(Opcode), " skipped for reason ", ecToString(ec));
+        return {};
+    }
 
     // build measurements
-    for (auto [defIndex, defOp] : defOperands) {
-        for (auto [useIndex, useOp] : useOperands) {
+    Instruction instruction = genInstruction(Opcode);
+    for (auto [defIndex, defOp] : instruction.defOperands) {
+        for (auto [useIndex, useOp] : instruction.useOperands) {
             LatMeasurement m =
                 LatMeasurement(Opcode, DependencyType(defOp, useOp), defIndex, useIndex);
             measurements.emplace_back(m);

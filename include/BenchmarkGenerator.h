@@ -23,6 +23,13 @@ class MCRegisterClass;
 namespace winic {
 
 /**
+ * \brief Generates a WINIC internal instruction representation for an opcode
+ * \param Opcode Opcode of the instruction.
+ * \return Instruction object.
+ */
+Instruction genInstruction(unsigned Opcode);
+
+/**
  * \brief Generates all possible latency measurements for an instructions.
  * \param Opcode Opcode of the instruction.
  * \return Vector of LatMeasurement objects.

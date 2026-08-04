@@ -158,6 +158,24 @@ inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
     return OS << "Operand type printing not implemented\n";
 }
 
+struct Instruction {
+    unsigned opcode;
+    std::vector<std::pair<unsigned, Operand>> useOperands; // (index, Operand)
+    std::vector<std::pair<unsigned, Operand>> defOperands;
+
+    Instruction(unsigned Opcode, std::vector<std::pair<unsigned, Operand>> UseOperands,
+                std::vector<std::pair<unsigned, Operand>> DefOperands)
+        : opcode(Opcode), useOperands(UseOperands), defOperands(DefOperands) {}
+
+    std::pair<ErrorCode, Operand> getOperandAt(unsigned Index) {
+        for (auto [index, operand] : useOperands)
+            if (index == Index) return {SUCCESS, operand};
+        for (auto [index, operand] : defOperands)
+            if (index == Index) return {SUCCESS, operand};
+        return {E_GENERIC, {}};
+    }
+};
+
 /**
  * \brief Represents a dependency type between two operands.
  */
