@@ -40,6 +40,27 @@ ASM:    [op0: reg(rw)]   [op1: imm(r)]
 
 - The constraint `op0 == op1` merges the two operands into a single read/write register in the assembly format.
 
+## Important LLVM source files
+`llvm-project/llvm/include/llvm/MC/MCInstrDesc.h`
+- `getNumOperands()`
+- `getNumDefs()`
+- `isReturn()`
+- `mayLoad()`
+- `mayStore()`
+- `hasImplicitUseOfPhysReg()`
+- `OperandType` (register/immediate/memory)
+- `MCOperandInfo->RegClass`
+
+`llvm-project/llvm/include/llvm/MC/MCRegisterInfo.h`
+- `MCRegisterClass`
+    - `getSizeInBits()`
+- `MCRegisterDesc`
+    - `Name`
+- MCRegisterInfo
+    - `subregs(MCRegister Reg)`
+    - `superregs(MCRegister Reg)`
+    - `regsOverlap(MCRegister RegA, MCRegister RegB)`
+
 ## LLVM Name Decoding Example
 
 ### Instruction: `VFMADD132PDZ256mbkz`
@@ -67,6 +88,40 @@ Masking/Zeroing <---------------------------------------------------------+
   - **b** → Broadcast  
   - **kz** → Masked destination with zeroing  
 
+## LLVM operand info
+`llvm-mc` can show the number and order of operands of a disassembled instruction, e.g.: 
+```bash
+echo "addq %rax, 8(%rbx)" | llvm-mc --show-inst
+```
+produces
+```
+# <MCInst #631 ADD64mr
+#  <MCOperand Reg:53> // base (%rbx)
+#  <MCOperand Imm:1> // scale
+#  <MCOperand Reg:0> // ind
+#  <MCOperand Imm:8> // displacement
+#  <MCOperand Reg:0> // segment
+#  <MCOperand Reg:51>> // %rax
+```
+Note that all of the operands that belong to the memory access are `MCOI::OPERAND_MEMORY` even though they are registers and immediates.
+
+## Misc LLVM Info
+- isPseudo is only set to 1 for instructions that are LLVM pseudo instructions. CMOV_VR128 is not pseudo because its assembly string "#CMOV__VR128 PSEUDO!" can be emmitted and then processed by an assembler.
+- LLVMs mayLoad/mayStore information is not 100% reliable
+
+## Upgrading the LLVM version
+When upgrading to a newer release of LLVM one should:
+### Compare key files used by WINIC
+```bash 
+git fetch --tags
+git diff llvmorg-<old> llvmorg-<new> -- llvm/include/llvm/MC/MCInstrDesc.h
+```
+
+### Compare Instruction Info
+Use WINIC in `INFO` mode on both versions to get comparable overviews on instruction names with operands and flags.
+
+### Regression test
+Use the scripts in `dev/regression` to test if there are major changes in the results
 
 
 ## Error Code reference
