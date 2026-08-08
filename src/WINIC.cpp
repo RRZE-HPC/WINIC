@@ -1096,11 +1096,11 @@ void printInstructionInfo(unsigned Opcode) {
     std::vector<std::string> opStrings;
     for (int i = 0; i < desc.getNumDefs(); i++) {
         const MCOperandInfo &opInfo = desc.operands()[i];
-        if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) opStrings.emplace_back(str("Imm(r"));
-        if (opInfo.OperandType == MCOI::OPERAND_UNKNOWN) opStrings.emplace_back(str("Unknown(r"));
-        if (opInfo.OperandType == MCOI::OPERAND_MEMORY) opStrings.emplace_back(str("Mem(r"));
+        if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) opStrings.emplace_back(str("Imm(w"));
+        if (opInfo.OperandType == MCOI::OPERAND_UNKNOWN) opStrings.emplace_back(str("Unknown(w"));
+        if (opInfo.OperandType == MCOI::OPERAND_MEMORY) opStrings.emplace_back(str("Mem(w"));
         if (opInfo.OperandType == MCOI::OPERAND_REGISTER)
-            opStrings.emplace_back(str(Operand::fromRegClass(opInfo.RegClass), "(r"));
+            opStrings.emplace_back(str(Operand::fromRegClass(opInfo.RegClass), "(w"));
     }
     for (int i = desc.getNumDefs(); i < desc.getNumOperands(); i++) {
         const MCOperandInfo &opInfo = desc.operands()[i];
@@ -1109,7 +1109,7 @@ void printInstructionInfo(unsigned Opcode) {
             opStrings[tiedToOp].append("/r");
         }
         if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) opStrings.emplace_back(str("Imm(r"));
-        if (opInfo.OperandType == MCOI::OPERAND_UNKNOWN) opStrings.emplace_back(str("Unknown(w"));
+        if (opInfo.OperandType == MCOI::OPERAND_UNKNOWN) opStrings.emplace_back(str("Unknown(r"));
         if (opInfo.OperandType == MCOI::OPERAND_MEMORY) opStrings.emplace_back(str("Mem(r"));
         if (opInfo.OperandType == MCOI::OPERAND_REGISTER)
             opStrings.emplace_back(str(Operand::fromRegClass(opInfo.RegClass), "(r"));
