@@ -31,7 +31,6 @@ likwid-pin -c 2 ./winic -f <frequency> [options] MODE [mode-specific-options]
 | `-d,--debug` | Enable debug output | false |
 | `-c,--cpu` | CPU model, only needed if LLVM cannot detect it | - |
 | `-m,--march` | Architecture, only needed if LLVM cannot detect it | - |
-| `--run-in-subprocess` | Run every benchmark in a subprocess. Always leave this enabled in production runs | true |
 | `-v,--version` | Show version | - |
 
 ## Available modes:
@@ -57,6 +56,7 @@ By default WINIC measures all available instructions and generates a .yaml file 
 | `--output-asm` | Write the generated asm files to `asm/` (clears the directory at the start of the run) | false |
 | `--memory` | Enable, disable or filter for instructions accessing memory | all |
 | `--x87-fp` | Enable, disable or filter for x87 floating point instructions. Default is `none`, as they are deprecated and consume a lot of time on architectures that emulate them. | none |
+| `--run-in-subprocess` | Run every benchmark in a subprocess. Always leave this enabled in production runs | true |
 | `--keep-empty-entries` | Include instructions in the output even if they do not have any values | false |
 | `--min-opcode` | Minimum LLVM opcode number to measure (this is mostly useful for development) | 0 |
 | `--max-opcode` | Maximum LLVM opcode number to measure (this is mostly useful for development) | max opcode |

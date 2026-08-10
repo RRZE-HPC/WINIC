@@ -1141,10 +1141,6 @@ int run(int Argc, char **Argv) {
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
     app.add_option("-m,--march", march, "Architecture");
-    app.add_option("--run-in-subprocess", runInSubprocess,
-                   "Execute each benchmark in a subprocess. It is recommended to only turn this "
-                   "off for debugging purposes")
-        ->default_val(true);
     app.set_version_flag("-v,--version", WINIC_VERSION, "Show version");
 
     std::vector<std::string> instrNames;
@@ -1194,6 +1190,10 @@ int run(int Argc, char **Argv) {
                    "Set a limit for the time spent on an instruction in cycles. If a run takes "
                    "longer than the limit it gets aborted")
         ->default_val("300");
+    tp->add_option("--run-in-subprocess", runInSubprocess,
+                   "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                   "off for debugging purposes")
+        ->default_val(true);
     tp->add_flag("--keep-empty-entries", keepEmptyEntries,
                  "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
@@ -1234,6 +1234,10 @@ int run(int Argc, char **Argv) {
                     "Set a limit for the time spent on an instruction in cycles. If a run takes "
                     "longer than the limit it gets aborted")
         ->default_val("300");
+    lat->add_option("--run-in-subprocess", runInSubprocess,
+                    "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                    "off for debugging purposes")
+        ->default_val(true);
     lat->add_flag("--keep-empty-entries", keepEmptyEntries,
                   "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
@@ -1257,6 +1261,10 @@ int run(int Argc, char **Argv) {
                     "Number of loop iterations of the kernel. Higher values increase precision but "
                     "also increase runtime.")
         ->default_val(1000000);
+    man->add_option("--run-in-subprocess", runInSubprocess,
+                    "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                    "off for debugging purposes")
+        ->default_val(true);
 
     app.require_subcommand(1, 1);
     CLI11_PARSE(app, Argc, Argv)
