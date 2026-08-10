@@ -77,6 +77,8 @@ Broadcast       <-------------------------------------------------+       |
 Masking/Zeroing <---------------------------------------------------------+
 ```
 
+Note that LLVM instruction names as well as opcodes can change across different LLVM releases.
+
 ### Example Mapping
 - `VFMADD132PDZ256mbkz`
   - **132** → Operand order  
@@ -122,6 +124,24 @@ Use WINIC in `INFO` mode on both versions to get comparable overviews on instruc
 
 ### Regression test
 Use the scripts in `dev/regression` to test if there are major changes in the results
+
+## LLVM Upgrade History
+### 20.1.5 -> 22.1.8:
+x86:
+- many AVX512 instruction variants with broadcasting were removed such as `VADDPDZ256rrb`, all i checked resulted in `ILLEGAL_INSTRUCTION` when measured with WINIC
+- some mayLoad flag fixes
+- VPDPBSSDSZ128m and similar instructions were renamed to VPDPBSSDSZ128**r**m
+- VSM3RNDS2rm and similar instructions were renamed to VSM3RNDS2rmi
+
+AArch64: \
+- added some instructions e.g. `ADDSUBP_ZZZ_B`
+- reduced number of `Unknown` operands (~2500 -> ~300) by converting them to `Immediate` or removing them
+    - the ones i tested that are left do not care if the immediate is present or not
+- fixed some mayLoad and mayStore flags
+- added a few instruction variants
+
+LLVM interface:
+- Target::createTargetMachine, Target::createMCAsmInfo etc now take a `Triple` instead of a `StringRef`
 
 
 ## Error Code reference
