@@ -32,7 +32,7 @@ done
 if [ -d "llvm-project" ]; then
     echo "LLVM repo already cloned." 
 else
-    git clone --branch=llvmorg-20.1.5 --depth=1 https://github.com/llvm/llvm-project.git
+    git clone --branch=llvmorg-22.1.8 --depth=1 https://github.com/llvm/llvm-project.git
     cd llvm-project
     git sparse-checkout init --cone
     git sparse-checkout set llvm clang third-party cmake

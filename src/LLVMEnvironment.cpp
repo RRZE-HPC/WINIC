@@ -85,24 +85,22 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     std::string error;
     const Target *theTarget = TargetRegistry::lookupTarget("", TargetTriple, error);
 
-    MRI.reset(theTarget->createMCRegInfo(targetTripleStr));
+    MRI.reset(theTarget->createMCRegInfo(TargetTriple));
     assert(MRI && "Unable to create register info!");
     MCTargetOptions mcOptions;
-    MAI.reset(theTarget->createMCAsmInfo(*MRI, targetTripleStr, mcOptions));
+    MAI.reset(theTarget->createMCAsmInfo(*MRI, TargetTriple, mcOptions));
     assert(MAI && "Unable to create asm info!");
     MCII.reset(theTarget->createMCInstrInfo());
     assert(MCII && "Unable to create MCInnstr info!");
-    MSTI.reset(theTarget->createMCSubtargetInfo(targetTripleStr, Cpu, ""));
+    MSTI.reset(theTarget->createMCSubtargetInfo(TargetTriple, Cpu, ""));
     assert(MSTI && "Unable to create MCSubtargetInfo!");
     // set syntaxVariant here
     MIP.reset(theTarget->createMCInstPrinter(Triple(targetTripleStr), 1, *MAI, *MCII, *MRI));
     assert(MIP && "Unable to create MCInstPrinter!");
     TargetOptions options;
-    Machine.reset(theTarget->createTargetMachine(Triple::normalize(targetTripleStr), Cpu, "",
-                                                 options, std::nullopt, std::nullopt,
-                                                 CodeGenOptLevel::Aggressive));
+    Machine.reset(theTarget->createTargetMachine(TargetTriple, Cpu, "", options, std::nullopt,
+                                                 std::nullopt, CodeGenOptLevel::Aggressive));
     assert(Machine && "Unable to create Machine");
-
     FunctionType *type = FunctionType::get(Type::getVoidTy(Ctx), false);
     assert(type && "Unable to create Type");
     Function *f = Function::Create(type, GlobalValue::ExternalLinkage, "Test", &*Mod);
