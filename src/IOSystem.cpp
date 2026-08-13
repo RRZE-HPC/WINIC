@@ -26,58 +26,37 @@
 #include <iostream>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <system_error>
 
 namespace winic {
 
 std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
-    // create yaml output
+    InstructionForm instructionForm = InstructionForm(Opcode);
     std::vector<IOOperand> operands;
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    // stores def operands which are also used (to set the flag)
-    std::set<unsigned> tiedToOps;
-    unsigned memOpCounter = 0;
-    for (unsigned i = desc.getNumOperands(); i-- > 0;) {
-        const MCOperandInfo &opInfo = desc.operands()[i];
-        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-            // this operand must be identical to another operand
-            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            // we are going backwards, so uses come first. If the use operand is tied to a def, this
-            // def has to be marked. marked defs get the "read" flag when they are being processed
-            // later
-            tiedToOps.insert(tiedToOp);
-            continue;
-        }
-        IOOperand opOp;
-        if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
-            opOp.opClass = "register";
-            opOp.name = std::make_optional(str(getEnv().MRI->getRegClass(opInfo.RegClass)));
-            opOp.write = i < desc.getNumDefs();
-            opOp.read = !opOp.write;
-            // check if this is a use or a def marked as being used
-            if (i >= desc.getNumDefs() || tiedToOps.find(i) != tiedToOps.end()) {
-                opOp.read = true;
-            }
 
-        } else if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
+    // make sure operands are sorted
+    instructionForm.sortOperands();
+    for (OperandForm operandForm : instructionForm.getOperands()) {
+        IOOperand opOp;
+        if (operandForm.isRegClass()) {
+            opOp.opClass = "register";
+            opOp.name = opOp.name =
+                std::make_optional(str(getEnv().MRI->getRegClass(operandForm.getRegClassID())));
+        } else if (operandForm.isImmediate()) {
             opOp.opClass = "immediate";
-            opOp.read = true;
-            opOp.write = false;
-        } else if (opInfo.OperandType == MCOI::OPERAND_MEMORY) {
-            if (memOpCounter != 0) continue;
-            memOpCounter++;
+        } else if (operandForm.isMemory()) {
             opOp.opClass = "memory";
-            opOp.read = desc.mayLoad();
-            opOp.write = desc.mayStore();
         } else
             continue;
-        operands.insert(operands.begin(), opOp);
+        opOp.write = operandForm.isDef();
+        opOp.read = operandForm.isUse();
+        operands.emplace_back(opOp);
     }
     IOInstruction opInst;
-    opInst.llvmName = getEnv().MCII->getName(Opcode).str();
+    opInst.llvmName = instructionForm.getName();
 
+    // get mnemonic
     MCInst inst;
     inst.setOpcode(Opcode);
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
@@ -149,36 +128,36 @@ unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc) {
 }
 
 ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
-    std::string name = getEnv().MCII->getName(M.opcode).str();
-    const MCInstrDesc &desc = getEnv().MCII->get(M.opcode);
-    unsigned correctedUseIndex = llvmOpNumToNormalOpNum(M.useIndex, desc);
+    InstructionForm instructionForm = InstructionForm(M.opcode);
 
-    std::string useIndexString = std::to_string(correctedUseIndex);
+    std::string useIndexString = std::to_string(M.useIndex);
     std::string defIndexString = std::to_string(M.defIndex);
-    if (M.type.useOp.isRegister())
-        useIndexString = getEnv().MRI->getName(M.type.useOp.getRegister());
-    if (M.type.defOp.isRegister())
-        defIndexString = getEnv().MRI->getName(M.type.defOp.getRegister());
-    auto instruction =
-        std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
-                     [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    if (instruction == ioFile.instructions.end()) {
+    if (auto *regOp = std::get_if<RegisterOperand>(&M.type.useOp))
+        useIndexString = getEnv().MRI->getName(regOp->getRegister());
+    if (auto *regOp = std::get_if<RegisterOperand>(&M.type.defOp))
+        defIndexString = getEnv().MRI->getName(regOp->getRegister());
+    auto ioInstr = std::find_if(
+        ioFile.instructions.begin(), ioFile.instructions.end(),
+        [&](const IOInstruction &Inst) { return Inst.llvmName == instructionForm.getName(); });
+    if (ioInstr == ioFile.instructions.end()) {
         // Not found, create first
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
         ioFile.instructions.push_back(opInst);
     }
-    instruction = std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
-                               [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    auto latencyEntry = std::find_if(
-        instruction->latencies.begin(), instruction->latencies.end(), [&](const IOLatency &Lat) {
-            return Lat.sourceOperand == useIndexString && Lat.targetOperand == defIndexString;
-        });
+    ioInstr = std::find_if(
+        ioFile.instructions.begin(), ioFile.instructions.end(),
+        [&](const IOInstruction &Inst) { return Inst.llvmName == instructionForm.getName(); });
+
     std::optional<double> min =
         isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.lowerBound * 10) / 10);
     std::optional<double> max =
         isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.upperBound * 10) / 10);
-    if (latencyEntry != instruction->latencies.end()) {
+    auto latencyEntry = std::find_if(
+        ioInstr->latencies.begin(), ioInstr->latencies.end(), [&](const IOLatency &Lat) {
+            return Lat.sourceOperand == useIndexString && Lat.targetOperand == defIndexString;
+        });
+    if (latencyEntry != ioInstr->latencies.end()) {
         // Found entry, update it if the new measurement did not have an error
         if (!isError(M.ec)) {
             latencyEntry->min = min;
@@ -191,12 +170,12 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         lat.targetOperand = defIndexString;
         lat.min = min;
         lat.max = max;
-        instruction->latencies.insert(instruction->latencies.end(), lat);
+        ioInstr->latencies.insert(ioInstr->latencies.end(), lat);
     }
     // take maximum latency value as instruction latency
-    instruction->latency = 0;
-    for (IOLatency lat : instruction->latencies)
-        instruction->latency = std::max(instruction->latency, lat.max);
+    ioInstr->latency = 0;
+    for (IOLatency lat : ioInstr->latencies)
+        ioInstr->latency = std::max(ioInstr->latency, lat.max);
 
     return SUCCESS;
 }

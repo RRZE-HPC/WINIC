@@ -6,7 +6,6 @@
 #include "LLVMDebug.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -240,6 +239,12 @@ std::set<MCRegister> LLVMEnvironment::getPossibleDefs(unsigned Opcode) {
         writes.insert(MCRegister::from(reg));
     }
     return writes;
+}
+
+unsigned LLVMEnvironment::getTiedToOperand(MCOperandInfo OpInfo) {
+    if (OpInfo.Constraints & (1 << MCOI::TIED_TO))
+        return (OpInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+    return 999;
 }
 
 std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {

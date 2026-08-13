@@ -376,10 +376,9 @@ findTPHelperInstruction(unsigned Opcode, long Immediate) {
         return {E_NO_HELPER, MAX_UNSIGNED, {}};
     }
 
-    // we can assume there are only register dependencies here, as we used different memory offsets
-    // earlier and there are no implicit memory accesses
     auto depType = dependencies.front();
-    auto useReg = depType.useOp.getRegister();
+    // getDependencies returns only register dependencies
+    MCRegister useReg = std::get_if<RegisterOperand>(&depType.useOp)->getRegister();
 
     // this instruction will always have one dependency on itself. We have to break this by
     // interleaving another instruction. The other instruction has to:
@@ -549,7 +548,7 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
         genLatBenchmark(Measurements, &instructionCount, {}, RegInitValue, Immediate);
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
-    assembly.setName(Measurements.front().toCompactString());
+    assembly.setName(Measurements.front().toFilenameString());
     std::tie(ec, benchResults) = runBenchmark(assembly, LoopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1};
 
@@ -975,6 +974,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             // TODO this check technically should invalidate the combination of instructions not
             // current one
             unsigned numInst = 12;
+            // TODO this is technically not save as genLatBenchmark can segfault in MCInstr printing
             auto [ec, assembly] =
                 genLatBenchmark({*mA, *mB}, &numInst, {}, RegInitValue, Immediate);
             if (ec == W_MULTIPLE_DEPENDENCIES) {

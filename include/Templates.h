@@ -31,10 +31,11 @@ struct Template {
     string prefix, preInit, postInit, preLoop, beginLoop, midLoop, endLoop, postLoop, suffix;
     std::set<string> usedRegisters;
     std::list<RegInitTemplate> regInitTemplates;
+    llvm::MCRegister scratchMemoryBaseReg;
 
     Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
              string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
-             std::list<RegInitTemplate> RegInitTemplates);
+             std::list<RegInitTemplate> RegInitTemplates, llvm::MCRegister ScratchMemoryBaseReg);
 
   private:
     void trimLeadingNewline(string &Str);

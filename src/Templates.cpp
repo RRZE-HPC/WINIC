@@ -42,11 +42,13 @@ namespace winic {
 
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
                    string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
-                   std::list<RegInitTemplate> RegInitTemplates)
+                   std::list<RegInitTemplate> RegInitTemplates,
+                   llvm::MCRegister ScratchMemoryBaseReg)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
       preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
       postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
-      usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)) {
+      usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)),
+      scratchMemoryBaseReg(ScratchMemoryBaseReg) {
     // for readability of this file, strings have a leading newline
     // this gets removed here
     trimLeadingNewline(this->prefix);
@@ -209,7 +211,8 @@ done_functionName:
     )",
          llvm::X86::VK8WMRegClassID,
          X86::EAX,
-     }}};
+     }},
+    X86::R9};
 
 Template AArch64Template = {
     R"(
@@ -308,9 +311,9 @@ done_functionName:
          R"(
     dup	reg.d, x0
     )",
-         llvm::AArch64::ZPRRegClassID,
-         llvm::AArch64::X0,
-     }}};
+         AArch64::ZPRRegClassID,
+         AArch64::X0,
+     }},AArch64::X9};
 
 Template RISCVTemplate = {
     R"(
@@ -435,7 +438,7 @@ done_functionName:
     )",
          llvm::RISCV::VRRegClassID,
          RISCV::X11,
-     }}};
+     }}, RISCV::X9};
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {

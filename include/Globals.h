@@ -5,15 +5,20 @@
 #include "ErrorCode.h"
 #include "LLVMEnvironment.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include <algorithm>
 #include <assert.h>
 #include <fstream>
 #include <limits>
 #include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace winic {
 
@@ -39,153 +44,261 @@ extern bool keepEmptyEntries; // if true, entries with only null values are incl
 void setOutputToFile(const std::string &Filename);
 
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
+const unsigned NO_OP_INDEX = 999;
 
-enum class OperandType { REGISTER_CLASS, REGISTER, MEMORY };
+class RegisterClassOperand {
+    unsigned regClassID;
 
-/**
- * \brief Represents an operand, which can be a register class or a specific register.
- */
-struct Operand {
-    OperandType type;
+  public:
+    RegisterClassOperand(unsigned RegClassID) : regClassID(RegClassID) {};
 
-    union {
-        unsigned regClass;  ///< Register class ID
-        MCRegister reg;     ///< Register
-        unsigned memOffset; ///< Register
-    };
-
-    Operand() : type(OperandType::REGISTER_CLASS) {}
-
-    static Operand fromRegClass(unsigned Val) {
-        Operand op;
-        op.type = OperandType::REGISTER_CLASS;
-        op.regClass = Val;
-        return op;
-    }
-
-    static Operand fromRegister(MCRegister Reg) {
-        Operand op;
-        op.type = OperandType::REGISTER;
-        op.reg = Reg;
-        return op;
-    }
-
-    static Operand fromMemOffset(unsigned Offset) {
-        Operand op;
-        op.type = OperandType::MEMORY;
-        op.memOffset = Offset;
-        return op;
-    }
-
-    bool operator==(const Operand &Other) const {
-        if (type != Other.type) return false;
-        if (type == OperandType::REGISTER_CLASS) return regClass == Other.regClass;
-        if (type == OperandType::MEMORY) return memOffset == Other.memOffset;
-        return reg == Other.reg;
-    }
-
-    bool operator<(const Operand &Other) const {
-        if (type != Other.type) return type < Other.type;
-        if (type == OperandType::REGISTER_CLASS) return regClass < Other.regClass;
-        if (type == OperandType::MEMORY) return memOffset < Other.memOffset;
-        return reg < Other.reg;
-    }
-
-    /**
-     * \brief Checks if this operand is a register class.
-     * \return True if register class, false if register.
-     */
-    bool isRegClass() const { return type == OperandType::REGISTER_CLASS; }
-
-    /**
-     * \brief Checks if this operand is a register.
-     * \return True if register, false if register class.
-     */
-    bool isRegister() const { return type == OperandType::REGISTER; }
-
-    /**
-     * \brief Checks if this operand is a register.
-     * \return True if register, false if register class.
-     */
-    bool isMemory() const { return type == OperandType::MEMORY; }
-
-    /**
-     * \brief Gets the register class ID.
-     * \return Register class ID.
-     */
-    unsigned getRegClass() const {
-        assert(isRegClass());
-        return regClass;
-    }
-
-    /**
-     * \brief Gets the register.
-     * \return MCRegister.
-     */
-    MCRegister getRegister() const {
-        assert(isRegister());
-        return reg;
-    }
-
-    /**
-     * \brief Gets memory offset.
-     * \return memory offset.
-     */
-    MCRegister getMemory() const {
-        assert(isMemory());
-        return memOffset;
-    }
+    unsigned getRegClassID() const { return regClassID; }
 
     std::string toCompactString() const {
-        if (isRegClass())
-            return getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClass));
-        if (isRegister()) return getEnv().MRI->getName(reg);
-        if (isMemory()) return "mem";
-        return "Operand type compact printing not implemented\n";
+        return str("Class<", getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClassID)),
+                   ">");
+    }
+
+    std::string toFilenameString() const {
+        return str(getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClassID)));
+    }
+
+    bool operator==(const RegisterClassOperand &Other) const {
+        return regClassID == Other.regClassID;
+    }
+
+    bool operator<(const RegisterClassOperand &Other) const {
+        return regClassID < Other.regClassID;
+    }
+};
+
+class RegisterOperand {
+    MCRegister reg;
+
+  public:
+    RegisterOperand(MCRegister Reg) : reg(Reg) {};
+
+    unsigned getRegister() const { return reg; }
+
+    std::string toCompactString() const { return str("Reg<", getEnv().MRI->getName(reg), ">"); }
+
+    std::string toFilenameString() const { return str(getEnv().MRI->getName(reg)); }
+
+    bool operator==(const RegisterOperand &Other) const { return reg == Other.reg; }
+
+    bool operator<(const RegisterOperand &Other) const { return reg < Other.reg; }
+};
+
+class ImmediateOperand {
+
+  public:
+    ImmediateOperand() {};
+
+    std::string toCompactString() const { return "Imm"; }
+
+    std::string toFilenameString() const { return "Imm"; }
+
+    bool operator==(const ImmediateOperand &Other) const { return true; }
+
+    bool operator<(const ImmediateOperand &Other) const { return true; }
+};
+
+class MemoryOperand {
+
+  public:
+    MemoryOperand() {};
+
+    std::string toCompactString() const { return "Mem"; }
+
+    std::string toFilenameString() const { return "Mem"; }
+
+    bool operator==(const MemoryOperand &Other) const { return true; }
+
+    bool operator<(const MemoryOperand &Other) const { return true; }
+};
+
+using OperandKind =
+    std::variant<RegisterClassOperand, RegisterOperand, MemoryOperand, ImmediateOperand>;
+
+/**
+ * \brief Stream output operator for OperandKind.
+ */
+inline std::ostream &operator<<(std::ostream &OS, const OperandKind &Op) {
+    return OS << std::visit([](const auto &Operand) { return Operand.toCompactString(); }, Op);
+}
+
+class OperandForm {
+    unsigned index;
+    bool def;
+    bool use;
+    std::vector<unsigned> mcIndices;
+
+    OperandKind kind;
+
+  private:
+    /**
+     * \brief Add enough dummy operands to an MCInst so the ones used by this OperandForm's
+     * mcIndices are present,
+     * \param Inst The instruction to initialize.
+     */
+    void initMCInst(MCInst *Inst) {
+        int maxInd = *std::max_element(mcIndices.begin(), mcIndices.end());
+        while (Inst->getNumOperands() <= maxInd) {
+            Inst->addOperand(MCOperand::createImm(0));
+        }
+    }
+
+  public:
+    virtual ~OperandForm() = default;
+
+    OperandForm(unsigned Index, std::vector<unsigned> MCIndices, OperandKind Kind)
+        : index(Index), def(false), use(false), mcIndices(std::move(MCIndices)),
+          kind(std::move(Kind)) {};
+
+    OperandForm(unsigned Index, std::vector<unsigned> MCIndices, OperandKind Kind, bool Def,
+                bool Use)
+        : index(Index), def(Def), use(Use), mcIndices(std::move(MCIndices)),
+          kind(std::move(Kind)) {};
+
+    std::string toCompactString() const {
+        return str(kind, str(isUse() && isDef() ? "(r/w)" : isUse() ? "(r)" : "(w)"));
+    }
+
+    bool isDef() const { return def; }
+
+    bool isUse() const { return use; }
+
+    bool isImplicit() const { return index == NO_OP_INDEX; }
+
+    bool isRegClass() const { return std::holds_alternative<RegisterClassOperand>(kind); }
+
+    bool isRegister() const { return std::holds_alternative<RegisterOperand>(kind); }
+
+    bool isMemory() const { return std::holds_alternative<MemoryOperand>(kind); }
+
+    bool isImmediate() const { return std::holds_alternative<ImmediateOperand>(kind); }
+
+    MCRegister getRegister() const { return std::get_if<RegisterOperand>(&kind)->getRegister(); }
+
+    unsigned getRegClassID() const {
+        return std::get_if<RegisterClassOperand>(&kind)->getRegClassID();
+    }
+
+    unsigned getIndex() const { return index; }
+
+    OperandKind getKind() const { return kind; }
+
+    bool operator==(const OperandForm &Other) const { return kind == Other.kind; }
+
+    // bool operator<(const OperandForm &Other) const { return kind < Other.kind; }
+
+    void setRegClassOperand(MCInst *Inst, MCRegister Reg) {
+        assert(isRegClass());
+        initMCInst(Inst);
+        for (auto mcInd : mcIndices) {
+            Inst->getOperand(mcInd) = MCOperand::createReg(Reg);
+        }
+    }
+
+    /**
+     * \brief For a given MCInst, get the register that is used for this operand.
+     * Has to be a registerClassOperand.
+     */
+    MCRegister getReg(MCInst *Inst) {
+        assert(isRegClass());
+        return Inst->getOperand(mcIndices[0]).getReg();
+    }
+
+    void setImmediateOperand(MCInst *Inst, unsigned Imm) {
+        assert(isImmediate());
+        initMCInst(Inst);
+        for (auto mcInd : mcIndices) {
+            Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
+        }
+    }
+
+    void setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement) {
+        assert(isMemory());
+        initMCInst(Inst);
+        for (int i = 0; i < mcIndices.size(); i++) {
+            unsigned mcInd = mcIndices[i];
+
+            if (i == 0) Inst->getOperand(mcInd) = MCOperand::createReg(BaseRegister); // base reg
+            if (i == 1) Inst->getOperand(mcInd) = MCOperand::createImm(0);            // scale imm
+            if (i == 2) Inst->getOperand(mcInd) = MCOperand::createReg(0);            // index reg
+            if (i == 3) Inst->getOperand(mcInd) = MCOperand::createImm(Displacement); // imm
+            if (i == 4) Inst->getOperand(mcInd) = MCOperand::createReg(0);            // segment reg
+        }
     }
 };
 
 /**
  * \brief Stream output operator for Operand.
  */
-inline std::ostream &operator<<(std::ostream &OS, const Operand &Op) {
-    if (Op.isRegClass())
-        return OS << "Class<"
-                  << getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(Op.getRegClass()))
-                  << ">";
-    if (Op.isRegister()) return OS << "Reg<" << getEnv().MRI->getName(Op.getRegister()) << ">";
-    if (Op.isMemory()) return OS << "Mem";
-    return OS << "Operand type printing not implemented\n";
+inline std::ostream &operator<<(std::ostream &OS, const OperandForm &Op) {
+    return OS << Op.toCompactString();
 }
 
-struct Instruction {
+class InstructionForm {
     unsigned opcode;
-    std::vector<std::pair<unsigned, Operand>> useOperands; // (index, Operand)
-    std::vector<std::pair<unsigned, Operand>> defOperands;
+    std::vector<OperandForm> operands;
 
-    Instruction(unsigned Opcode, std::vector<std::pair<unsigned, Operand>> UseOperands,
-                std::vector<std::pair<unsigned, Operand>> DefOperands)
-        : opcode(Opcode), useOperands(UseOperands), defOperands(DefOperands) {}
+  public:
+    InstructionForm(unsigned Opcode);
 
-    std::pair<ErrorCode, Operand> getOperandAt(unsigned Index) {
-        for (auto [index, operand] : useOperands)
-            if (index == Index) return {SUCCESS, operand};
-        for (auto [index, operand] : defOperands)
-            if (index == Index) return {SUCCESS, operand};
-        return {E_GENERIC, {}};
+    std::vector<OperandForm> getDefOps() {
+        std::vector<OperandForm> result;
+        for (auto op : operands)
+            if (op.isDef()) result.emplace_back(op);
+
+        return result;
+    }
+
+    std::vector<OperandForm> getUseOps() {
+        std::vector<OperandForm> result;
+        for (auto op : operands)
+            if (op.isUse()) result.emplace_back(op);
+
+        return result;
+    }
+
+    std::vector<OperandForm> getUseOnlyOps() {
+        std::vector<OperandForm> result;
+        for (auto op : operands)
+            if (op.isUse() && !op.isDef()) result.emplace_back(op);
+
+        return result;
+    }
+
+    std::vector<OperandForm> getOperands() const { return operands; }
+
+    unsigned getOpcode() const { return opcode; }
+
+    std::string getName() const { return getEnv().MCII->getName(opcode).str(); }
+
+    /**
+     * \brief sorts operands by their indices.
+     */
+    void sortOperands() {
+        std::sort(operands.begin(), operands.end(),
+                  [](OperandForm A, OperandForm B) { return A.getIndex() < B.getIndex(); });
     }
 };
+
+inline std::ostream &operator<<(std::ostream &OS, const InstructionForm &Op) {
+    return OS << Op.getName() << " " << Op.getOperands();
+}
 
 /**
  * \brief Represents a dependency type between two operands.
  */
 struct DependencyType {
-    Operand defOp; ///< Defining operand
-    Operand useOp; ///< Using operand
+    OperandKind defOp; ///< Defining operand
+    OperandKind useOp; ///< Using operand
 
-    DependencyType() = default;
+    // DependencyType() = default;
 
-    DependencyType(Operand DefOp, Operand UseOp) : defOp(DefOp), useOp(UseOp) {}
+    DependencyType(OperandKind DefOp, OperandKind UseOp) : defOp(DefOp), useOp(UseOp) {}
 
     bool operator==(const DependencyType &Other) const {
         return defOp == Other.defOp && useOp == Other.useOp;
@@ -205,10 +318,15 @@ struct DependencyType {
 
     bool canCreateDependencyChain() {
         if (isSymmetric()) return true;
-        if (defOp.isRegClass() && useOp.isRegister())
-            return getEnv().regInRegClass(useOp.getRegister(), defOp.getRegClass());
-        if (defOp.isRegister() && useOp.isRegClass())
-            return getEnv().regInRegClass(defOp.getRegister(), useOp.getRegClass());
+        if (auto *defRegClassOp = std::get_if<RegisterClassOperand>(&defOp))
+            if (auto *useRegisterOperand = std::get_if<RegisterOperand>(&useOp))
+                return getEnv().regInRegClass(useRegisterOperand->getRegister(),
+                                              defRegClassOp->getRegClassID());
+
+        if (auto *defRegisterOperand = std::get_if<RegisterOperand>(&defOp))
+            if (auto *useRegClassOp = std::get_if<RegisterClassOperand>(&useOp))
+                return getEnv().regInRegClass(defRegisterOperand->getRegister(),
+                                              useRegClassOp->getRegClassID());
         return false; // unreachable
     }
 };
@@ -232,8 +350,6 @@ struct LatMeasurement {
     double upperBound;   ///< Upper bound of measured latency
     ErrorCode ec;        ///< Error code for measurement
 
-    LatMeasurement() : lowerBound(-1), upperBound(-1), ec(NO_ERROR_CODE) {}
-
     LatMeasurement(unsigned Opcode, DependencyType Type, unsigned DefIndex, unsigned UseIndex,
                    double LowerBound = -1, double UpperBound = -1, ErrorCode EC = NO_ERROR_CODE)
         : opcode(Opcode), type(Type), defIndex(DefIndex), useIndex(UseIndex),
@@ -244,17 +360,23 @@ struct LatMeasurement {
                useIndex == Other.useIndex;
     }
 
-    std::string toCompactString() const {
-        std::string useIndexStr = useIndex == 999 ? "i" : std::to_string(useIndex);
-        std::string defIndexStr = defIndex == 999 ? "i" : std::to_string(defIndex);
-        return str(getEnv().MCII->getName(opcode).str(), "_", useIndexStr, "-",
-                   type.useOp.toCompactString(), "--", defIndexStr, "-",
-                   type.defOp.toCompactString());
+    /**
+     * \brief Returns a string representation suitable to be used in a filename.
+     */
+    std::string toFilenameString() const {
+        std::string useIndexStr = useIndex == NO_OP_INDEX ? "i" : std::to_string(useIndex);
+        std::string defIndexStr = defIndex == NO_OP_INDEX ? "i" : std::to_string(defIndex);
+        std::string useOpStr = std::visit(
+            [](const auto &(Operand)) { return Operand.toFilenameString(); }, type.useOp);
+        std::string defOpStr = std::visit(
+            [](const auto &(Operand)) { return Operand.toFilenameString(); }, type.defOp);
+        return str(getEnv().MCII->getName(opcode).str(), "_", useIndexStr, "-", useOpStr, "--",
+                   defIndexStr, "-", defOpStr);
     }
 
     std::string toString() const {
-        std::string useIndexStr = useIndex == 999 ? "impl" : std::to_string(useIndex);
-        std::string defIndexStr = defIndex == 999 ? "impl" : std::to_string(defIndex);
+        std::string useIndexStr = useIndex == NO_OP_INDEX ? "impl" : std::to_string(useIndex);
+        std::string defIndexStr = defIndex == NO_OP_INDEX ? "impl" : std::to_string(defIndex);
         return str(getEnv().MCII->getName(opcode).str(), "(", useIndexStr, "(", type.useOp, ")",
                    " -> ", defIndexStr, "(", type.defOp, ")) ");
     }

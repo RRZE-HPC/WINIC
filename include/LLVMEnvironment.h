@@ -123,6 +123,13 @@ class LLVMEnvironment {
     std::set<MCRegister> getPossibleDefs(unsigned Opcode);
 
     /**
+     * \brief Checks if an operand is tied to another operand.
+     * \param OpInfo The MCOperandInfo to check.
+     * \return The index of the tied to operand or -1 if there is none;
+     */
+    unsigned getTiedToOperand(MCOperandInfo OpInfo);
+
+    /**
      * \brief Computes the intersection of two sets of registers.
      * \param A First set of registers.
      * \param B Second set of registers.

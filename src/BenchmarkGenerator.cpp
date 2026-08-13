@@ -33,73 +33,6 @@
 
 namespace winic {
 
-Instruction genInstruction(unsigned Opcode) {
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-
-    auto operands = desc.operands();
-    auto implDefs = desc.implicit_defs();
-    auto implUses = desc.implicit_uses();
-    unsigned realNumDefs = desc.getNumDefs();
-    if (desc.getNumOperands() > 0 && desc.operands()[0].OperandType == MCOI::OPERAND_MEMORY) {
-        // llvm lied
-        for (unsigned i = 0; i < desc.getNumOperands(); i++)
-            if (desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY) realNumDefs = i + 1;
-    }
-    dbg(__func__, "realNumDefs: ", realNumDefs);
-
-    // collect operands (index, Operand)
-    std::vector<std::pair<unsigned, Operand>> defOperands;
-    std::vector<std::pair<unsigned, Operand>> useOperands;
-    unsigned defMemoryOperandCounter = 0;
-    unsigned useMemoryOperandCounter = 0;
-    // defs
-    for (unsigned i = 0; i < realNumDefs; i++) {
-        auto operandInfo = operands[i];
-        Operand operand;
-        if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
-            operand = Operand::fromRegClass(operandInfo.RegClass);
-        else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
-                 defMemoryOperandCounter++ == 0) {
-            operand = Operand::fromMemOffset(0);
-            if (desc.mayStore()) {
-                defOperands.emplace_back(i, operand);
-            }
-            if (desc.mayLoad()) {
-                useOperands.emplace_back(i, operand);
-            }
-            continue;
-        } else
-            continue;
-        defOperands.emplace_back(i, operand);
-    }
-    // uses
-    for (unsigned i = realNumDefs; i < operands.size(); i++) {
-        auto operandInfo = operands[i];
-        Operand operand;
-        if (operandInfo.OperandType == MCOI::OPERAND_REGISTER)
-            operand = Operand::fromRegClass(operandInfo.RegClass);
-        else if (operandInfo.OperandType == MCOI::OPERAND_MEMORY &&
-                 useMemoryOperandCounter++ == 0) {
-            operand = Operand::fromMemOffset(0);
-        } else
-            continue;
-        useOperands.emplace_back(i, operand);
-    }
-    // implicit defs
-    for (unsigned i = 0; i < implDefs.size(); i++) {
-        MCRegister defReg = implDefs[i];
-        Operand defOp = Operand::fromRegister(defReg);
-        defOperands.emplace_back(999, defOp);
-    }
-    // implicit uses
-    for (unsigned i = 0; i < implUses.size(); i++) {
-        MCRegister useReg = implUses[i];
-        Operand useOp = Operand::fromRegister(useReg);
-        useOperands.emplace_back(999, useOp);
-    }
-    return Instruction(Opcode, useOperands, defOperands);
-}
-
 std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     // generate a LatMeasurement for each read write dependency combination possible
     // assumes there are no implicit memory defs TODO think
@@ -115,11 +48,12 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     }
 
     // build measurements
-    Instruction instruction = genInstruction(Opcode);
-    for (auto [defIndex, defOp] : instruction.defOperands) {
-        for (auto [useIndex, useOp] : instruction.useOperands) {
+    InstructionForm instruction = InstructionForm(Opcode);
+    for (auto defOp : instruction.getDefOps()) {
+        for (auto useOp : instruction.getUseOps()) {
             LatMeasurement m =
-                LatMeasurement(Opcode, DependencyType(defOp, useOp), defIndex, useIndex);
+                LatMeasurement(Opcode, DependencyType(defOp.getKind(), useOp.getKind()),
+                               defOp.getIndex(), useOp.getIndex());
             measurements.emplace_back(m);
         }
     }
@@ -152,10 +86,10 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
         // choose registers for the operands building the latency chain
         for (auto [opIndex, op] :
              {std::make_pair(m.defIndex, m.type.defOp), std::make_pair(m.useIndex, m.type.useOp)}) {
-            if (op.isRegClass()) {
+            if (auto *registerClassOperand = std::get_if<RegisterClassOperand>(&op)) {
                 // currently only the class is known, we have to specify which register to
                 // use for generating the instruction
-                unsigned regClassID = op.getRegClass();
+                unsigned regClassID = registerClassOperand->getRegClassID();
                 if (chosenRegisters.find(regClassID) != chosenRegisters.end()) {
                     // we already chose a register for this class
                     constraints.insert({opIndex, chosenRegisters[regClassID]});
@@ -168,9 +102,10 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
                     chosenRegisters.insert({regClassID, chosenReg});
                     UsedRegisters.insert(chosenReg);
                 }
-            } else if (op.isRegister()) // implicit def/use -> this provides a register directly
-                UsedRegisters.insert(op.getRegister());
-            else if (op.isMemory()) {
+            } else if (auto *registerOperand = std::get_if<RegisterOperand>(&op))
+                // implicit def/use -> this provides a register directly
+                UsedRegisters.insert(registerOperand->getRegister());
+            else if (std::holds_alternative<MemoryOperand>(op)) {
                 memDisplacement = 0;
             }
         }
@@ -312,19 +247,6 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
     return {SUCCESS, assemblyFile};
 }
 
-/**
- * \brief check if the operand is read from and not written to
- * \param Opcode Opcode of the instruction
- * \param OpIndex Index of the operand to check
- * \returns true if the operand at OpIndex is only read from
- */
-static bool isUseOnly(unsigned Opcode, unsigned OpIndex) {
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    if (OpIndex < desc.getNumDefs()) return false; // this is not a use at all
-    const MCOperandInfo &opInfo = desc.operands()[OpIndex];
-    return !(opInfo.Constraints & (1 << MCOI::TIED_TO)); // this is not tied to a def
-}
-
 std::pair<ErrorCode, std::vector<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
@@ -332,7 +254,6 @@ genTPLoop(std::vector<unsigned> Opcodes,
     std::vector<MCInst> instructions;
     for (unsigned i = 0; i < Opcodes.size(); i++) {
         unsigned opcode = Opcodes[i];
-        const MCInstrDesc &desc = getEnv().MCII->get(opcode);
         // this is the first generated instruction, all other instructions will use the
         // same registers as this one if they are only read
         auto [EC, refInst] = genInst(opcode, ConstraintsVector[i], UsedRegisters, Immediate, 0);
@@ -341,11 +262,10 @@ genTPLoop(std::vector<unsigned> Opcodes,
 
         // constrain all other instructions of this opcode to use the same use registers as the
         // first one
-        for (unsigned opIndex = desc.getNumDefs(); opIndex < desc.getNumOperands(); opIndex++) {
-            if (!isUseOnly(opcode, opIndex)) continue;
-            auto op = desc.operands()[opIndex];
-            if (op.OperandType == MCOI::OPERAND_REGISTER)
-                ConstraintsVector[i].insert({opIndex, refInst.getOperand(opIndex).getReg()});
+        InstructionForm instructionForm = InstructionForm(opcode);
+        for (auto operand : instructionForm.getUseOnlyOps()) {
+            if (operand.isRegClass())
+                ConstraintsVector[i].insert({operand.getIndex(), operand.getReg(&refInst)});
         }
     }
 
@@ -391,38 +311,10 @@ whichOperandCanUse(unsigned Opcode, std::string Type, MCRegister RequiredRegiste
     return {E_GENERIC, 0};
 }
 
-/**
- * Expand a constraint map to properly constrain all operands marked as tied to one of the
- * constained operands. Look at the "LLVM operand layout" section in DEV.md if this does not
- * make sense to you. E.g. if op1 is tied to op0 and we set a constraint for op1, genInst will
- * not correctly set op0 as it processes operands in order. Invoking this beforehand fixes this
- * problem.
- */
-static std::map<unsigned, MCRegister>
-expandConstraints(unsigned Opcode, std::map<unsigned, MCRegister> Constraints) {
-    std::map<unsigned, MCRegister> newConstraints;
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    for (auto constraint : Constraints) {
-        const MCOperandInfo &opInfo = desc.operands()[constraint.first];
-        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-            // constraint sets an operand that is tied to another operand, constrain that one,
-            // too
-            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            newConstraints[tiedToOp] = constraint.second;
-        }
-        // keep all previous constraints
-        newConstraints[constraint.first] = constraint.second;
-    }
-    return newConstraints;
-}
-
 std::pair<ErrorCode, MCInst>
 genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
         std::set<MCRegister> &UsedRegisters, unsigned Immediate, unsigned MemDisplacement) {
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    unsigned numOperands = desc.getNumOperands();
 
-    Constraints = expandConstraints(Opcode, Constraints);
     // make sure fixed registers are not used anywhere else than they are supposed to by adding
     // them to usedRegisters beforehand
     std::set<MCRegister> localUsedRegisters;
@@ -432,100 +324,47 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
     MCInst inst;
     inst.setOpcode(Opcode);
     inst.clear();
-    // fill every operand of the instruction with a valid reg/imm
-    uint32_t memoryOperandCounter = 0;
-    for (unsigned j = 0; j < numOperands; ++j) {
-        const MCOperandInfo &opInfo = desc.operands()[j];
-        // TIED_TO points to operand which this has to be identical to.
-        // see MCInstrDesc.h:41
-        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-            // this operand must be identical to another operand
-            unsigned tiedToOpIndex = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            MCOperand &tiedToOp = inst.getOperand(tiedToOpIndex);
-            inst.addOperand(tiedToOp);
-            if (tiedToOp.isReg()) {
-                MCRegister reg = tiedToOp.getReg();
+    InstructionForm instructionForm = InstructionForm(Opcode);
+    for (auto op : instructionForm.getOperands()) {
+        // check for constraint
+        if (Constraints.find(op.getIndex()) != Constraints.end()) {
+            op.setRegClassOperand(&inst, Constraints[op.getIndex()]);
+            continue;
+        }
+        if (op.isMemory()) {
+            op.setMemoryOperand(&inst, getTemplate(getEnv().Arch).scratchMemoryBaseReg,
+                                MemDisplacement);
+        }
+        if (op.isImmediate()) {
+            op.setImmediateOperand(&inst, Immediate);
+        }
+        if (op.isRegClass()) {
+            bool foundRegister = false;
+            const MCRegisterClass &regClass = getEnv().MRI->getRegClass(op.getRegClassID());
+            for (MCRegister reg : regClass) {
+                if ((getEnv().Arch == Triple::ArchType::x86_64 && reg.id() == X86::RIP) ||
+                    reg.id() >= getEnv().MaxReg)
+                    // RIP register (58) is included in GR64 class which is a bug as of
+                    // LLVM 22.1.8 see X86RegisterInfo.td:586
+                    continue;
+                // don't use this if sub- or superregisters are in usedRegisters
+                if (std::any_of(UsedRegisters.begin(), UsedRegisters.end(),
+                                [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
+                    continue;
+
+                // don't reuse any registers
+                if (std::any_of(localUsedRegisters.begin(), localUsedRegisters.end(),
+                                [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
+                    continue;
+
+                op.setRegClassOperand(&inst, reg);
                 localUsedRegisters.insert(reg);
-            }
-        } else {
-            switch (opInfo.OperandType) {
-            case MCOI::OPERAND_REGISTER: {
-                // check if Constraints force registers for this operand
-                if (Constraints.find(j) != Constraints.end()) {
-                    inst.addOperand(MCOperand::createReg(Constraints[j]));
-                    break;
-                }
-
-                const MCRegisterClass &regClass = getEnv().MRI->getRegClass(opInfo.RegClass);
-                // search for unused register and add it as this operand
-                bool foundRegister = false;
-                for (MCRegister reg : regClass) {
-                    if ((getEnv().Arch == Triple::ArchType::x86_64 && reg.id() == 58) ||
-                        reg.id() >= getEnv().MaxReg)
-                        // TODO replace with check for arch and X86::RIP
-                        // RIP register (58) is included in GR64 class which is a bug as of
-                        // LLVM 20.1.5 see X86RegisterInfo.td:586
-                        continue;
-                    // don't use this if sub- or superregisters are in usedRegisters
-                    if (std::any_of(
-                            UsedRegisters.begin(), UsedRegisters.end(),
-                            [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
-                        continue;
-
-                    // don't reuse any registers
-                    if (std::any_of(
-                            localUsedRegisters.begin(), localUsedRegisters.end(),
-                            [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
-                        continue;
-
-                    inst.addOperand(MCOperand::createReg(reg));
-                    localUsedRegisters.insert(reg);
-                    foundRegister = true;
-                    break;
-                }
-                if (!foundRegister) return {E_NO_REGISTERS, {}};
-
+                foundRegister = true;
                 break;
             }
-            case MCOI::OPERAND_IMMEDIATE:
-                inst.addOperand(MCOperand::createImm(Immediate));
-                break;
-            case MCOI::OPERAND_MEMORY:
-                switch (memoryOperandCounter) {
-                case 0:
-                    inst.addOperand(MCOperand::createReg(X86::R9)); // base reg
-                    break;
-                case 1:
-                    inst.addOperand(MCOperand::createImm(0)); // scale imm
-                    break;
-                case 2:
-                    inst.addOperand(MCOperand::createReg(0)); // index reg
-                    break;
-                case 3:
-                    inst.addOperand(MCOperand::createImm(MemDisplacement)); // displacement imm
-                    break;
-                case 4:
-                    inst.addOperand(MCOperand::createReg(0)); // segment reg
-                    break;
-                }
-                memoryOperandCounter++;
-                break;
-            case MCOI::OPERAND_PCREL:
-                return {S_PCREL_OPERAND, {}};
-            default:
-                // especially on aarch64 many types of immediates have operand type
-                // UNKNOWN_OPERAND (idk why) speculatively plug in immediates and hope for the
-                // best (e.g. ADDXri cannot be generated without this)
-                inst.addOperand(MCOperand::createImm(Immediate));
-            }
+            if (!foundRegister) return {E_NO_REGISTERS, {}};
         }
     }
-    // dbg(__func__, "printing:");
-    // std::string result;
-    // llvm::raw_string_ostream os(result);
-    // inst.dump_pretty(os);
-    // getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, os);
-    // dbg(__func__, result);
 
     UsedRegisters.insert(localUsedRegisters.begin(), localUsedRegisters.end());
     return {SUCCESS, inst};
@@ -626,14 +465,14 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
         for (MCRegister use : uses2)
             if (def == use)
                 dependencies.emplace_back(
-                    DependencyType(Operand::fromRegister(def), Operand::fromRegister(use)));
+                    DependencyType(RegisterOperand(def), RegisterOperand(use)));
 
     // repeat for memory accesses
     for (int64_t def : memOffsets1)
         for (int64_t use : memOffsets2)
             if (def == use)
                 dependencies.emplace_back(
-                    DependencyType(Operand::fromMemOffset(def), Operand::fromMemOffset(use)));
+                    DependencyType(RegisterOperand(def), RegisterOperand(use)));
 
     return dependencies;
 }
@@ -774,8 +613,6 @@ std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitVal
 }
 
 ErrorCode isValid(const MCInstrDesc &Desc) {
-    dbg(__func__, "Opcode: ", Desc.getOpcode(),
-        " Name: ", getEnv().MCII->getName(Desc.getOpcode()));
     if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
     if (!includeMemory) {
         if (Desc.mayLoad()) return S_MAY_LOAD;
@@ -787,7 +624,6 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
         if (!Desc.mayLoad() && !Desc.mayStore()) return S_NON_MEMORY;
     }
     if (Desc.isCall()) return S_IS_CALL;
-
     if (Desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
     if (Desc.isReturn()) return S_IS_RETURN;
     if (Desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?
@@ -797,6 +633,8 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     if (!includeNonX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
         !Desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_NON_X87FP;
+    for (auto op : Desc.operands())
+        if (op.OperandType == MCOI::OPERAND_PCREL) return S_PCREL_OPERAND;
 
     // blacklist instructions writing to certain registers
     // on AArch64 writing LR can indeterministicly lead to very long runtimes or get trapped
