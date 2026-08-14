@@ -1086,49 +1086,14 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
 
 void printInstructionInfo(unsigned Opcode) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    Instruction inst = genInstruction(Opcode);
-    std::ostringstream opLine;
     if (desc.isPseudo()) {
-        out(std::cout, getEnv().MCII->getName(Opcode), "(", Opcode, "): pseudo instruction");
+        out(std::cout, getEnv().MCII->getName(Opcode), ": pseudo instruction {opcode: ", Opcode,
+            "}");
         return;
     }
-
-    std::vector<std::string> opStrings;
-    for (int i = 0; i < desc.getNumDefs(); i++) {
-        const MCOperandInfo &opInfo = desc.operands()[i];
-        if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) opStrings.emplace_back(str("Imm(w"));
-        if (opInfo.OperandType == MCOI::OPERAND_UNKNOWN) opStrings.emplace_back(str("Unknown(w"));
-        if (opInfo.OperandType == MCOI::OPERAND_MEMORY) opStrings.emplace_back(str("Mem(w"));
-        if (opInfo.OperandType == MCOI::OPERAND_REGISTER)
-            opStrings.emplace_back(str(Operand::fromRegClass(opInfo.RegClass), "(w"));
-    }
-    for (int i = desc.getNumDefs(); i < desc.getNumOperands(); i++) {
-        const MCOperandInfo &opInfo = desc.operands()[i];
-        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            opStrings[tiedToOp].append("/r");
-        }
-        if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) opStrings.emplace_back(str("Imm(r"));
-        if (opInfo.OperandType == MCOI::OPERAND_UNKNOWN) opStrings.emplace_back(str("Unknown(r"));
-        if (opInfo.OperandType == MCOI::OPERAND_MEMORY) opStrings.emplace_back(str("Mem(r"));
-        if (opInfo.OperandType == MCOI::OPERAND_REGISTER)
-            opStrings.emplace_back(str(Operand::fromRegClass(opInfo.RegClass), "(r"));
-    }
-
-    for (auto [index, op] : inst.defOperands) {
-        if (index == 999) {
-            if (desc.hasImplicitUseOfPhysReg(op.getRegister()))
-                opStrings.emplace_back(str(op, "(w/r"));
-            else
-                opStrings.emplace_back(str(op, "(w"));
-        }
-    }
-
-    for (auto s : opStrings) {
-        opLine << str(s, ") ");
-    }
-    out(std::cout, getEnv().MCII->getName(Opcode), "(", Opcode, "): ", opLine.str(),
-        "{mayLoad:", desc.mayLoad(), ", mayStore:", desc.mayStore(), "}");
+    InstructionForm instructionForm = InstructionForm(Opcode);
+    out(std::cout, instructionForm, " {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
+        ", mayStore:", desc.mayStore(), "}");
 }
 
 int run(int Argc, char **Argv) {
