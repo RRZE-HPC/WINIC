@@ -244,7 +244,7 @@ std::set<MCRegister> LLVMEnvironment::getPossibleDefs(unsigned Opcode) {
 unsigned LLVMEnvironment::getTiedToOperand(MCOperandInfo OpInfo) {
     if (OpInfo.Constraints & (1 << MCOI::TIED_TO))
         return (OpInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-    return 999;
+    return NO_OP_INDEX;
 }
 
 std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {

@@ -125,7 +125,7 @@ class LLVMEnvironment {
     /**
      * \brief Checks if an operand is tied to another operand.
      * \param OpInfo The MCOperandInfo to check.
-     * \return The index of the tied to operand or -1 if there is none;
+     * \return The index of the tied to operand or NO_OP_INDEX if there is none;
      */
     unsigned getTiedToOperand(MCOperandInfo OpInfo);
 
