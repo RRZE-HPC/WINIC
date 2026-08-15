@@ -905,9 +905,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 smallestA = m;
                 break;
             }
-            latencyOutputMessage[m->opcode] +=
-                str("\t", m, "\n\t\t", ecToString(EC),
-                    ", this instruction cannot be measured on this platform\n");
+            out(*ios, "\tcannot measure ", m->toString(), " ", ecToString(EC));
             opcodeBlacklist.emplace(m->opcode);
         }
         if (smallestA == nullptr) {
@@ -922,9 +920,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 smallestB = m;
                 break;
             }
-            latencyOutputMessage[m->opcode] +=
-                str("\t", m, "\n\t\t", ecToString(EC),
-                    ", this instruction cannot be measured on this platform\n");
+            out(*ios, "\tcannot measure ", m->toString(), " ", ecToString(EC));
             opcodeBlacklist.emplace(m->opcode);
         }
         if (smallestB == nullptr) {
