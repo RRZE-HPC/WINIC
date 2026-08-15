@@ -132,15 +132,15 @@ buffer:
 .text
 )",
     R"(
-.globl init
+.globl functionName
 .type init, @function
 .align 32
-init:
+functionName:
     lea r9, [rip + buffer]
 )",
     R"(
     ret
-.size init, .-init
+.size functionName, .-functionName
 )",
     R"(
 
