@@ -785,8 +785,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
                     throughputDatabase[opcode].ec != NO_ERROR_CODE)
                     continue;
             // check if this opcode can be measured
-            const MCInstrDesc &desc = getEnv().MCII->get(opcode);
-            ErrorCode ec = isValid(desc);
+            ErrorCode ec = isValid(opcode);
             if (ec != SUCCESS) {
                 dbg(__func__, "Opcode ", opcode, " is not valid: ", ecToString(ec));
                 throughputDatabase[opcode] = {opcode, ec, -1, -1};

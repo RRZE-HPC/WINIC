@@ -168,10 +168,10 @@ template <typename T> std::string genSetRegister(MCRegister Reg, T Value);
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.
- * \param Desc The instruction descriptor.
+ * \param Opcode The opcode of the instruction.
  * \return ErrorCode indicating validity.
  */
-ErrorCode isValid(const MCInstrDesc &Desc);
+ErrorCode isValid(unsigned Opcode);
 
 } // namespace winic
 

@@ -40,8 +40,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     // written to by MCInstDesc::NumDefs
 
     std::vector<LatMeasurement> measurements;
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    ErrorCode ec = isValid(desc);
+    ErrorCode ec = isValid(Opcode);
     if (ec != SUCCESS) {
         dbg(__func__, getEnv().MCII->getName(Opcode), " skipped for reason ", ecToString(ec));
         return {};
@@ -612,28 +611,29 @@ std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitVal
     return regInit;
 }
 
-ErrorCode isValid(const MCInstrDesc &Desc) {
-    if (Desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
+ErrorCode isValid(unsigned Opcode) {
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    if (desc.isPseudo()) return S_PSEUDO_INSTRUCTION;
     if (!includeMemory) {
-        if (Desc.mayLoad()) return S_MAY_LOAD;
-        if (Desc.mayStore()) return S_MAY_STORE;
-        for (auto op : Desc.operands())
+        if (desc.mayLoad()) return S_MAY_LOAD;
+        if (desc.mayStore()) return S_MAY_STORE;
+        for (auto op : desc.operands())
             if (op.OperandType == MCOI::OPERAND_MEMORY) return S_MEMORY_OPERAND;
     }
     if (!includeNonMemory) {
-        if (!Desc.mayLoad() && !Desc.mayStore()) return S_NON_MEMORY;
+        if (!desc.mayLoad() && !desc.mayStore()) return S_NON_MEMORY;
     }
-    if (Desc.isCall()) return S_IS_CALL;
-    if (Desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
-    if (Desc.isReturn()) return S_IS_RETURN;
-    if (Desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?
+    if (desc.isCall()) return S_IS_CALL;
+    if (desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
+    if (desc.isReturn()) return S_IS_RETURN;
+    if (desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?
     if (!includeX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
-        Desc.hasImplicitDefOfPhysReg(X86::FPSW))
+        desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
     if (!includeNonX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
-        !Desc.hasImplicitDefOfPhysReg(X86::FPSW))
+        !desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_NON_X87FP;
-    for (auto op : Desc.operands())
+    for (auto op : desc.operands())
         if (op.OperandType == MCOI::OPERAND_PCREL) return S_PCREL_OPERAND;
 
     // blacklist instructions writing to certain registers
@@ -646,14 +646,14 @@ ErrorCode isValid(const MCInstrDesc &Desc) {
     else if (getEnv().Arch == Triple::ArchType::aarch64)
         registerBlacklist = {AArch64::LR};
 
-    ArrayRef<MCPhysReg> defs = Desc.implicit_defs();
+    ArrayRef<MCPhysReg> defs = desc.implicit_defs();
     for (MCRegister reg : registerBlacklist) {
         if (std::find(defs.begin(), defs.end(), reg) != defs.end()) {
             return S_BLACKLISTED_REGISTER;
         }
     }
     MCInst inst;
-    inst.setOpcode(Desc.getOpcode());
+    inst.setOpcode(desc.getOpcode());
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
     if (!iName) return S_NO_MNEMONIC;
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
