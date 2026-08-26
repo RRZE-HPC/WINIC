@@ -23,6 +23,7 @@ def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], verbose=Fa
     c_to_none = 0
     c_from_none = 0
     c_missing = 0
+    c_new = 0
 
     for entry1 in db1:
         entry2 = None
@@ -80,9 +81,24 @@ def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], verbose=Fa
                             lat1_max, lat2_max, c_changes, c_from_none, c_to_none
                         )
 
+    # check for new entries
+    for entry2 in db2:
+        # only count as new if entry2 has any value
+        if entry2["throughput"] is None and entry2["latency"] is None:
+            continue
+        entry1 = None
+        for e1 in db1:
+            if e1["llvmName"] == entry2["llvmName"]:
+                entry1 = e1
+                break
+        if entry1 == None:
+            verbose_output += entry2["llvmName"] + " added in new data\n"
+            c_new += 1
+
     print(f"{c_changes} entries changed")
     print(f"{c_from_none} were None but have a value now")
     print(f"{c_to_none} had a value before but are None now")
     print(f"{c_missing} entries missing in new data")
+    print(f"{c_new} new entries in new data")
     if verbose:
         print(verbose_output)
