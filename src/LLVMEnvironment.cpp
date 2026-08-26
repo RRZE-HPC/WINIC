@@ -26,6 +26,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
@@ -126,9 +127,21 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
 }
 
 unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
-    // this is an ugly workaround: assume the memory accessed is smaller than the widest register of
-    // the instruction. If you know better how llvm works, please replace this with a proper lookup
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+
+    if (getEnv().Arch == llvm::Triple::aarch64) {
+        // check if the target specific helpers can provide an exact width
+        TypeSize scale(0U, false), width(0U, false);
+        int64_t minOffset, maxOffset;
+        if (AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
+            // when width=8 and scale=4 this returns 2. LLVM later scales the immediate up by the
+            // factor of 4 while printing the instruction
+            if (width.isFixed()) return width / scale;
+        }
+    }
+
+    // apply an ugly workaround: assume the memory accessed is smaller than the widest register of
+    // the instruction. If you know better how llvm works, please replace this with a proper lookup
     unsigned maxRegWidth = 0;
 
     for (int i = 0; i < desc.getNumOperands(); i++) {
@@ -155,8 +168,8 @@ unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
     // bool offsetIsScalable;
     // LocationSize size = LocationSize::mapEmpty();
 
-    // bool ok = TII->getMemOperandsWithOffsetWidth(*MI, baseOps, offset, offsetIsScalable, size,
-    // TRI); if (ok) {
+    // bool ok = TII->getMemOperandsWithOffsetWidth(*MI, baseOps, offset, offsetIsScalable,
+    // size, TRI); if (ok) {
     //     dbg(__func__, "getValue");
     //     return size.getValue().getFixedValue();
     // } else {
