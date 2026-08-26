@@ -82,6 +82,9 @@ constexpr std::string_view opToString(uint8_t OperandType) {
 }
 
 inline std::ostream &operator<<(std::ostream &OS, const MCOperandInfo &OpInfo) {
+    if (OpInfo.OperandType == MCOI::OPERAND_REGISTER)
+        return OS << winic::RegisterClassOperand(OpInfo.RegClass);
+
     return OS << opToString(OpInfo.OperandType);
 }
 

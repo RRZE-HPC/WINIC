@@ -35,6 +35,21 @@ template <typename T> inline std::ostream &operator<<(std::ostream &OS, const st
     return OS;
 }
 
+template <typename T> inline std::ostream &operator<<(std::ostream &OS, const std::vector<T *> &V) {
+    OS << "[";
+    for (size_t i = 0; i < V.size(); ++i) {
+        if (V[i]) {
+            OS << *V[i];
+        } else {
+            OS << "nullptr";
+        }
+
+        if (i + 1 < V.size()) OS << ", ";
+    }
+    OS << "]";
+    return OS;
+}
+
 // override operator<< for any std::list
 template <typename T> inline std::ostream &operator<<(std::ostream &OS, const std::list<T> &L) {
     std::vector<T> vec(L.begin(), L.end());
