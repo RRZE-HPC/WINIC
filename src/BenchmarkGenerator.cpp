@@ -104,7 +104,9 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
             } else if (auto *registerOperand = std::get_if<RegisterOperand>(&op))
                 // implicit def/use -> this provides a register directly
                 UsedRegisters.insert(registerOperand->getRegister());
-            else if (std::holds_alternative<MemoryOperand>(op)) {
+            else if (std::holds_alternative<AArch64MemoryOperand>(op) ||
+                     std::holds_alternative<X86MemoryOperand>(op) ||
+                     std::holds_alternative<RISCVMemoryOperand>(op)) {
                 memDisplacement = 0;
             }
         }

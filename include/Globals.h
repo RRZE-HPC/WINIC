@@ -43,6 +43,10 @@ extern bool keepEmptyEntries; // if true, entries with only null values are incl
  */
 void setOutputToFile(const std::string &Filename);
 
+template <typename T> inline bool contains(std::vector<T> Vector, T Element) {
+    return std::find(Vector.begin(), Vector.end(), Element) != Vector.end();
+}
+
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();
 const unsigned NO_OP_INDEX = 999;
 
@@ -66,10 +70,6 @@ class RegisterClassOperand {
     bool operator==(const RegisterClassOperand &Other) const {
         return regClassID == Other.regClassID;
     }
-
-    bool operator<(const RegisterClassOperand &Other) const {
-        return regClassID < Other.regClassID;
-    }
 };
 
 class RegisterOperand {
@@ -85,8 +85,6 @@ class RegisterOperand {
     std::string toFilenameString() const { return str(getEnv().MRI->getName(reg)); }
 
     bool operator==(const RegisterOperand &Other) const { return reg == Other.reg; }
-
-    bool operator<(const RegisterOperand &Other) const { return reg < Other.reg; }
 };
 
 class ImmediateOperand {
@@ -99,12 +97,9 @@ class ImmediateOperand {
     std::string toFilenameString() const { return "Imm"; }
 
     bool operator==(const ImmediateOperand &Other) const { return true; }
-
-    bool operator<(const ImmediateOperand &Other) const { return true; }
 };
 
 class MemoryOperand {
-
   public:
     MemoryOperand() {};
 
@@ -113,12 +108,51 @@ class MemoryOperand {
     std::string toFilenameString() const { return "Mem"; }
 
     bool operator==(const MemoryOperand &Other) const { return true; }
-
-    bool operator<(const MemoryOperand &Other) const { return true; }
 };
 
-using OperandKind =
-    std::variant<RegisterClassOperand, RegisterOperand, MemoryOperand, ImmediateOperand>;
+class AArch64MemoryOperand : public MemoryOperand {
+  public:
+    AArch64MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
+        : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {}
+
+    std::vector<unsigned> baseIndices;
+    std::vector<unsigned> offsetIndices;
+};
+
+class X86MemoryOperand : public MemoryOperand {
+  public:
+    X86MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> ScaleIndices,
+                     std::vector<unsigned> IndexIndices, std::vector<unsigned> OffsetIndices,
+                     std::vector<unsigned> SegmentIndices)
+        : baseIndices(BaseIndices), scaleIndices(ScaleIndices), indexIndices(IndexIndices),
+          offsetIndices(OffsetIndices), segmentIndices(SegmentIndices) {}
+
+    std::vector<unsigned> baseIndices;
+    std::vector<unsigned> scaleIndices;
+    std::vector<unsigned> indexIndices;
+    std::vector<unsigned> offsetIndices;
+    std::vector<unsigned> segmentIndices;
+};
+
+class RISCVMemoryOperand : public MemoryOperand {
+  public:
+    // TODO
+};
+
+using OperandKind = std::variant<RegisterClassOperand, RegisterOperand, X86MemoryOperand,
+                                 AArch64MemoryOperand, RISCVMemoryOperand, ImmediateOperand>;
+
+inline bool operator==(const OperandKind &Lhs, OperandKind &Rhs) {
+    return std::visit(
+        [](const auto &A, const auto &B) -> bool {
+            using aType = std::decay_t<decltype(A)>;
+            using bType = std::decay_t<decltype(B)>;
+
+            if constexpr (std::is_same_v<aType, bType>) return A == B;
+            return false;
+        },
+        Lhs, Rhs);
+}
 
 /**
  * \brief Stream output operator for OperandKind.
@@ -174,7 +208,11 @@ class OperandForm {
 
     bool isRegister() const { return std::holds_alternative<RegisterOperand>(kind); }
 
-    bool isMemory() const { return std::holds_alternative<MemoryOperand>(kind); }
+    bool isMemory() const {
+        return std::holds_alternative<AArch64MemoryOperand>(kind) ||
+               std::holds_alternative<X86MemoryOperand>(kind) ||
+               std::holds_alternative<RISCVMemoryOperand>(kind);
+    }
 
     bool isImmediate() const { return std::holds_alternative<ImmediateOperand>(kind); }
 
@@ -186,11 +224,11 @@ class OperandForm {
 
     unsigned getIndex() const { return index; }
 
+    const std::vector<unsigned> getMCIndices() const { return mcIndices; }
+
     OperandKind getKind() const { return kind; }
 
     bool operator==(const OperandForm &Other) const { return kind == Other.kind; }
-
-    // bool operator<(const OperandForm &Other) const { return kind < Other.kind; }
 
     void setRegClassOperand(MCInst *Inst, MCRegister Reg) {
         assert(isRegClass());
@@ -220,15 +258,49 @@ class OperandForm {
     void setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement) {
         assert(isMemory());
         initMCInst(Inst);
-        for (int i = 0; i < mcIndices.size(); i++) {
-            unsigned mcInd = mcIndices[i];
+        if (getEnv().Arch == llvm::Triple::x86_64) {
+            X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
 
-            if (i == 0) Inst->getOperand(mcInd) = MCOperand::createReg(BaseRegister); // base reg
-            if (i == 1) Inst->getOperand(mcInd) = MCOperand::createImm(0);            // scale imm
-            if (i == 2) Inst->getOperand(mcInd) = MCOperand::createReg(0);            // index reg
-            if (i == 3) Inst->getOperand(mcInd) = MCOperand::createImm(Displacement); // imm
-            if (i == 4) Inst->getOperand(mcInd) = MCOperand::createReg(0);            // segment reg
+            for (unsigned index : memOp->baseIndices)
+                Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
+            for (unsigned index : memOp->scaleIndices)
+                Inst->getOperand(index) = MCOperand::createImm(0);
+            for (unsigned index : memOp->indexIndices)
+                Inst->getOperand(index) = MCOperand::createReg(0);
+            for (unsigned index : memOp->offsetIndices)
+                Inst->getOperand(index) = MCOperand::createImm(Displacement);
+            for (unsigned index : memOp->segmentIndices)
+                Inst->getOperand(index) = MCOperand::createReg(0);
+        } else if (getEnv().Arch == llvm::Triple::aarch64) {
+            AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
+
+            for (unsigned index : memOp->baseIndices)
+                Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
+            for (unsigned index : memOp->offsetIndices)
+                Inst->getOperand(index) = MCOperand::createImm(Displacement);
+        } else if (getEnv().Arch == llvm::Triple::riscv64) {
+            out(std::cerr, "RISCV memory not implemented yet");
         }
+    }
+
+    /**
+     * \brief For a given MCInst, get the offset immediate of the memory access if present.
+     */
+    unsigned getMemoryOperandOffset(MCInst Inst) {
+        assert(isMemory());
+        if (getEnv().Arch == llvm::Triple::x86_64) {
+            X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
+            return Inst.getOperand(memOp->offsetIndices[0]).getImm();
+        }
+        if (getEnv().Arch == llvm::Triple::aarch64) {
+            AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
+            // dbg(__func__, memOp->offsetIndices);
+            return Inst.getOperand(memOp->offsetIndices[0]).getImm();
+        }
+        if (getEnv().Arch == llvm::Triple::riscv64) {
+            out(std::cerr, "RISCV memory not implemented yet");
+        }
+        return NO_OP_INDEX;
     }
 };
 
@@ -304,8 +376,9 @@ struct DependencyType {
         return defOp == Other.defOp && useOp == Other.useOp;
     }
 
+    // needed for using as key in a map
     bool operator<(const DependencyType &Other) const {
-        return std::tie(defOp, useOp) < std::tie(Other.defOp, Other.useOp);
+        return str(defOp, useOp) < str(Other.defOp, Other.useOp);
     }
 
     const DependencyType reversed() const { return DependencyType(useOp, defOp); }
