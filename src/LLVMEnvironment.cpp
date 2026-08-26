@@ -1,5 +1,6 @@
 #include "LLVMEnvironment.h"
 
+#include "AArch64InstrInfo.h"
 #include "CustomDebug.h"
 #include "ErrorCode.h"
 #include "Globals.h"
@@ -245,6 +246,34 @@ unsigned LLVMEnvironment::getTiedToOperand(MCOperandInfo OpInfo) {
     if (OpInfo.Constraints & (1 << MCOI::TIED_TO))
         return (OpInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
     return NO_OP_INDEX;
+}
+
+unsigned LLVMEnvironment::getAArch64OffsetOperandIndex(unsigned Opcode) {
+    if (getEnv().Arch != llvm::Triple::aarch64) return NO_OP_INDEX;
+    // verify this is a memory instruction as llvm does in AArch64InstrInfo::verifyInstruction
+    TypeSize scale(0U, false), width(0U, false);
+    int64_t minOffset, maxOffset;
+    if (!AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
+        dbg(__func__, "did not get a mem op info ");
+        return NO_OP_INDEX;
+    }
+
+    return AArch64InstrInfo::getLoadStoreImmIdx(Opcode);
+}
+
+unsigned LLVMEnvironment::getAArch64BaseOperandIndex(unsigned Opcode) {
+    if (getEnv().Arch != llvm::Triple::aarch64) return NO_OP_INDEX;
+    TypeSize scale(0U, false), width(0U, false);
+    int64_t minOffset, maxOffset;
+    if (!AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset))
+        return NO_OP_INDEX;
+
+    return getAArch64OffsetOperandIndex(Opcode) - 1;
+}
+
+bool LLVMEnvironment::mayAccessMemory(unsigned Opcode) {
+    const MCInstrDesc &desc = MCII->get(Opcode);
+    return desc.mayLoad() || desc.mayStore();
 }
 
 std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {

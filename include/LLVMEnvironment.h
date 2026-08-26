@@ -130,6 +130,28 @@ class LLVMEnvironment {
     unsigned getTiedToOperand(MCOperandInfo OpInfo);
 
     /**
+     * \brief Returns the index of the memory access offset immediate on AArch64.
+     * \param Opcode The opcode of the load/store instruction.
+     * \return The index of the memory access immediate (displacement) or NO_OP_INDEX if there is
+     * none.
+     */
+    unsigned getAArch64OffsetOperandIndex(unsigned Opcode);
+
+    /**
+     * \brief Returns the index of the memory access base register on AArch64.
+     * \param Opcode The opcode of the load/store instruction.
+     * \return The index of the base register or NO_OP_INDEX if there is none.
+     */
+    unsigned getAArch64BaseOperandIndex(unsigned Opcode);
+
+    /**
+     * \brief Check if an instruction might access memory.
+     * \param Opcode The opcode of the instruction.
+     * \return True if the instruction may load or store, false otherwise.
+     */
+    bool mayAccessMemory(unsigned Opcode);
+
+    /**
      * \brief Computes the intersection of two sets of registers.
      * \param A First set of registers.
      * \param B Second set of registers.

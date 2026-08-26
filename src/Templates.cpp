@@ -43,12 +43,12 @@ namespace winic {
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
                    string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
                    std::list<RegInitTemplate> RegInitTemplates,
-                   llvm::MCRegister ScratchMemoryBaseReg)
+                   llvm::MCRegister ScratchMemoryBaseReg, string SetScratchMemoryBaseReg)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
       preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
       postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
       usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)),
-      scratchMemoryBaseReg(ScratchMemoryBaseReg) {
+      scratchMemoryBaseReg(ScratchMemoryBaseReg), setScratchMemoryBaseReg(SetScratchMemoryBaseReg) {
     // for readability of this file, strings have a leading newline
     // this gets removed here
     trimLeadingNewline(this->prefix);
@@ -212,12 +212,17 @@ done_functionName:
          llvm::X86::VK8WMRegClassID,
          X86::EAX,
      }},
-    X86::R9};
+    X86::R9,
+    "lea r9, [rip + buffer]"};
 
 Template AArch64Template = {
     R"(
 #define N x0
 
+.bss
+.p2align 12 
+buffer:
+    .skip 4096
 .text
 
 )",
@@ -226,6 +231,8 @@ Template AArch64Template = {
 .type functionName, @function
 .align 2
 functionName:
+    adr x9, buffer
+    ptrue p0.d
 )",
     R"(
     ret
@@ -260,6 +267,8 @@ functionName:
     mov     x4, N
 )",
     R"(
+    adr x9, buffer
+    ptrue p0.d
 loop_functionName:
 )",
     R"(
@@ -289,7 +298,7 @@ done_functionName:
 )",
     R"(
 )",
-    {"x4"},
+    {"x4", "x9"},
     {{
          R"(
     movk	reg, #imm, lsl #0
@@ -313,7 +322,9 @@ done_functionName:
     )",
          AArch64::ZPRRegClassID,
          AArch64::X0,
-     }},AArch64::X9};
+     }},
+    AArch64::X9,
+    "adr x9, buffer"};
 
 Template RISCVTemplate = {
     R"(
@@ -438,7 +449,9 @@ done_functionName:
     )",
          llvm::RISCV::VRRegClassID,
          RISCV::X11,
-     }}, RISCV::X9};
+     }},
+    RISCV::X9,
+    "auipc x9, %pcrel_hi(buffer)\t    addi  x9, x9, %pcrel_lo(buffer)"}; // TODO test
 
 Template getTemplate(llvm::Triple::ArchType Arch) {
     switch (Arch) {

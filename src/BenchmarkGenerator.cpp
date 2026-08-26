@@ -115,7 +115,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
         instructions.emplace_back(instruction);
     }
 
-    // save registers used (genTPInnerLoop updates usedRegisters)
+    // save registers used
     std::string saveRegs;
     std::string restoreRegs;
     for (MCRegister reg : UsedRegisters) {
@@ -133,6 +133,12 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
     }
 
     std::string loopCode;
+    // if this benchmark accesses memory, set the memory base register to the buffer address each
+    // iteration so loads/stores with auto-increment don't segfault
+    for (auto m : Measurements)
+        if (getEnv().mayAccessMemory(m.opcode))
+            loopCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
+
     llvm::raw_string_ostream lco(loopCode);
     for (unsigned i = 0; i < *TargetInstrCount; ++i) {
         for (auto inst : instructions) {
@@ -232,6 +238,11 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
     }
 
     std::string loopCode;
+    // if this benchmark accesses memory, set the memory base register to the buffer address each
+    // iteration so loads/stores with auto-increment don't segfault
+    if (getEnv().mayAccessMemory(Opcode) ||
+        (HelperOpcode != MAX_UNSIGNED && getEnv().mayAccessMemory(HelperOpcode)))
+        loopCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
     for (unsigned i = 0; i < UnrollCount; i++)
         loopCode.append(singleLoopCode);
 

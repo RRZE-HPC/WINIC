@@ -32,10 +32,12 @@ struct Template {
     std::set<string> usedRegisters;
     std::list<RegInitTemplate> regInitTemplates;
     llvm::MCRegister scratchMemoryBaseReg;
+    string setScratchMemoryBaseReg;
 
     Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
              string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
-             std::list<RegInitTemplate> RegInitTemplates, llvm::MCRegister ScratchMemoryBaseReg);
+             std::list<RegInitTemplate> RegInitTemplates, llvm::MCRegister ScratchMemoryBaseReg,
+             string SetScratchMemoryBaseReg);
 
   private:
     void trimLeadingNewline(string &Str);
