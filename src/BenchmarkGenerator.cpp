@@ -21,7 +21,6 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <cstddef>
 #include <initializer_list>
@@ -64,7 +63,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
                 std::set<MCRegister> UsedRegisters, long RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(),
         " TargetInstrCount: ", *TargetInstrCount, " UsedRegisters.size(): ", UsedRegisters.size());
-    auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
+    auto benchTemplate = getTemplate();
     // extract list of registers used by the template
     for (unsigned i = 0; i < getEnv().MRI->getNumRegs(); i++) {
         MCRegister reg = MCRegister::from(i);
@@ -161,7 +160,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
     }
     ico << restoreRegs << "\n";
 
-    AssemblyFile assemblyFile(getEnv().Arch);
+    AssemblyFile assemblyFile;
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("lat", saveRegs + regInit, loopCode, restoreRegs, "init",
                                   *TargetInstrCount * instructions.size());
@@ -190,7 +189,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
         " HelperConstraints.size(): ", HelperConstraints.size());
     if (HelperOpcode != MAX_UNSIGNED)
         dbg(__func__, "Helper: ", getEnv().MCII->getName(HelperOpcode));
-    auto benchTemplate = getTemplate(getEnv().MSTI->getTargetTriple().getArch());
+    auto benchTemplate = getTemplate();
     // extract list of registers used by the template
     // TODO optimize
     for (unsigned i = 0; i < getEnv().MRI->getNumRegs(); i++) {
@@ -250,7 +249,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
 
     std::string initCode = saveRegs + singleLoopCode + restoreRegs + "\n";
 
-    AssemblyFile assemblyFile(getEnv().Arch);
+    AssemblyFile assemblyFile;
     assemblyFile.addInitFunction("init", initCode);
     assemblyFile.addBenchFunction("tp", saveRegs + regInit, loopCode, restoreRegs, "init",
                                   instructions.size());
@@ -344,8 +343,7 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
             continue;
         }
         if (op.isMemory()) {
-            op.setMemoryOperand(&inst, getTemplate(getEnv().Arch).scratchMemoryBaseReg,
-                                MemDisplacement);
+            op.setMemoryOperand(&inst, getTemplate().scratchMemoryBaseReg, MemDisplacement);
         }
         if (op.isImmediate()) {
             op.setImmediateOperand(&inst, Immediate);
@@ -354,8 +352,7 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
             bool foundRegister = false;
             const MCRegisterClass &regClass = getEnv().MRI->getRegClass(op.getRegClassID());
             for (MCRegister reg : regClass) {
-                if ((getEnv().Arch == Triple::ArchType::x86_64 && reg.id() == X86::RIP) ||
-                    reg.id() >= getEnv().MaxReg)
+                if ((getEnv().isX86() && reg.id() == X86::RIP) || reg.id() >= getEnv().MaxReg)
                     // RIP register (58) is included in GR64 class which is a bug as of
                     // LLVM 22.1.8 see X86RegisterInfo.td:586
                     continue;
@@ -454,25 +451,18 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
     std::string result;
     llvm::raw_string_ostream os(result); // Wrap with raw_ostream
 
-    switch (getEnv().Arch) {
-    case llvm::Triple::x86_64: {
+    if (getEnv().isX86()) {
         MCInst inst;
         inst.setOpcode(getEnv().getOpcode("PUSH64r"));
         inst.clear();
         inst.addOperand(MCOperand::createReg(Reg));
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, os);
         os << "\n";
-        break;
+        return {SUCCESS, result};
     }
-    case llvm::Triple::aarch64:
-        return {SUCCESS, ""}; // all registers saved in template
-    case llvm::Triple::riscv64:
-        return {SUCCESS, ""}; // all registers saved in template
-    default:
-        return {E_UNSUPPORTED_ARCH, ""};
-    }
-
-    return {SUCCESS, result};
+    if (getEnv().isAArch64()) return {SUCCESS, ""}; // all registers saved in template
+    if (getEnv().isRISCV()) return {SUCCESS, ""};   // all registers saved in template
+    return {E_UNSUPPORTED_ARCH, ""};
 }
 
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
@@ -482,24 +472,18 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     std::string result;
     llvm::raw_string_ostream os(result);
 
-    switch (getEnv().Arch) {
-    case llvm::Triple::x86_64: {
+    if (getEnv().isX86()) {
         MCInst inst;
         inst.setOpcode(getEnv().getOpcode("POP64r"));
         inst.clear();
         inst.addOperand(MCOperand::createReg(Reg));
         getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, os);
         os << "\n";
-        break;
+        return {SUCCESS, result};
     }
-    case llvm::Triple::aarch64:
-        return {SUCCESS, ""}; // all registers restored in template
-    case llvm::Triple::riscv64:
-        return {SUCCESS, ""}; // all registers restored in template
-    default:
-        return {E_UNSUPPORTED_ARCH, ""};
-    }
-    return {SUCCESS, result};
+    if (getEnv().isAArch64()) return {SUCCESS, ""}; // all registers restored in template
+    if (getEnv().isRISCV()) return {SUCCESS, ""};   // all registers restored in template
+    return {E_UNSUPPORTED_ARCH, ""};
 }
 
 template <typename T> std::string genSetRegister(MCRegister Reg, T Value) {
@@ -510,7 +494,7 @@ template <typename T> std::string genSetRegister(MCRegister Reg, T Value) {
     }
     std::string result;
     llvm::raw_string_ostream os(result);
-    for (RegInitTemplate regTemplate : getTemplate(getEnv().Arch).regInitTemplates) {
+    for (RegInitTemplate regTemplate : getTemplate().regInitTemplates) {
         MCRegisterClass movClass = getEnv().MRI->getRegClass(regTemplate.targetRegisterClassID);
         if (!getEnv().regInRegClass(Reg, movClass)) {
             // this can not be used by the template directly, check if the register has any
@@ -540,7 +524,7 @@ template <typename T> std::string genSetRegister(MCRegister Reg, T Value) {
 std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitValue) {
     // override some register types
     std::map<unsigned, std::variant<uint32_t, uint64_t, float, double>> regInitMap;
-    if (getEnv().Arch == Triple::ArchType::x86_64) {
+    if (getEnv().isX86()) {
         regInitMap = {
             {X86::VK8WMRegClassID, uint32_t{0b11111111}}, // x86 mask register
             // {X86::GR32RegClassID, float(7.0)},
@@ -597,11 +581,9 @@ ErrorCode isValid(unsigned Opcode) {
     if (desc.isMetaInstruction()) return S_IS_META_INSTRUCTION;
     if (desc.isReturn()) return S_IS_RETURN;
     if (desc.isBranch()) return S_IS_BRANCH; // TODO uops has TP, how?
-    if (!includeX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
-        desc.hasImplicitDefOfPhysReg(X86::FPSW))
+    if (!includeX87FP && getEnv().isX86() && desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_X87FP;
-    if (!includeNonX87FP && getEnv().Arch == Triple::ArchType::x86_64 &&
-        !desc.hasImplicitDefOfPhysReg(X86::FPSW))
+    if (!includeNonX87FP && getEnv().isX86() && !desc.hasImplicitDefOfPhysReg(X86::FPSW))
         return S_IS_NON_X87FP;
     for (auto op : desc.operands())
         if (op.OperandType == MCOI::OPERAND_PCREL) return S_PCREL_OPERAND;
@@ -611,9 +593,9 @@ ErrorCode isValid(unsigned Opcode) {
     // (didn't test which one)
     // in general everything modifying the stack pointer will break
     std::vector<MCRegister> registerBlacklist;
-    if (getEnv().Arch == Triple::ArchType::x86_64)
+    if (getEnv().isX86())
         registerBlacklist = {X86::RSP};
-    else if (getEnv().Arch == Triple::ArchType::aarch64)
+    else if (getEnv().isAArch64())
         registerBlacklist = {AArch64::LR};
 
     ArrayRef<MCPhysReg> defs = desc.implicit_defs();

@@ -39,7 +39,7 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
     std::vector<unsigned> aarch64MemOffsetIndices;
     std::vector<unsigned> aarch64MemOpIndices;
 
-    if (getEnv().Arch == llvm::Triple::aarch64) {
+    if (getEnv().isAArch64()) {
         unsigned aarch64MemBase = getEnv().getAArch64BaseOperandIndex(Opcode);
         unsigned aarch64MemOffset = getEnv().getAArch64OffsetOperandIndex(Opcode);
         unsigned tiedToMemBase = aarch64MemBase != NO_OP_INDEX
@@ -70,7 +70,7 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
         processedOperands.insert(i);
         auto operandInfo = operandInfos[i];
         // check if this is an Aarch64 memory operand
-        if (getEnv().Arch == llvm::Triple::aarch64 && (contains(aarch64MemOpIndices, i))) {
+        if (getEnv().isAArch64() && (contains(aarch64MemOpIndices, i))) {
             processedOperands.insert(aarch64MemOpIndices.begin(), aarch64MemOpIndices.end());
             operands.emplace_back(
                 OperandForm(currentIndex, aarch64MemOpIndices,
@@ -118,7 +118,7 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
         MCOperandInfo operandInfo = operandInfos[i];
 
         // check if this is an Aarch64 memory operand
-        if (getEnv().Arch == llvm::Triple::aarch64 && (contains(aarch64MemOpIndices, i))) {
+        if (getEnv().isAArch64() && (contains(aarch64MemOpIndices, i))) {
             processedOperands.insert(aarch64MemOpIndices.begin(), aarch64MemOpIndices.end());
             operands.emplace_back(
                 OperandForm(currentIndex, aarch64MemOpIndices,

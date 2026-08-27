@@ -45,7 +45,6 @@ class LLVMEnvironment {
     std::unique_ptr<MCInstPrinter> MIP;
 
     unsigned MaxReg;
-    Triple::ArchType Arch;
 
     /**
      * \brief Constructs a new LLVMEnvironment and initializes the LLVM context and module.
@@ -62,6 +61,21 @@ class LLVMEnvironment {
      * \return ErrorCode indicating success or failure.
      */
     ErrorCode setUp(std::string March = "", std::string Cpu = "");
+
+    /**
+     * \brief Checks the current architecture is x86
+     */
+    bool isX86();
+
+    /**
+     * \brief Checks the current architecture is AArch64
+     */
+    bool isAArch64();
+
+    /**
+     * \brief Checks the current architecture is RISCV
+     */
+    bool isRISCV();
 
     unsigned getMemoryOperandWidthUpperBound(unsigned Opcode);
 

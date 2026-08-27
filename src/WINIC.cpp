@@ -18,7 +18,6 @@
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -187,7 +186,7 @@ runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, unsigned Runs) {
         dup2(fd, STDERR_FILENO);
         std::string cpu = getEnv().Machine->getTargetCPU().data();
         std::string archOption;
-        if (getEnv().Arch == llvm::Triple::riscv64 && cpu.find("generic") != std::string::npos) {
+        if (getEnv().isRISCV() && cpu.find("generic") != std::string::npos) {
             // generic riscv64 will fail to assemble benchmarks, use very
             // permissive -march flag as workaround
             cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
@@ -278,7 +277,7 @@ measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsig
     std::string oPath = "/dev/shm/temp.so";
     std::string cpu = getEnv().Machine->getTargetCPU().data();
     std::string archOption;
-    if (getEnv().Arch == llvm::Triple::riscv64 && cpu.find("generic") != std::string::npos) {
+    if (getEnv().isRISCV() && cpu.find("generic") != std::string::npos) {
         // generic riscv64 will fail to assemble benchmarks, use very
         // permissive -march flag as workaround
         cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
@@ -1320,7 +1319,7 @@ int run(int Argc, char **Argv) {
     std::set<std::string> skipInstructions;
     std::unordered_set<unsigned> opcodeBlacklist;
 
-    if (getEnv().Arch == Triple::ArchType::x86_64) {
+    if (getEnv().isX86()) {
         // those each take > 300 cycles on Zen4, together doubling the runtime
         skipInstructions = {"SYSCALL", "CPUID",   "RDSEED16r", "RDSEED32r", "RDSEED64r",
                             "RDTSC",   "SLDT16r", "SLDT32r",   "SLDT64r",   "SMSW16r",
@@ -1396,7 +1395,7 @@ int run(int Argc, char **Argv) {
 
         if (*tp) {
             out(*ios, "Mode: Throughput");
-            if (getEnv().Arch == Triple::ArchType::x86_64) {
+            if (getEnv().isX86()) {
                 // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for
                 // interleaving with other instructions
                 unsigned opcodeTest = getEnv().getOpcode("TEST64rr");

@@ -1,6 +1,7 @@
 #include "Templates.h"
-#include "Globals.h"
 
+#include "Globals.h"
+#include "LLVMEnvironment.h"
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
@@ -453,23 +454,13 @@ done_functionName:
     RISCV::X9,
     "auipc x9, %pcrel_hi(buffer)\t    addi  x9, x9, %pcrel_lo(buffer)"}; // TODO test
 
-Template getTemplate(llvm::Triple::ArchType Arch) {
-    switch (Arch) {
-    case llvm::Triple::x86_64: {
-        return X86Template;
-    }
-    case llvm::Triple::aarch64: {
-        return AArch64Template;
-    }
-    case llvm::Triple::riscv64: {
-        return RISCVTemplate;
-    }
-    default:
-        std::cerr << "Tried to get a template for an unsupported arch: "
-                  << llvm::Triple::getArchTypeName(Arch).str() << " archNumber: " << Arch
-                  << " this should not happen" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+Template getTemplate() {
+    if (getEnv().isX86()) return X86Template;
+    if (getEnv().isAArch64()) return AArch64Template;
+    if (getEnv().isRISCV()) return RISCVTemplate;
+    std::cerr << "Tried to get a template for an unsupported arch, this should not happen"
+              << std::endl;
+    exit(EXIT_FAILURE);
 }
 
 } // namespace winic

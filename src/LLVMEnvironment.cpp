@@ -121,14 +121,25 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     //                                        *>(Machine.get()), stimpl, functionNum, *MMI.get());
     TRI = MF->getSubtarget().getRegisterInfo();
     MaxReg = TRI->getNumSupportedRegs(*MF);
-    Arch = MSTI->getTargetTriple().getArch(); // for convenience
     return SUCCESS;
+}
+
+bool LLVMEnvironment::isX86() {
+    return MSTI->getTargetTriple().getArch() == Triple::ArchType::x86_64;
+}
+
+bool LLVMEnvironment::isAArch64() {
+    return MSTI->getTargetTriple().getArch() == Triple::ArchType::aarch64;
+}
+
+bool LLVMEnvironment::isRISCV() {
+    return MSTI->getTargetTriple().getArch() == Triple::ArchType::riscv64;
 }
 
 unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
 
-    if (getEnv().Arch == llvm::Triple::aarch64) {
+    if (getEnv().isAArch64()) {
         // check if the target specific helpers can provide an exact width
         TypeSize scale(0U, false), width(0U, false);
         int64_t minOffset, maxOffset;
@@ -261,7 +272,7 @@ unsigned LLVMEnvironment::getTiedToOperand(MCOperandInfo OpInfo) {
 }
 
 unsigned LLVMEnvironment::getAArch64OffsetOperandIndex(unsigned Opcode) {
-    if (getEnv().Arch != llvm::Triple::aarch64) return NO_OP_INDEX;
+    if (getEnv().isAArch64()) return NO_OP_INDEX;
     // verify this is a memory instruction as llvm does in AArch64InstrInfo::verifyInstruction
     TypeSize scale(0U, false), width(0U, false);
     int64_t minOffset, maxOffset;
@@ -274,7 +285,7 @@ unsigned LLVMEnvironment::getAArch64OffsetOperandIndex(unsigned Opcode) {
 }
 
 unsigned LLVMEnvironment::getAArch64BaseOperandIndex(unsigned Opcode) {
-    if (getEnv().Arch != llvm::Triple::aarch64) return NO_OP_INDEX;
+    if (getEnv().isAArch64()) return NO_OP_INDEX;
     TypeSize scale(0U, false), width(0U, false);
     int64_t minOffset, maxOffset;
     if (!AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset))

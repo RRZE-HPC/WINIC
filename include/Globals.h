@@ -258,7 +258,7 @@ class OperandForm {
     void setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement) {
         assert(isMemory());
         initMCInst(Inst);
-        if (getEnv().Arch == llvm::Triple::x86_64) {
+        if (getEnv().isX86()) {
             X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
 
             for (unsigned index : memOp->baseIndices)
@@ -271,14 +271,14 @@ class OperandForm {
                 Inst->getOperand(index) = MCOperand::createImm(Displacement);
             for (unsigned index : memOp->segmentIndices)
                 Inst->getOperand(index) = MCOperand::createReg(0);
-        } else if (getEnv().Arch == llvm::Triple::aarch64) {
+        } else if (getEnv().isAArch64()) {
             AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
 
             for (unsigned index : memOp->baseIndices)
                 Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
             for (unsigned index : memOp->offsetIndices)
                 Inst->getOperand(index) = MCOperand::createImm(Displacement);
-        } else if (getEnv().Arch == llvm::Triple::riscv64) {
+        } else if (getEnv().isRISCV()) {
             out(std::cerr, "RISCV memory not implemented yet");
         }
     }
@@ -288,16 +288,16 @@ class OperandForm {
      */
     unsigned getMemoryOperandOffset(MCInst Inst) {
         assert(isMemory());
-        if (getEnv().Arch == llvm::Triple::x86_64) {
+        if (getEnv().isX86()) {
             X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
             return Inst.getOperand(memOp->offsetIndices[0]).getImm();
         }
-        if (getEnv().Arch == llvm::Triple::aarch64) {
+        if (getEnv().isAArch64()) {
             AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
             // dbg(__func__, memOp->offsetIndices);
             return Inst.getOperand(memOp->offsetIndices[0]).getImm();
         }
-        if (getEnv().Arch == llvm::Triple::riscv64) {
+        if (getEnv().isRISCV()) {
             out(std::cerr, "RISCV memory not implemented yet");
         }
         return NO_OP_INDEX;

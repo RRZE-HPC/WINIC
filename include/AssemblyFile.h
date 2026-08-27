@@ -2,7 +2,6 @@
 #define ASSEMBLY_FILE_H
 
 #include "ErrorCode.h"
-#include "llvm/TargetParser/Triple.h"
 #include <set>
 #include <string>
 
@@ -48,11 +47,7 @@ class AssemblyFile {
   public:
     AssemblyFile() = default;
 
-    AssemblyFile(llvm::Triple::ArchType Arch) { this->arch = Arch; }
-
     ~AssemblyFile() = default;
-
-    void setArch(llvm::Triple::ArchType Arch) { this->arch = Arch; }
 
     /**
      * \brief Adds an initialization function to the assembly file.
@@ -107,7 +102,6 @@ class AssemblyFile {
     std::string generateAssembly();
 
   private:
-    llvm::Triple::ArchType arch;
     std::string name;
     std::set<BenchFunction> benchFunctions;
     std::set<InitFunction> initFunctions;

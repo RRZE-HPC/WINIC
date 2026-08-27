@@ -101,13 +101,9 @@ unsigned AssemblyFile::getNumInstFor(std::string BenchName) {
  * @return std::string Assembly code as a string.
  */
 std::string AssemblyFile::generateAssembly() {
-    if (arch == 0) {
-        std::cerr << "called generateAssembly on uninitialized AssemblyFile" << std::endl;
-        return "";
-    }
     std::string result;
     llvm::raw_string_ostream rso(result);
-    Template benchTemplate = getTemplate(arch);
+    Template benchTemplate = getTemplate();
     rso << benchTemplate.prefix;
     for (BenchFunction function : benchFunctions)
         rso << generateBenchFunction(function) << "\n";
@@ -120,7 +116,7 @@ std::string AssemblyFile::generateAssembly() {
 std::string AssemblyFile::generateBenchFunction(BenchFunction Function) {
     std::string result;
     llvm::raw_string_ostream rso(result);
-    Template benchTemplate = getTemplate(arch);
+    Template benchTemplate = getTemplate();
     rso << replaceFunctionName(benchTemplate.preLoop, Function.name);
     rso << indentBlock(Function.preLoopCode, 2);
     rso << replaceFunctionName(benchTemplate.beginLoop, Function.name);
@@ -134,7 +130,7 @@ std::string AssemblyFile::generateBenchFunction(BenchFunction Function) {
 std::string AssemblyFile::generateInitFunction(InitFunction Function) {
     std::string result;
     llvm::raw_string_ostream rso(result);
-    Template benchTemplate = getTemplate(arch);
+    Template benchTemplate = getTemplate();
     rso << replaceFunctionName(benchTemplate.preInit, Function.name);
     rso << indentBlock(Function.initCode, 2);
     rso << replaceFunctionName(benchTemplate.postInit, Function.name);

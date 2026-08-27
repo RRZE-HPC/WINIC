@@ -47,7 +47,7 @@ extern Template X86Template;
 extern Template AArch64Template;
 extern Template RISCVTemplate;
 
-Template getTemplate(llvm::Triple::ArchType Arch);
+Template getTemplate();
 
 } // namespace winic
 
