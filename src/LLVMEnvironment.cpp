@@ -52,7 +52,6 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
 
     if (Cpu.empty()) Cpu = llvm::sys::getHostCPUName().str();
     if (Cpu.empty()) return E_CPU_DETECT;
-    std::cout << "detected " << targetTripleStr << ", CPU: " << Cpu << std::endl;
     if (Cpu.find("generic") != std::string::npos)
         std::cout << "Generic CPU detected, this may lead suboptimal results. Use --cpu to "
                      "specify a CPU."
@@ -74,11 +73,11 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
         LLVMInitializeRISCVTargetMC();
         LLVMInitializeRISCVAsmPrinter();
     } else {
-        if (TargetTriple.getArch() != llvm::Triple::UnknownArch)
-            std::cerr << "unsupported architecture: " << TargetTriple.getArchName().str()
-                      << std::endl;
+        out(std::cerr, "unsupported architecture: ", TargetTriple.getArchName().str(),
+            " choose from: x86_64, aarch64, riscv64");
         return E_UNSUPPORTED_ARCH;
     }
+    out(std::cout, "detected ", targetTripleStr, ", CPU: ", Cpu);
     // partially copied from InstrRefLDVTest.cpp InstrRefLDVTest.cpp
     // Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"
     //                    "f80:128-n8:16:32:64-S128");
