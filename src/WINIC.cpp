@@ -1108,7 +1108,10 @@ void printInstructionInfo(unsigned Opcode, bool Internal) {
         };
         res = str(getEnv().MCII->getName(Opcode), " [ ");
         for (auto opInfo : desc.operands()) {
-            res = str(res, opTypeMap[opInfo.OperandType], " ");
+            if (opTypeMap.find(opInfo.OperandType) == opTypeMap.end())
+                res = str(res, int(opInfo.OperandType), " ");
+            else
+                res = str(res, opTypeMap[opInfo.OperandType], " ");
         }
         out(std::cout, res, "] {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
             ", mayStore:", desc.mayStore(), "}");
