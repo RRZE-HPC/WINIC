@@ -268,8 +268,9 @@ void buildLatDatabase(long RegInitValue, long Immediate);
  * \brief Prints a line with name, opcode, operands and some flags for an instruction.
  *
  * \param Opcode Opcode of the instruction.
+ * \param Internal Print LLVM internal info without WINIC abstraction.
  */
-void printInstructionInfo(unsigned Opcode);
+void printInstructionInfo(unsigned Opcode, bool Internal);
 
 /**
  * \brief Main entry point for the WINIC program.

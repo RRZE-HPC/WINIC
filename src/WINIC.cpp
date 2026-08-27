@@ -1079,16 +1079,45 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     }
 }
 
-void printInstructionInfo(unsigned Opcode) {
+void printInstructionInfo(unsigned Opcode, bool Internal) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
     if (desc.isPseudo()) {
         out(std::cout, getEnv().MCII->getName(Opcode), ": pseudo instruction {opcode: ", Opcode,
             "}");
         return;
     }
-    InstructionForm instructionForm = InstructionForm(Opcode);
-    out(std::cout, instructionForm, " {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
-        ", mayStore:", desc.mayStore(), "}");
+    if (Internal) {
+        std::string res;
+        std::map<unsigned, std::string> opTypeMap = {
+            {MCOI::OPERAND_UNKNOWN, "OPERAND_UNKNOWN"},
+            {MCOI::OPERAND_IMMEDIATE, "OPERAND_IMMEDIATE"},
+            {MCOI::OPERAND_REGISTER, "OPERAND_REGISTER"},
+            {MCOI::OPERAND_MEMORY, "OPERAND_MEMORY"},
+            {MCOI::OPERAND_PCREL, "OPERAND_PCREL"},
+            {MCOI::OPERAND_FIRST_GENERIC, "OPERAND_FIRST_GENERIC"},
+            {MCOI::OPERAND_GENERIC_0, "OPERAND_GENERIC_0"},
+            {MCOI::OPERAND_GENERIC_1, "OPERAND_GENERIC_1"},
+            {MCOI::OPERAND_GENERIC_2, "OPERAND_GENERIC_2"},
+            {MCOI::OPERAND_GENERIC_3, "OPERAND_GENERIC_3"},
+            {MCOI::OPERAND_GENERIC_4, "OPERAND_GENERIC_4"},
+            {MCOI::OPERAND_GENERIC_5, "OPERAND_GENERIC_5"},
+            {MCOI::OPERAND_LAST_GENERIC, "OPERAND_LAST_GENERIC"},
+            {MCOI::OPERAND_FIRST_GENERIC_IMM, "OPERAND_FIRST_GENERIC_IMM"},
+            {MCOI::OPERAND_GENERIC_IMM_0, "OPERAND_GENERIC_IMM_0"},
+            {MCOI::OPERAND_LAST_GENERIC_IMM, "OPERAND_LAST_GENERIC_IMM"},
+            {MCOI::OPERAND_FIRST_TARGET, "OPERAND_FIRST_TARGET"},
+        };
+        res = str(getEnv().MCII->getName(Opcode), " [ ");
+        for (auto opInfo : desc.operands()) {
+            res = str(res, opTypeMap[opInfo.OperandType], " ");
+        }
+        out(std::cout, res, "] {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
+            ", mayStore:", desc.mayStore(), "}");
+    } else {
+        InstructionForm instructionForm = InstructionForm(Opcode);
+        out(std::cout, instructionForm, " {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
+            ", mayStore:", desc.mayStore(), "}");
+    }
 }
 
 int run(int Argc, char **Argv) {
@@ -1204,8 +1233,10 @@ int run(int Argc, char **Argv) {
     lat->add_option("--min-opcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
     lat->add_option("--max-opcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
 
+    bool internal = false;
     auto *info = app.add_subcommand("INFO", "Latency");
     info->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    info->add_flag("--internal", internal, "Print LLVM internal info without WINIC abstraction");
 
     std::string sPath, funcName, initName = "";
     unsigned numInst;
@@ -1393,7 +1424,7 @@ int run(int Argc, char **Argv) {
             buildLatDatabase(regInitValue, immValue);
         } else if (*info) {
             for (unsigned opcode : opcodes)
-                printInstructionInfo(opcode);
+                printInstructionInfo(opcode, internal);
         }
 
         // write results to console
