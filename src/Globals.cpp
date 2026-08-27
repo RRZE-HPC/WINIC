@@ -132,7 +132,8 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
             // x86 memory operand, collect all operands that make up this memory operand
             std::vector<unsigned> indices;
             for (int j = 0; j < 5; j++) {
-                if (operandInfos[i + j].OperandType != MCOI::OPERAND_MEMORY)
+                if (operandInfos.size() < i + j + 1 ||
+                    operandInfos[i + j].OperandType != MCOI::OPERAND_MEMORY)
                     return; // TODO how to handle
                 indices.emplace_back(i + j);
                 processedOperands.insert(i + j);
