@@ -348,6 +348,9 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
         if (op.isImmediate()) {
             op.setImmediateOperand(&inst, Immediate);
         }
+        if (op.isTargetSpecific()) {
+            op.setTargetSpecificOperand(&inst, Immediate);
+        }
         if (op.isRegClass()) {
             bool foundRegister = false;
             const MCRegisterClass &regClass = getEnv().MRI->getRegClass(op.getRegClassID());

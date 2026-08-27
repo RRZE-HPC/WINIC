@@ -115,6 +115,8 @@ class AArch64MemoryOperand : public MemoryOperand {
     AArch64MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
         : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {}
 
+    // indices in the MCInst that have to be set to the base register. There might be more than one
+    // as MCInst duplicates operands when they are both defs and uses (see DEV.md)
     std::vector<unsigned> baseIndices;
     std::vector<unsigned> offsetIndices;
 };
@@ -136,11 +138,31 @@ class X86MemoryOperand : public MemoryOperand {
 
 class RISCVMemoryOperand : public MemoryOperand {
   public:
-    // TODO
+    RISCVMemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
+        : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {}
+
+    std::vector<unsigned> baseIndices;
+    std::vector<unsigned> offsetIndices;
 };
 
-using OperandKind = std::variant<RegisterClassOperand, RegisterOperand, X86MemoryOperand,
-                                 AArch64MemoryOperand, RISCVMemoryOperand, ImmediateOperand>;
+class TargetSpecificOperand {
+    uint8_t type;
+
+  public:
+    TargetSpecificOperand(uint8_t Type) : type(Type) {};
+
+    std::string toCompactString() const { return "Spec"; }
+
+    std::string toFilenameString() const { return "Spec"; }
+
+    uint8_t getType() const { return type; }
+
+    bool operator==(const TargetSpecificOperand &Other) const { return type == Other.type; }
+};
+
+using OperandKind =
+    std::variant<RegisterClassOperand, RegisterOperand, X86MemoryOperand, AArch64MemoryOperand,
+                 RISCVMemoryOperand, ImmediateOperand, TargetSpecificOperand>;
 
 inline bool operator==(const OperandKind &Lhs, OperandKind &Rhs) {
     return std::visit(
@@ -216,10 +238,16 @@ class OperandForm {
 
     bool isImmediate() const { return std::holds_alternative<ImmediateOperand>(kind); }
 
+    bool isTargetSpecific() const { return std::holds_alternative<TargetSpecificOperand>(kind); }
+
     MCRegister getRegister() const { return std::get_if<RegisterOperand>(&kind)->getRegister(); }
 
     unsigned getRegClassID() const {
         return std::get_if<RegisterClassOperand>(&kind)->getRegClassID();
+    }
+
+    MCRegister getTargetSpecificType() const {
+        return std::get_if<TargetSpecificOperand>(&kind)->getType();
     }
 
     unsigned getIndex() const { return index; }
@@ -281,6 +309,27 @@ class OperandForm {
         } else if (getEnv().isRISCV()) {
             out(std::cerr, "RISCV memory not implemented yet");
         }
+    }
+
+    void setTargetSpecificOperand(MCInst *Inst, unsigned Imm) {
+        assert(isTargetSpecific());
+        initMCInst(Inst);
+        // TODO for more consistent generation, we could handle all target specific operand types
+        // e.g. like this:
+        /*
+        if (getEnv().isRISCV()) {
+            // this map selects a value for each possible operand type to be used
+            // allowed values are inferred from RISCVInstrInfo::verifyInstruction()
+            std::map<unsigned, long> valueMap = {
+                {RISCVOp::OPERAND_THREE, 3},
+                {RISCVOp::OPERAND_FOUR, 4},
+            };
+            ...
+        }
+        */
+        // however, i dont have time for this so for now we just attempt to plug in immediates
+        for (auto mcInd : mcIndices)
+            Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
     }
 
     /**
