@@ -53,6 +53,9 @@ std::string ecToString(ErrorCode EC);
 // returns true if EC is SUCCESS, a warning or the default EC
 bool isError(ErrorCode EC);
 
+// returns true if the benchmark was generated and executed without failing
+bool wasExecuted(ErrorCode EC);
+
 // returns true a measurement with this EC has a value
 bool hasResultWith(ErrorCode EC);
 

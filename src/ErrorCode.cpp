@@ -95,6 +95,10 @@ bool isError(ErrorCode EC) {
            EC != S_RUNTIME_LIMIT;
 }
 
+bool wasExecuted(ErrorCode EC) {
+    return EC == SUCCESS || EC == E_UNROLL_ANOMALY || EC == E_UNUSUAL_LATENCY;
+}
+
 bool hasResultWith(ErrorCode EC) {
     return EC == SUCCESS || EC == W_MULTIPLE_DEPENDENCIES || EC == NO_ERROR_CODE;
 }
