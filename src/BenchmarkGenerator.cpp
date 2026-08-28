@@ -133,13 +133,14 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
         }
     }
 
-    std::string loopCode;
     // if this benchmark accesses memory, set the memory base register to the buffer address each
     // iteration so loads/stores with auto-increment don't segfault
+    std::string setMemCode = "";
     for (auto m : Measurements)
         if (getEnv().mayAccessMemory(m.opcode))
-            loopCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
+            setMemCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
 
+    std::string loopCode;
     llvm::raw_string_ostream lco(loopCode);
     for (unsigned i = 0; i < *TargetInstrCount; ++i) {
         for (auto inst : instructions) {
@@ -162,10 +163,10 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
 
     AssemblyFile assemblyFile;
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("lat", saveRegs + regInit, loopCode, restoreRegs, "init",
-                                  *TargetInstrCount * instructions.size());
-    assemblyFile.addBenchFunction("lat2", saveRegs + regInit, loopCode + loopCode, restoreRegs,
-                                  "init", *TargetInstrCount * instructions.size() * 2);
+    assemblyFile.addBenchFunction("lat", saveRegs + regInit, setMemCode + loopCode, restoreRegs,
+                                  "init", *TargetInstrCount * instructions.size());
+    assemblyFile.addBenchFunction("lat2", saveRegs + regInit, setMemCode + loopCode + loopCode,
+                                  restoreRegs, "init", *TargetInstrCount * instructions.size() * 2);
 
     // check if each instruction of the sequence has exactly one dependency to the next one.
     // otherwise return a warning
@@ -238,12 +239,14 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
         slo << "\n";
     }
 
-    std::string loopCode;
     // if this benchmark accesses memory, set the memory base register to the buffer address each
     // iteration so loads/stores with auto-increment don't segfault
+    std::string setMemCode = "";
     if (getEnv().mayAccessMemory(Opcode) ||
         (HelperOpcode != MAX_UNSIGNED && getEnv().mayAccessMemory(HelperOpcode)))
-        loopCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
+        setMemCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
+
+    std::string loopCode;
     for (unsigned i = 0; i < UnrollCount; i++)
         loopCode.append(singleLoopCode);
 
@@ -251,10 +254,10 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
 
     AssemblyFile assemblyFile;
     assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("tp", saveRegs + regInit, loopCode, restoreRegs, "init",
-                                  instructions.size());
-    assemblyFile.addBenchFunction("tp2", saveRegs + regInit, loopCode + loopCode, restoreRegs,
-                                  "init", instructions.size() * 2);
+    assemblyFile.addBenchFunction("tp", saveRegs + regInit, setMemCode + loopCode, restoreRegs,
+                                  "init", instructions.size());
+    assemblyFile.addBenchFunction("tp2", saveRegs + regInit, setMemCode + loopCode + loopCode,
+                                  restoreRegs, "init", instructions.size() * 2);
     return {SUCCESS, assemblyFile};
 }
 
