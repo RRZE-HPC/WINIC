@@ -84,7 +84,7 @@ def _get_immidiate_width(imm: str):
     return int(matches[-1]) if matches else None
 
 
-def _identify_LLVM_operand(opName):
+def _identify_x86_LLVM_operand(opName):
     from analysis.parsing.helper import get_register_width
 
     if opName == "EFLAGS":
@@ -115,31 +115,33 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
     constraints: str = l_inst["Constraints"]
     defs = l_inst["Defs"]
     uses = l_inst["Uses"]
-    # convert operands
-    operandList: List[Operand] = []
-    index = 1
-    roundc = False
+    
+    inst = Instruction("winic", LLVMName, l_inst["AsmString"], [], [], [], {})
+    inst.metadata["roundc"] = False
 
+    # parse operands
+    index = 1
     for op in outOperandList:
         if op[1] == "MXCSR":  # uops handles this as a flag, so we dont need it
             continue
         if op[0]["def"] == "AVX512RC":  # llvm has this as operand, uops as flag
-            roundc = True
+            inst.metadata["roundc"] = True
             continue
-        type, width = _identify_LLVM_operand(op[0]["def"])
+        type, width = _identify_x86_LLVM_operand(op[0]["def"])
         if type is None:
             return None
         elif type == "imm":
             operand = Operand(index, type, width, False, True, False, [])
         else:
             operand = Operand(index, type, width, False, True, False, _expand_regs(op[0]["def"]))
-        operandList.append(operand)
+        inst.operands.append(operand)
         index += 1
+
     for op in inOperandList:
         if op[1] == "MXCSR":  # uops handles this as a flag, so we dont need it
             continue
         if op[0]["def"] == "AVX512RC":  # llvm has this as operand, uops as flag
-            roundc = True
+            inst.metadata["roundc"] = True
             continue
         # process constraints
         wasConstrained = False
@@ -157,20 +159,20 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
             defIndex = next((i + 1 for i, defOp in enumerate(outOperandList) if defOp[1] == dstOp), None)
             if defIndex is None:
                 return None
-            for operand in operandList:
+            for operand in inst.operands:
                 if operand.index == defIndex:
                     operand.read = True
                     break
         if wasConstrained:
             continue  # do not have to add operand an additional time
-        type, width = _identify_LLVM_operand(op[0]["def"])
+        type, width = _identify_x86_LLVM_operand(op[0]["def"])
         if type is None:
             return None
         elif type == "imm":
             operand = Operand(index, type, width, True, False, False, [])
         else:
             operand = Operand(index, type, width, True, False, False, _expand_regs(op[0]["def"]))
-        operandList.append(operand)
+        inst.operands.append(operand)
         index += 1
 
     # process defs and uses
@@ -178,7 +180,7 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
         opName = d["def"]
         if opName == "MXCSR":  # uops handles this as a flag, so we dont need it
             continue
-        type, width = _identify_LLVM_operand(opName)
+        type, width = _identify_x86_LLVM_operand(opName)
         if type is None:
             return None
         write = True
@@ -189,7 +191,7 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
         # TODO this is not very good yet, there are other registers that are supressed but in here
         suppressed = opName in ["EFLAGS"]
         operand = Operand(index, type, width, read, write, suppressed, regList)
-        operandList.append(operand)
+        inst.operands.append(operand)
         index += 1
     for d in uses:
         if d in defs:
@@ -197,7 +199,7 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
         opName = d["def"]
         if opName == "MXCSR":  # uops handles this as a flag, so we dont need it
             continue
-        type, width = _identify_LLVM_operand(opName)
+        type, width = _identify_x86_LLVM_operand(opName)
         if type is None:
             return None
         write = False
@@ -207,9 +209,9 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
             regList = ["EFLAGS"] if type == "flags" else []
         suppressed = opName in ["EFLAGS"]  # TODO this is not very good yet
         operand = Operand(index, type, width, read, write, suppressed, regList)
-        operandList.append(operand)
+        inst.operands.append(operand)
         index += 1
-    inst = Instruction("winic", LLVMName, l_inst["AsmString"], operandList, [], [], {}, roundc)
+    
     inst.metadata["zeroing"] = "{z}" in l_inst["AsmString"]
     # join to also find "AVX512Ii8" etc.
     inst.metadata["AVX512"] = "AVX512" in "".join(l_inst["!superclasses"]) + "".join(l_inst["!locs"])
