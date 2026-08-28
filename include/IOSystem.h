@@ -61,20 +61,6 @@ struct IOFile {
 static IOFile ioFile;
 
 /**
- * \brief Converts an LLVM-style operand number to an asm-style operand number.
- *
- * LLVM operand layout looks like this:
- *   operands: [op0: reg(w), op1: reg(r), op2: imm(r)], numDefs: 1, constraints: [op0 == op1]
- * which corresponds to asm-style operand layout:
- *   operands: [op0: reg(rw), op1: imm(r)]
- *
- * \param OpNum The LLVM operand number.
- * \param Desc The instruction descriptor.
- * \return The corresponding asm-style operand number.
- */
-unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const llvm::MCInstrDesc &Desc);
-
-/**
  * \brief Creates an IOInstruction from an opcode.
  * \param Opcode The instruction opcode.
  * \return Pair of ErrorCode and IOInstruction.

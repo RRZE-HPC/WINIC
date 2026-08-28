@@ -110,23 +110,6 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
     return SUCCESS;
 }
 
-unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc) {
-    unsigned memOpCounter = 0;
-    unsigned correctedOpNum = 0;
-    for (unsigned i = 0; i < Desc.getNumOperands(); i++) {
-        if (i == OpNum) return correctedOpNum;
-        // memory operands are split into multiple parts
-        if (Desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY && memOpCounter != 0) continue;
-        if (Desc.operands()[i].OperandType == MCOI::OPERAND_MEMORY) memOpCounter++;
-        const MCOperandInfo &opInfo = Desc.operands()[i];
-        // this operand is tied to another operand, therefore a duplicate, dont count
-        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) continue;
-
-        correctedOpNum++;
-    }
-    return correctedOpNum;
-}
-
 ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     InstructionForm instructionForm = InstructionForm(M.opcode);
 
