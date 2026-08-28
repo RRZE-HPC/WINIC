@@ -161,4 +161,86 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
     }
 }
 
+void OperandForm::setRegClassOperand(MCInst *Inst, MCRegister Reg) {
+    assert(isRegClass());
+    initMCInst(Inst);
+    for (auto mcInd : mcIndices) {
+        Inst->getOperand(mcInd) = MCOperand::createReg(Reg);
+    }
+}
+
+void OperandForm::setImmediateOperand(MCInst *Inst, unsigned Imm) {
+    assert(isImmediate());
+    initMCInst(Inst);
+    for (auto mcInd : mcIndices) {
+        Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
+    }
+}
+
+void OperandForm::setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement) {
+    assert(isMemory());
+    initMCInst(Inst);
+    if (getEnv().isX86()) {
+        X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
+
+        for (unsigned index : memOp->baseIndices)
+            Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
+        for (unsigned index : memOp->scaleIndices)
+            Inst->getOperand(index) = MCOperand::createImm(0);
+        for (unsigned index : memOp->indexIndices)
+            Inst->getOperand(index) = MCOperand::createReg(0);
+        for (unsigned index : memOp->offsetIndices)
+            Inst->getOperand(index) = MCOperand::createImm(Displacement);
+        for (unsigned index : memOp->segmentIndices)
+            Inst->getOperand(index) = MCOperand::createReg(0);
+    } else if (getEnv().isAArch64()) {
+        AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
+
+        for (unsigned index : memOp->baseIndices)
+            Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
+        for (unsigned index : memOp->offsetIndices)
+            Inst->getOperand(index) = MCOperand::createImm(Displacement);
+    } else if (getEnv().isRISCV()) {
+        out(std::cerr, "RISCV memory not implemented yet");
+    }
+}
+
+void OperandForm::setTargetSpecificOperand(MCInst *Inst, unsigned Imm) {
+    assert(isTargetSpecific());
+    initMCInst(Inst);
+    // TODO for more consistent generation, we could handle all target specific operand types
+    // e.g. like this:
+    /*
+    if (getEnv().isRISCV()) {
+        // this map selects a value for each possible operand type to be used
+        // allowed values are inferred from RISCVInstrInfo::verifyInstruction()
+        std::map<unsigned, long> valueMap = {
+            {RISCVOp::OPERAND_THREE, 3},
+            {RISCVOp::OPERAND_FOUR, 4},
+        };
+        ...
+    }
+    */
+    // however, i dont have time for this so for now we just attempt to plug in immediates
+    for (auto mcInd : mcIndices)
+        Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
+}
+
+unsigned OperandForm::getMemoryOperandOffset(MCInst Inst) {
+    assert(isMemory());
+    if (getEnv().isX86()) {
+        X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
+        return Inst.getOperand(memOp->offsetIndices[0]).getImm();
+    }
+    if (getEnv().isAArch64()) {
+        AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
+        // dbg(__func__, memOp->offsetIndices);
+        return Inst.getOperand(memOp->offsetIndices[0]).getImm();
+    }
+    if (getEnv().isRISCV()) {
+        out(std::cerr, "RISCV memory not implemented yet");
+    }
+    return NO_OP_INDEX;
+}
+
 } // namespace winic

@@ -258,13 +258,22 @@ class OperandForm {
 
     bool operator==(const OperandForm &Other) const { return kind == Other.kind; }
 
-    void setRegClassOperand(MCInst *Inst, MCRegister Reg) {
-        assert(isRegClass());
-        initMCInst(Inst);
-        for (auto mcInd : mcIndices) {
-            Inst->getOperand(mcInd) = MCOperand::createReg(Reg);
-        }
-    }
+    // --- helpers for setting MCInst operands ---
+
+    void setRegClassOperand(MCInst *Inst, MCRegister Reg);
+
+    void setImmediateOperand(MCInst *Inst, unsigned Imm);
+
+    void setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement);
+
+    void setTargetSpecificOperand(MCInst *Inst, unsigned Imm);
+
+    // --- helpers for getting MCInst operands ---
+
+    /**
+     * \brief For a given MCInst, get the offset immediate of the memory access if present.
+     */
+    unsigned getMemoryOperandOffset(MCInst Inst);
 
     /**
      * \brief For a given MCInst, get the register that is used for this operand.
@@ -273,83 +282,6 @@ class OperandForm {
     MCRegister getReg(MCInst *Inst) {
         assert(isRegClass());
         return Inst->getOperand(mcIndices[0]).getReg();
-    }
-
-    void setImmediateOperand(MCInst *Inst, unsigned Imm) {
-        assert(isImmediate());
-        initMCInst(Inst);
-        for (auto mcInd : mcIndices) {
-            Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
-        }
-    }
-
-    void setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement) {
-        assert(isMemory());
-        initMCInst(Inst);
-        if (getEnv().isX86()) {
-            X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
-
-            for (unsigned index : memOp->baseIndices)
-                Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
-            for (unsigned index : memOp->scaleIndices)
-                Inst->getOperand(index) = MCOperand::createImm(0);
-            for (unsigned index : memOp->indexIndices)
-                Inst->getOperand(index) = MCOperand::createReg(0);
-            for (unsigned index : memOp->offsetIndices)
-                Inst->getOperand(index) = MCOperand::createImm(Displacement);
-            for (unsigned index : memOp->segmentIndices)
-                Inst->getOperand(index) = MCOperand::createReg(0);
-        } else if (getEnv().isAArch64()) {
-            AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
-
-            for (unsigned index : memOp->baseIndices)
-                Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
-            for (unsigned index : memOp->offsetIndices)
-                Inst->getOperand(index) = MCOperand::createImm(Displacement);
-        } else if (getEnv().isRISCV()) {
-            out(std::cerr, "RISCV memory not implemented yet");
-        }
-    }
-
-    void setTargetSpecificOperand(MCInst *Inst, unsigned Imm) {
-        assert(isTargetSpecific());
-        initMCInst(Inst);
-        // TODO for more consistent generation, we could handle all target specific operand types
-        // e.g. like this:
-        /*
-        if (getEnv().isRISCV()) {
-            // this map selects a value for each possible operand type to be used
-            // allowed values are inferred from RISCVInstrInfo::verifyInstruction()
-            std::map<unsigned, long> valueMap = {
-                {RISCVOp::OPERAND_THREE, 3},
-                {RISCVOp::OPERAND_FOUR, 4},
-            };
-            ...
-        }
-        */
-        // however, i dont have time for this so for now we just attempt to plug in immediates
-        for (auto mcInd : mcIndices)
-            Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
-    }
-
-    /**
-     * \brief For a given MCInst, get the offset immediate of the memory access if present.
-     */
-    unsigned getMemoryOperandOffset(MCInst Inst) {
-        assert(isMemory());
-        if (getEnv().isX86()) {
-            X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
-            return Inst.getOperand(memOp->offsetIndices[0]).getImm();
-        }
-        if (getEnv().isAArch64()) {
-            AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
-            // dbg(__func__, memOp->offsetIndices);
-            return Inst.getOperand(memOp->offsetIndices[0]).getImm();
-        }
-        if (getEnv().isRISCV()) {
-            out(std::cerr, "RISCV memory not implemented yet");
-        }
-        return NO_OP_INDEX;
     }
 };
 
