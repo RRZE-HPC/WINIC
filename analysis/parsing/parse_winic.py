@@ -16,6 +16,7 @@ def parse_WINIC_instruction(dbEntry, arch: Literal["X86", "AArch64"]) -> Instruc
     if instruction is None:
         return None
 
+    instruction.asmName = dbEntry["name"].split()[0]  # overwrite complex LLVM asmString with WINIC asm name
     instruction.throughputs.append(Throughput(dbEntry.get("throughputMin", None), dbEntry.get("throughputMax", None)))
     operand_latencies = dbEntry.get("operandLatencies", {})
     for lat in operand_latencies:
@@ -47,6 +48,7 @@ def parse_WINIC_instruction(dbEntry, arch: Literal["X86", "AArch64"]) -> Instruc
             pprint(dbEntry, compact=True)
             exit(1)
     return instruction
+
 
 def read_WINIC_db(path: str):
     with open(path, "r") as file:

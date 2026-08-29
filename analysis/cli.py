@@ -187,8 +187,8 @@ def main():
                 from analysis.comparison.compare_osaca import compare_winic_osaca
                 compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.verbose)
             elif args.compare_source == "uops":
-                from analysis.comparison.compare_uops import compare
-                compare(args.db, args.mode, args.arch, args.verbose)
+                from analysis.comparison.compare_uops import compare_winic_uops
+                compare_winic_uops(args.db, args.mode, args.arch, args.verbose)
                     # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
             plot(None, None, args.path, args.mode)

@@ -214,7 +214,7 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
     
     inst.metadata["zeroing"] = "{z}" in l_inst["AsmString"]
     # join to also find "AVX512Ii8" etc.
-    inst.metadata["AVX512"] = "AVX512" in "".join(l_inst["!superclasses"]) + "".join(l_inst["!locs"])
+    inst.metadata["avx512"] = "AVX512" in "".join(l_inst["!superclasses"]) + "".join(l_inst["!locs"])
     return inst
 
 

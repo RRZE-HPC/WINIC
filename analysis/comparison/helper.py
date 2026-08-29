@@ -224,7 +224,7 @@ def compare_lists(
         foundCandidates = False
         name = _normalize_name(w_inst.asmName)
         if name not in o_inst_map.keys():
-            print(f"{'{'}no_candidates_for: {w_inst}{'}'}")
+            print(f"{'{'}no_name_candidates_for: {w_inst}{'}'}")
             continue
 
         o_candidates: List[Instruction] = o_inst_map[name]
@@ -237,6 +237,21 @@ def compare_lists(
             print([c for c in o_candidates])
         scored_candidates = [[], [], [], [], [], [], []]  # candidates scored by value 1-5 higher is better
         for c in o_candidates:
+            # ignore candidate if instruction metadata does not match
+            metadata_mismatch = False
+            for m in w_inst.metadata.keys() | c.metadata.keys():
+                if m not in w_inst.metadata.keys() or m not in c.metadata.keys():
+                    # metadata missing -> do not invalidating match
+                    continue
+                val1 = w_inst.metadata[m]
+                val2 = c.metadata[m]
+                if val1 != val2:
+                    # direct metadata mismatch -> ignore candidate
+                    metadata_mismatch = True
+                    break
+            if metadata_mismatch:
+                continue
+
             sim_score = operand_similarity(w_inst.operands, c.operands, debug)
             if sim_score != 0:
                 scored_candidates[sim_score].append(c)
@@ -404,7 +419,7 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
                 found_non_matching_val = True
         # this range should not cause a partial match so we replace it with its start and end point
         to_replace.append(o_value)
-        
+
     for v in to_replace:
         values_to_check_o.remove(v)
         # we just use TPs here as it doesn't matter in later code (which yes, is ugly)

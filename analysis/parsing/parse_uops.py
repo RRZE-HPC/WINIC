@@ -65,16 +65,22 @@ def _parse_uops_instruction(entry: ET.Element, arch: str):
     operands = [_parse_uops_operand(op) for op in u_operands]
     if None in operands:
         return None  # cannot parse all operands
-    latencies = [_parse_uops_latency(lat) for lat in u_lat]
+    latencies = [x for x in [_parse_uops_latency(lat) for lat in u_lat] if x is not None]
     try:
         throughput = float(u_m.attrib["TP_loop"])
-        uopsAsm = entry.attrib["asm"]
+        uops_asm = entry.attrib["asm"]
+        # there are things like {load} CMP in uops, remove those
+        start, end = uops_asm.find("{"), uops_asm.find("}")
+        uops_asm = uops_asm.removeprefix(uops_asm[start : end + 1]).strip()
     except KeyError:
         return None
     uopsName = entry.attrib["string"] if "string" in entry.attrib else ""
-    roundc = bool(int(entry.attrib["roundc"])) if "roundc" in entry.attrib else False
-
-    return Instruction("uops", uopsName, uopsAsm, operands, [Throughput(throughput, throughput)], latencies, roundc)
+    inst = Instruction("uops", uopsName, uops_asm, operands, [Throughput(throughput, throughput)], latencies)
+    inst.metadata["roundc"] = bool(int(entry.attrib["roundc"])) if "roundc" in entry.attrib else False
+    inst.metadata["zeroing"] = bool(int(entry.attrib["zeroing"])) if "zeroing" in entry.attrib else False
+    inst.metadata["evex"] = bool(int(entry.attrib["evex"])) if "evex" in entry.attrib else False
+    inst.metadata["avx512"] = "AVX512" in entry.attrib["extension"] if "extension" in entry.attrib else False
+    return inst
 
 
 def parse_uops_database(arch: str) -> List[Instruction]:

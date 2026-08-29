@@ -161,7 +161,7 @@ def parse_zen4_sheet() -> List[Instruction]:
                             inst.throughputs.extend(get_tp(row[11]))
                             # add metadata
                             inst.metadata["zeroing"] = optionalOp5 is not None and "{z}" in optionalOp5
-                            inst.metadata["AVX512"] = row[7] == "AVX512"
+                            inst.metadata["avx512"] = row[7] == "AVX512"
                             instructions.append(inst)
 
     return instructions
