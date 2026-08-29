@@ -1,6 +1,7 @@
 import copy
 import itertools
 from analysis.globals import *
+import analysis.globals as globals
 from dataclasses import dataclass
 
 
@@ -236,7 +237,7 @@ def compare_lists(
 
         o_candidates: List[Instruction] = o_inst_map[name]
         foundCandidates = True
-        if w_inst.sourceName == dbg_llvm_name:
+        if w_inst.sourceName == globals.dbg_llvm_name:
             debug = True
             print("handling")
             print(_short(w_inst))

@@ -197,10 +197,10 @@ def main():
 
                 compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.verbose)
             elif args.compare_source == "uops":
-                import analysis.globals
+                import analysis.globals as globals
                 from analysis.comparison.compare_uops import compare_winic_uops
 
-                analysis.globals.dbg_llvm_name = args.instruction
+                globals.dbg_llvm_name = args.instruction
                 compare_winic_uops(args.db, args.mode, args.arch, args.verbose)
                 # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
