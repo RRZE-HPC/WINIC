@@ -5,6 +5,7 @@ import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 dbg = False
+dbg_llvm_name = ""
 
 
 def debug(msg, level=0):

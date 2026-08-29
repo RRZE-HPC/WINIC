@@ -107,6 +107,7 @@ def main():
     uops_c_parser.add_argument("db", help="Path to database YAML file")
     uops_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
     uops_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    uops_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # compare to docs
     docs_c_parser = sub_compare_parser.add_parser("docs", help="Compare to documentation")
@@ -187,6 +188,8 @@ def main():
                 from analysis.comparison.compare_osaca import compare_winic_osaca
                 compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.verbose)
             elif args.compare_source == "uops":
+                import analysis.globals
+                analysis.globals.dbg_llvm_name = args.instruction
                 from analysis.comparison.compare_uops import compare_winic_uops
                 compare_winic_uops(args.db, args.mode, args.arch, args.verbose)
                     # plot(lat_res, tp_res, args.output, args.mode)
