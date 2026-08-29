@@ -53,6 +53,12 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
                 p_strength = 0  # type mismatch, invalidate permutation
                 _dbg(f"type mismatch")
                 break
+            if len(o1.regList) == 1 and len(o2.regList) > 1 or len(o2.regList) == 1 and len(o1.regList) > 1:
+                # one operand is fixed to a single register, the other is not, invalidate permutation
+                # this makes sure e.g. ADD al, <reg> is not confused with ADD <reg> <reg>
+                p_strength = 0
+                _dbg(f"single register mismatch")
+                break
             if o1.width != o2.width:
                 if -1 not in [o1.width, o2.width]:
                     # no width match, invalidate permutation
