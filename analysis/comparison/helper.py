@@ -230,7 +230,8 @@ def compare_lists(
         foundCandidates = False
         name = _normalize_name(w_inst.asmName)
         if name not in o_inst_map.keys():
-            print(f"{'{'}no_name_candidates_for: {w_inst}{'}'}")
+            if verbose:
+                print(f"{'{'}no_name_candidates_for: {w_inst}{'}'}")
             continue
 
         o_candidates: List[Instruction] = o_inst_map[name]
@@ -272,7 +273,8 @@ def compare_lists(
             #     print(_short(w_inst))
             #     pprint(f"candidates_by_name: {[_short(c) for c in o_candidates]}")
             #     print("\n")
-            print(f"{'{'}no_candidates_for: {w_inst}{'}'}")
+            if verbose:
+                print(f"{'{'}no_candidates_for: {w_inst}{'}'}")
             continue
 
         highest_score_bin: List[Instruction] = []
