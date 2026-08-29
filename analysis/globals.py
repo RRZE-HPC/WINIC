@@ -101,7 +101,6 @@ class Instruction:
     # throughput_upper: float = 0.0
     latencies: List[Latency] = field(default_factory=list)
     metadata: dict[str, bool] = field(default_factory=dict)  # additional info like AVX zeroing
-    roundc: bool = False  # AVX512 roundc
 
 
 # returns true if the metadata of the instructions does not conflict
