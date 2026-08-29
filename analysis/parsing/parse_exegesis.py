@@ -9,7 +9,7 @@ def parse_exegesis(input_path: str) -> List[Instruction]:
 
     inputs = [yaml.safe_load(m) for m in raw_content.split("---")[1:]]
     instruction_map: dict[str, Instruction] = {}
-    
+
     print(len(inputs))
     for ex_result in inputs:
         # exegesis does measurements with interleaved loads in LAT mode, ignore those

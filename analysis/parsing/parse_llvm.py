@@ -115,7 +115,7 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
     constraints: str = l_inst["Constraints"]
     defs = l_inst["Defs"]
     uses = l_inst["Uses"]
-    
+
     inst = Instruction("winic", LLVMName, l_inst["AsmString"], [], [], [], {})
     inst.metadata["roundc"] = False
 
@@ -211,7 +211,7 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
         operand = Operand(index, type, width, read, write, suppressed, regList)
         inst.operands.append(operand)
         index += 1
-    
+
     inst.metadata["zeroing"] = "{z}" in l_inst["AsmString"]
     # join to also find "AVX512Ii8" etc.
     inst.metadata["avx512"] = "AVX512" in "".join(l_inst["!superclasses"]) + "".join(l_inst["!locs"])

@@ -81,15 +81,16 @@ class Throughput:
         self.cyclesMin = float(self.cyclesMin) if self.cyclesMin is not None else None
         self.cyclesMax = float(self.cyclesMax) if self.cyclesMax is not None else None
 
-def val_eq(val1: Latency | Throughput, val2: Latency| Throughput, tolerance: float):
-        v_tolerance = max(val1.cyclesMin, val2.cyclesMin) * tolerance
-        if abs(val1.cyclesMin - val2.cyclesMin) > v_tolerance:
-            return False
-        
-        v_tolerance = max(val1.cyclesMax, val2.cyclesMax) * tolerance
-        if abs(val1.cyclesMax - val2.cyclesMax) > v_tolerance:
-            return False
-        
+
+def val_eq(val1: Latency | Throughput, val2: Latency | Throughput, tolerance: float):
+    v_tolerance = max(val1.cyclesMin, val2.cyclesMin) * tolerance
+    if abs(val1.cyclesMin - val2.cyclesMin) > v_tolerance:
+        return False
+
+    v_tolerance = max(val1.cyclesMax, val2.cyclesMax) * tolerance
+    if abs(val1.cyclesMax - val2.cyclesMax) > v_tolerance:
+        return False
+
 
 @dataclass
 class Instruction:
@@ -111,11 +112,14 @@ def same_metadata(inst1: Instruction, inst2: Instruction):
             return False
     return len(inst1.metadata) == len(inst2.metadata)
 
+
 def has_lat(inst: Instruction) -> bool:
-    return any(v.cyclesMin is not None for v in inst.latencies )
+    return any(v.cyclesMin is not None for v in inst.latencies)
+
 
 def has_tp(inst: Instruction) -> bool:
     return any(v.cyclesMin is not None for v in inst.throughputs)
+
 
 # AI generated
 def progress_bar(current, total, bar_length=40, prefix="Progress", suffix=""):
@@ -136,6 +140,7 @@ def combine_dbs(dbs: List[List[Instruction]], mode: Literal["ReplaceNone", "Full
     def eq(v1: float, v2: float):
         v_tolerance = max(v1, v2) * 0.1
         return abs(v1 - v2) < v_tolerance
+
     print(f"combining {len(dbs)} databases")
     if len(dbs) == 1:
         return dbs[0]

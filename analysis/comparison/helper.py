@@ -248,7 +248,7 @@ def compare_lists(
             metadata_mismatch = False
             for m in w_inst.metadata.keys() | c.metadata.keys():
                 if m not in w_inst.metadata.keys() or m not in c.metadata.keys():
-                    # metadata missing -> do not invalidating match
+                    # metadata missing -> do not invalidate match
                     continue
                 val1 = w_inst.metadata[m]
                 val2 = c.metadata[m]

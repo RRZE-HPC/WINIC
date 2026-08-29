@@ -5,7 +5,7 @@ from analysis.globals import Operand
 # registers get width -1 if no value known and 0 if any value allowed (e.g. scalable)
 def get_aarch_operands(name: str, shapeHint: str = "") -> List[Operand]:
     z_v_regs = {
-        "V64": [Operand(-1, "reg", 64 ,metadata={"prefix": "v"})],
+        "V64": [Operand(-1, "reg", 64, metadata={"prefix": "v"})],
         "V128": [Operand(-1, "reg", 128, metadata={"prefix": "v"})],
         "V128_lo": [Operand(-1, "reg", 128, metadata={"prefix": "v"})],
         "ZPR8": [Operand(-1, "reg", 0, metadata={"shape": "b"})],
