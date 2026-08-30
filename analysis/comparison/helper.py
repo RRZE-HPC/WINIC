@@ -28,7 +28,7 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
     for each metric that can match between two operands the string has "0" (not matching) or a "1" (matching),
     When comparing similarity strings, a higher number of 1s wins, when tied, the first index where the two differ decides
     Metrics handled this way are:
-    [weak_width(e.g. by osaca wildcards), weak metadata, missing metadata, r/w mismatch].
+    [weak_width(e.g. by osaca wildcards), weak metadata, r/w mismatch, missing metadata].
     WARNING: O(n!) algorithm, don't use with large operand lists
     """
 
@@ -53,6 +53,7 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
         weak_width = False
         weak_metadata = False
         missing_metadata = False
+        rw_mismatch = False
 
         _dbg(f"permutation: {[_short_op(op) for op in p]}---", 1)
         # calculate match metric of permutation of op1 with op2
@@ -104,12 +105,18 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
                         break
                     _dbg(f"{val1=} != {val2=} , set {weak_metadata=}", 3)
 
+            # check read/write
+            if o1.read != o2.read or o1.write != o2.write:
+                _dbg(f"r/w mismatch {o1.read}/{o1.write} != {o2.read}/{o2.write}", 3)
+                rw_mismatch = True
+
         if invalid:
             continue
 
         match_string = ""
         match_string += "0" if weak_width else "1"
         match_string += "0" if weak_metadata else "1"
+        match_string += "0" if rw_mismatch else "1"
         match_string += "0" if missing_metadata else "1"
 
         # get the maximum over all permutations
@@ -291,8 +298,7 @@ def compare_lists(
                 scored_candidates.sort(reverse=True)
         if debug:
             print(f"{scored_candidates=}")
-            exit(0)
-        debug = False
+
         if len(scored_candidates) == 0:
             c_no_match += 1
             # if foundCandidates:
@@ -311,6 +317,8 @@ def compare_lists(
             if candidate.sim_string == best_sim_string:
                 highest_score_bin.append(candidate.inst)
 
+        if debug:
+            print(f"highest_score_bin={highest_score_bin}")
         if len(highest_score_bin) == 1:
             c_one_match += 1
         elif len(highest_score_bin) > 1:
@@ -344,6 +352,9 @@ def compare_lists(
 
         # bin with highest score has only one element, this is our match
         o_inst = highest_score_bin[0]
+        if debug:
+            print(f"selected_or_composit_candidate={o_inst}")
+            exit(0)
         # track_match(w_inst, o_inst)
         # if o_inst in o_unmatched:
         #     o_unmatched.remove(o_inst)
