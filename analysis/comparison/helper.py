@@ -9,77 +9,89 @@ def _short_op(op: Operand) -> str:
     return f"({op.type} {op.width} {op.metadata})"
 
 
-# returns a similarity score for two operands.
-# the final metric is obtained by looking at operand width and metadata
-# if width = -1 this produces a weaker match metric
-# if metadata is * this produces a weaker match metric
-# score | type | width  | metadata
-# 0     | no   | any    | any
-# 0     | any  | no     | any
-# 0     | any  | any    | no
-# 1     | yes  | weak   | weak
-# 2     | yes  | strong | missing
-# 3     | yes  | strong | missing + weak
-# 4     | yes  | weak   | weak
-# 5     | yes  | strong | weak
-# 5     | yes  | weak   | strong
-# 6     | yes  | strong | strong
-# WARNING: O(n!) algorithm, don't use with large operand lists
-def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug=False):
-    def _dbg(msg):
+def is_better_match_string(first: str, second: str) -> bool:
+    if first.count("1") > second.count("1"):
+        return True
+    if first.find("0") > second.find("0"):
+        return True
+    return False
+
+
+def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug=False) -> str:
+    """
+    Returns a similarity score for two operands.
+    this function first checks necessary criteria such as matching
+    operand number, type, direct metadata, width (if explicit in both) , single register vs class:
+    If any of those checks fail, the operand list is considered to be not matching at all.
+    Depending on the source there may be various properties missing such as r/w information or metadata,
+    for such properties this function returns a "similarity string" that has
+    for each metric that can match between two operands the string has "0" (not matching) or a "1" (matching),
+    When comparing similarity strings, a higher number of 1s wins, when tied, the first index where the two differ decides
+    Metrics handled this way are:
+    [weak_width(e.g. by osaca wildcards), weak metadata, missing metadata, r/w mismatch].
+    WARNING: O(n!) algorithm, don't use with large operand lists
+    """
+
+    def _dbg(msg, level=0):
         if debug:
-            print(msg)
+            print("\t" * level + msg)
 
     # remove implicit operands as they are not listed in the amd document
     operands1 = [o for o in operands1 if o.suppressed == False]
     operands2 = [o for o in operands2 if o.suppressed == False]
     if len(operands1) != len(operands2):
         _dbg(f"different length: {operands1}, {operands2}")
-        return 0  # not even the same number of operands
-    # _dbg(f"comparing {operands1} to {operands2}")
+        return "0"  # not even the same number of operands
 
-    # This is a very inefficient algorithm as im too stupid to write something faster but since operand lists are normally not longer than 3 its fine
+    # This is a very inefficient algorithm as im too stupid to write something faster but since operand lists are normally not longer than 4 its fine
     perm = itertools.permutations(operands1)
-    match_strength = 0
-    _dbg(f"order of op2: {operands2}")
+    best_match_string = "0"
+    _dbg(f"comparing operand lists:\n\t{operands1}\n\t{operands2}")
 
     for p in list(perm):
-        p_strength = 6
-        _dbg(f"---permutation: {[_short_op(op) for op in p]}")
+        invalid = False
+        weak_width = False
+        weak_metadata = False
+        missing_metadata = False
+
+        _dbg(f"permutation: {[_short_op(op) for op in p]}---", 1)
         # calculate match metric of permutation of op1 with op2
         for o1, o2 in zip(p, operands2):
-            _dbg(f"comparing {_short_op(o1)}, {_short_op(o2)}")
-            o_strength = 6
+            _dbg(f"comparing {_short_op(o1)}, {_short_op(o2)}", 2)
+
+            # check types
             if o1.type != o2.type:
-                p_strength = 0  # type mismatch, invalidate permutation
-                _dbg(f"type mismatch")
+                invalid = True  # type mismatch, invalidate permutation
+                _dbg(f"type mismatch, exit", 3)
                 break
+
+            # check single register
             if len(o1.regList) == 1 and len(o2.regList) > 1 or len(o2.regList) == 1 and len(o1.regList) > 1:
                 # one operand is fixed to a single register, the other is not, invalidate permutation
                 # this makes sure e.g. ADD al, <reg> is not confused with ADD <reg> <reg>
-                p_strength = 0
-                _dbg(f"single register mismatch")
+                invalid = True
+                _dbg(f"single register mismatch, exit", 3)
                 break
+
+            # check width
             if o1.width != o2.width:
                 if -1 not in [o1.width, o2.width]:
                     # no width match, invalidate permutation
-                    p_strength = 0
-                    _dbg(f"\twidth mismatch {o1.width} != {o2.width}, exit")
+                    invalid = True
+                    _dbg(f"width mismatch {o1.width} != {o2.width}, exit", 3)
                     break
-                # weak width match, reduces max strength by 1
-                o_strength -= 1
-                _dbg(f"\twidth weak match {o1.width} != {o2.width}, subtract 1")
+                # weak width match
+                weak_width = True
+                _dbg(f"width weak match {o1.width} != {o2.width}, subtract 1", 3)
             else:
-                _dbg("\twidth match")
-            _dbg(f"operand score after width check: {o_strength}")
+                weak_width = False
+
             # check metadata
-            weak_metadata = False
-            missing_metadata = False
             for m in o1.metadata.keys() | o2.metadata.keys():
                 if m not in o1.metadata.keys() or m not in o2.metadata.keys():
                     # metadata missing -> strong penalty but not invalidating match
                     missing_metadata = True
-                    _dbg(f"\tmissing metadata: {m}, i will remember this!")
+                    _dbg(f"missing metadata: {m}", 3)
                     continue
                 val1 = o1.metadata[m]
                 val2 = o2.metadata[m]
@@ -87,24 +99,25 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
                     weak_metadata = True
                     if "*" not in [val1, val2]:
                         # direct metadata mismatch -> invalidate permutation
-                        _dbg(f"\tmetadata mismatch: {val1} != {val2}, failing")
-                        p_strength = 0
+                        _dbg(f"metadata mismatch: {val1} != {val2}, exit", 3)
+                        invalid = True
                         break
-                    _dbg(f"\t{val1=} != {val2=} , set {weak_metadata=}")
-            else:  # for ... else block is executed if the for loop finished *without* early exit
-                _dbg(f"score before metadata: {o_strength}")
-                o_strength -= 1 if weak_metadata else 0
-                o_strength -= 3 if missing_metadata else 0
-                _dbg(f"score after metadata: {o_strength}")
-                # permutation gets assigned the worst operand strength
-                p_strength = min(p_strength, o_strength)
-                continue
-            break  # only reached if metadata loop was exited early -> permutation invalid
+                    _dbg(f"{val1=} != {val2=} , set {weak_metadata=}", 3)
+
+        if invalid:
+            continue
+
+        match_string = ""
+        match_string += "0" if weak_width else "1"
+        match_string += "0" if weak_metadata else "1"
+        match_string += "0" if missing_metadata else "1"
 
         # get the maximum over all permutations
-        match_strength = max(p_strength, match_strength)
-        _dbg(f"\t total: {p_strength=} new {match_strength=}\n")
-    return match_strength
+        if is_better_match_string(match_string, best_match_string):
+            best_match_string = match_string
+
+        _dbg(f"new best: {best_match_string=}\n", 1)
+    return best_match_string
 
 
 @dataclass
@@ -196,6 +209,17 @@ def _normalize_name(inst_name: str):
     return inst_name.upper().split(".")[0]
 
 
+@dataclass
+class Candidate:
+    inst: Instruction
+    sim_string: str
+
+    def __lt__(self, other):
+        if not isinstance(other, Candidate):
+            return NotImplemented
+        return is_better_match_string(other.sim_string, self.sim_string)
+
+
 # assumes o_instructions have the correct mnemonic
 # in conservative mode, if there are multiple matching instructions, the instruction will be treated as if it had no match
 # in loose mode, multiple matches are combined into one and then classified according to the usual rules
@@ -227,6 +251,7 @@ def compare_lists(
     c_one_match = 0
     counters: CompareCounters = CompareCounters()
     debug = False
+
     for w_inst in w_instructions:
         foundCandidates = False
         name = _normalize_name(w_inst.asmName)
@@ -243,16 +268,16 @@ def compare_lists(
             print(_short(w_inst))
             print("candidates:")
             print([c for c in o_candidates])
-        scored_candidates = [[], [], [], [], [], [], []]  # candidates scored by value 1-5 higher is better
+        scored_candidates: List[Candidate] = []  # candidates scored by value 1-5 higher is better
         for c in o_candidates:
             # ignore candidate if instruction metadata does not match
             metadata_mismatch = False
-            for m in w_inst.metadata.keys() | c.metadata.keys():
-                if m not in w_inst.metadata.keys() or m not in c.metadata.keys():
+            for key in w_inst.metadata.keys() | c.metadata.keys():
+                if key not in w_inst.metadata.keys() or key not in c.metadata.keys():
                     # metadata missing -> do not invalidate match
                     continue
-                val1 = w_inst.metadata[m]
-                val2 = c.metadata[m]
+                val1 = w_inst.metadata[key]
+                val2 = c.metadata[key]
                 if val1 != val2:
                     # direct metadata mismatch -> ignore candidate
                     metadata_mismatch = True
@@ -260,14 +285,15 @@ def compare_lists(
             if metadata_mismatch:
                 continue
 
-            sim_score = operand_similarity(w_inst.operands, c.operands, debug)
-            if sim_score != 0:
-                scored_candidates[sim_score].append(c)
+            sim_string = operand_similarity(w_inst.operands, c.operands, debug)
+            if sim_string != "0":
+                scored_candidates.append(Candidate(c, sim_string))
+                scored_candidates.sort(reverse=True)
         if debug:
             print(f"{scored_candidates=}")
             exit(0)
         debug = False
-        if sum(len(s) for s in scored_candidates) == 0:
+        if len(scored_candidates) == 0:
             c_no_match += 1
             # if foundCandidates:
             #     print("no matches:")
@@ -278,10 +304,13 @@ def compare_lists(
                 print(f"{'{'}no_candidates_for: {w_inst}{'}'}")
             continue
 
-        highest_score_bin: List[Instruction] = []
-        for s in scored_candidates:
-            if len(s) != 0:
-                highest_score_bin = s
+        # extract all instructions with the highest score
+        highest_score_bin: List[Instruction] = [scored_candidates[0].inst]
+        best_sim_string = scored_candidates[0].sim_string
+        for candidate in scored_candidates[1:]:
+            if candidate.sim_string == best_sim_string:
+                highest_score_bin.append(candidate.inst)
+
         if len(highest_score_bin) == 1:
             c_one_match += 1
         elif len(highest_score_bin) > 1:
