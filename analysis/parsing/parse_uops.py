@@ -42,15 +42,15 @@ def _parse_uops_latency(lat: ET.Element) -> Latency:
         targetOp = int(lat.attrib["target_op"])
         if "cycles" in lat.attrib:
             cycles = int(lat.attrib["cycles"])
-            return Latency(startOp, targetOp, cycles, cycles)
+            upper_bound = "cycles_is_upper_bound" in lat.attrib and lat.attrib["cycles_is_upper_bound"] == "1"
+            return Latency(startOp, targetOp, 0 if upper_bound else cycles, cycles)
         if "cycles_mem" in lat.attrib:
             # we only consider the memory latency and ignore the base/index registers etc.
             cycles = int(lat.attrib["cycles_mem"])
-            return Latency(startOp, targetOp, cycles, cycles)
+            upper_bound = "cycles_mem_is_upper_bound" in lat.attrib and lat.attrib["cycles_mem_is_upper_bound"] == "1"
+            return Latency(startOp, targetOp, 0 if upper_bound else cycles, cycles)
         if "min_cycles" in lat.attrib and "max_cycles" in lat.attrib:
-            cycles_min = int(lat.attrib["min_cycles"])
-            cycles_max = int(lat.attrib["max_cycles"])
-            return Latency(startOp, targetOp, cycles_min, cycles_max)
+            return Latency(startOp, targetOp, int(lat.attrib["min_cycles"]), int(lat.attrib["max_cycles"]))
 
         # uops entry has neither field "cycles" nor "cycles_mem" nor "min_cycles" and "max_cycles",
         # this happens with latency measurements with where only values for base/index registers are present
