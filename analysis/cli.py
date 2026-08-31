@@ -1,5 +1,4 @@
 import os
-from analysis.plotting import *
 from analysis.setup import *
 from analysis.statistics import *
 import argparse
@@ -204,6 +203,8 @@ def main():
                 compare_winic_uops(args.db, args.mode, args.arch, args.verbose)
                 # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
+            from analysis.plotting import plot
+
             plot(None, None, args.path, args.mode)
         case "stat":
             if args.stat_type == "ranges":
