@@ -57,6 +57,20 @@ class Operand:
             and not ((len(self.regList) != len(value.regList)) and (len(self.regList) == 1 or len(value.regList) == 1))
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"Operand("
+            f"index={self.index!r}, "
+            f"type={self.type!r}, "
+            f"width={self.width!r}, "
+            f"read={self.read!r}, "
+            f"write={self.write!r}, "
+            f"suppressed={self.suppressed!r}, "
+            f"regList=..., "
+            f"metadata={self.metadata!r}"
+            f")"
+        )
+
 
 @dataclass
 class Latency:

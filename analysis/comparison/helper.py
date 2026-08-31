@@ -46,7 +46,7 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
     # This is a very inefficient algorithm as im too stupid to write something faster but since operand lists are normally not longer than 4 its fine
     perm = itertools.permutations(operands1)
     best_match_string = "0"
-    _dbg(f"comparing operand lists:\n\t{operands1}\n\t{operands2}")
+    _dbg(f"operand lists:\n\t{operands1}\n\t{operands2}")
 
     for p in list(perm):
         invalid = False
@@ -55,7 +55,7 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
         missing_metadata = False
         rw_mismatch = False
 
-        _dbg(f"permutation: {[_short_op(op) for op in p]}---", 1)
+        _dbg(f"permutation: {[_short_op(op) for op in p]}", 1)
         # calculate match metric of permutation of op1 with op2
         for o1, o2 in zip(p, operands2):
             _dbg(f"comparing {_short_op(o1)}, {_short_op(o2)}", 2)
@@ -132,9 +132,23 @@ class CompareCounters:
     c_lat_full: int = 0  # for how many instuctions do all latency values match with the other source
     c_lat_partial: int = 0  # for how many instuctions do some latency values match with the other source
     c_lat_no: int = 0  # for how many instuctions does none of the latency values match with the other source
+    c_lat_no_data: int = 0  # the other instruction does not have a result
     c_tp_full: int = 0
     c_tp_partial: int = 0
-    c_tp_no: int = 0
+    c_tp_no_match: int = 0
+    c_tp_no_data: int = 0
+
+    def print_counters(self, mode: Literal["TP", "LAT"], total: int):
+        if mode == "LAT":
+            print(f"\tLatency Full match:        {self.c_lat_full}\t{self.c_lat_full*100/total:.2f}%")
+            print(f"\tLatency Partial match:     {self.c_lat_partial}\t{self.c_lat_partial*100/total:.2f}%")
+            print(f"\tLatency No match:          {self.c_lat_no}\t{self.c_lat_no*100/total:.2f}%")
+            print(f"\tLatency Other has no data: {self.c_lat_no_data}\n")
+        if mode == "TP":
+            print(f"\tThroughput Full match:        {self.c_tp_full}\t{self.c_tp_full*100/total:.2f}%")
+            print(f"\tThroughput Partial match:     {self.c_tp_partial}\t{self.c_tp_partial*100/total:.2f}%")
+            print(f"\tThroughput No match:          {self.c_tp_no_match}\t{self.c_tp_no_match*100/total:.2f}%")
+            print(f"\tThroughput Other has no data: {self.c_tp_no_data}\n")
 
 
 def get_stats(
@@ -157,9 +171,13 @@ def get_stats(
                 if verbose:
                     print(f"{'{'}partial_lat_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_partial += 1
-            else:
+            elif cl == "NO_DATA":
                 if verbose:
-                    print(f"{'{'}no_lat_match_at_all: {w_inst}, other: {o_inst}{'}'}")
+                    print(f"{'{'}no_data: {w_inst}, other: {o_inst}{'}'}")
+                counters.c_lat_no_data += 1
+            elif cl == "NO":
+                if verbose:
+                    print(f"{'{'}no_lat_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_no += 1
 
     if mode in ["TP", "BOTH"]:
@@ -173,10 +191,14 @@ def get_stats(
                 if verbose:
                     print(f"{'{'}partial_tp_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_tp_partial += 1
-            else:
+            elif cl == "NO_DATA":
                 if verbose:
-                    print(f"{'{'}no_tp_match_at_all: {w_inst}, other: {o_inst}{'}'}")
-                counters.c_tp_no += 1
+                    print(f"{'{'}no_data: {w_inst}, other: {o_inst}{'}'}")
+                counters.c_tp_no_data += 1
+            elif cl == "NO":
+                if verbose:
+                    print(f"{'{'}no_tp_match: {w_inst}, other: {o_inst}{'}'}")
+                counters.c_tp_no_match += 1
 
     return counters
 
@@ -263,6 +285,7 @@ def compare_lists(
         foundCandidates = False
         name = _normalize_name(w_inst.asmName)
         if name not in o_inst_map.keys():
+            c_no_match += 1
             if verbose:
                 print(f"{'{'}no_name_candidates_for: {w_inst}{'}'}")
             continue
@@ -292,10 +315,13 @@ def compare_lists(
             if metadata_mismatch:
                 continue
 
+            if debug:
+                print(f"comparing operands for {w_inst.sourceName=} and {c.sourceName=}")
             sim_string = operand_similarity(w_inst.operands, c.operands, debug)
             if sim_string != "0":
                 scored_candidates.append(Candidate(c, sim_string))
-                scored_candidates.sort(reverse=True)
+
+        scored_candidates.sort(reverse=True)
         if debug:
             print(f"{scored_candidates=}")
 
@@ -333,6 +359,7 @@ def compare_lists(
                 continue
             # loose mode: create one instruction containing all unique values of all matches
             n_inst = copy.deepcopy(highest_score_bin[0])
+            n_inst.sourceName = " | ".join([x.sourceName for x in highest_score_bin])
             n_inst.throughputs.clear()
             n_inst.latencies.clear()
             lat_seen = []
@@ -380,15 +407,11 @@ def compare_lists(
 
     # print results
     c_total_lat = counters.c_lat_full + counters.c_lat_partial + counters.c_lat_no
-    c_total_tp = counters.c_tp_full + counters.c_tp_partial + counters.c_tp_no
+    c_total_tp = counters.c_tp_full + counters.c_tp_partial + counters.c_tp_no_match
     if c_total_lat != 0:
-        print(f"\t{counters.c_lat_full=}, {counters.c_lat_full*100/c_total_lat:.2f}%")
-        print(f"\t{counters.c_lat_partial=}, {counters.c_lat_partial*100/c_total_lat:.2f}%")
-        print(f"\t{counters.c_lat_no=}, {counters.c_lat_no*100/c_total_lat:.2f}%\n")
+        counters.print_counters("LAT", c_total_lat)
     if c_total_tp != 0:
-        print(f"\t{counters.c_tp_full=}, {counters.c_tp_full*100/c_total_tp:.2f}%")
-        print(f"\t{counters.c_tp_partial=}, {counters.c_tp_partial*100/c_total_tp:.2f}%")
-        print(f"\t{counters.c_tp_no=}, {counters.c_tp_no*100/c_total_tp:.2f}%")
+        counters.print_counters("TP", c_total_tp)
     return counters
 
 
@@ -440,6 +463,8 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
     # assure there are no None values anywhere
     values_to_check_w = [v for v in values_to_check_w if v.cyclesMax is not None and v.cyclesMin is not None]
     values_to_check_o = [v for v in values_to_check_o if v.cyclesMax is not None and v.cyclesMin is not None]
+    if len(values_to_check_o) == 0:
+        return "NO_DATA"
 
     found_matching_val = False
     found_non_matching_val = False
