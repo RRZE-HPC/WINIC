@@ -10,10 +10,10 @@ def _short_op(op: Operand) -> str:
 
 
 def is_better_match_string(first: str, second: str) -> bool:
-    if first.count("1") > second.count("1"):
-        return True
-    if first.find("0") > second.find("0"):
-        return True
+    if first.count("1") != second.count("1"):
+        return first.count("1") > second.count("1")
+    if first.find("0") != second.find("0"):
+        return first.find("0") > second.find("0")
     return False
 
 
