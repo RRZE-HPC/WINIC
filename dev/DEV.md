@@ -97,15 +97,40 @@ echo "addq %rax, 8(%rbx)" | llvm-mc --show-inst
 ```
 produces
 ```
-# <MCInst #631 ADD64mr
-#  <MCOperand Reg:53> // base (%rbx)
-#  <MCOperand Imm:1> // scale
-#  <MCOperand Reg:0> // ind
-#  <MCOperand Imm:8> // displacement
-#  <MCOperand Reg:0> // segment
-#  <MCOperand Reg:51>> // %rax
+<MCInst #631 ADD64mr
+ <MCOperand Reg:53> // base (%rbx)
+ <MCOperand Imm:1> // scale
+ <MCOperand Reg:0> // ind
+ <MCOperand Imm:8> // offset
+ <MCOperand Reg:0> // segment
+ <MCOperand Reg:51>> // %rax
 ```
-Note that all of the operands that belong to the memory access are `MCOI::OPERAND_MEMORY` even though they are registers and immediates.
+Note that on x86 all of the operands that belong to the memory access are `MCOI::OPERAND_MEMORY` even though they are registers and immediates.
+
+On AArch64 memory operands are handled differently, e.g.:
+```
+ldr     d0, [x9, #4]!                   
+<MCInst #5044 LDRDpre
+ <MCOperand Reg:X9> // base write back
+ <MCOperand Reg:D0> // load destination
+ <MCOperand Reg:X9> // base
+ <MCOperand Imm:4>> // offset
+```
+
+However, there are multiple different addressing modes and not all are handled by WINIC (e.g. reg-reg addressing).
+
+On RISCV:
+```
+ld      t0, 8(t1)                       
+<MCInst #12666 LD
+ <MCOperand Reg:48> // destination
+ <MCOperand Reg:49> // base
+ <MCOperand Imm:8>> // offset
+```
+
+Generic operand info definitions come from `llvm-project/llvm/include/llvm/MC/MCInstrDesc.h`. \
+The `MCOI::OperandType` enum has `MCOI::OPERAND_FIRST_TARGET` as last entry, then 
+target specific operand info definitions start from there (they come from `llvm-project/llvm/lib/Target/RISCV/MCTargetDesc/RISCVBaseInfo.h` and equivalents)
 
 ## Misc LLVM Info
 - isPseudo is only set to 1 for instructions that are LLVM pseudo instructions. CMOV_VR128 is not pseudo because its assembly string "#CMOV__VR128 PSEUDO!" can be emmitted and then processed by an assembler.
@@ -186,6 +211,11 @@ LLVM interface:
 ## Safety
 
 MCInstPrinter->PrintInst can fail or even segfault if the operands are not set correctly. It is therefore only used in functions that are run in a subprocess.
+
+## Limitations
+WINIC has some non-obvious limitations:
+- The path over text representation -> assembler -> benchmark binary loses some information. There are instruction forms where there are different encodings for the same semantics, we do not have any control over which one the assembler chooses.
+- WINIC can not generate latency chains on base/index registers of memory operands
 
 ## IWYU Makefile
 The MAKEFILE is a helper to run LLVMs include-what-you-use on all WINIC source files. It expects the LLVM repo in `llvm-project` and a x86 llvm build in `llvm-build-x86` (generate using `setup.sh --dir x86`)

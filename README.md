@@ -4,8 +4,9 @@ WINIC is a platform-independent automated micro-benchmarking tool. It currently 
 WINIC can automatically determine latency and throughput values for all instructions the given CPU supports.
 
 ## Limitations
-WINIC currently cannot measure: 
+WINIC currently cannot measure:
 - instructions accessing memory (this will be added in the future)
+- latencies on parts of memory operands e.g. base and index registers
 - branches, returns, system calls and privileged instructions
 
 ## Benchmarking strategy
@@ -29,8 +30,8 @@ likwid-pin -c 2 ./winic -f <frequency> [options] MODE [mode-specific-options]
 |--------|-------------|---------|
 | `-f,--frequency` | Frequency in GHz (required) | - |
 | `-d,--debug` | Enable debug output | false |
-| `-c,--cpu` | CPU model, only needed if LLVM cannot detect it | - |
-| `-m,--march` | Architecture, only needed if LLVM cannot detect it | - |
+| `-c,--cpu` | CPU model, needed if LLVM cannot detect it, or to use the INFO mode on a non-native architecture | - |
+| `-m,--march` | Architecture, needed if LLVM cannot detect it, or to use the INFO mode on a non-native architecture | - |
 | `-v,--version` | Show version | - |
 
 ## Available modes:

@@ -50,7 +50,30 @@ python -m analysis.cli diff <db1.yaml> <db2.yaml> [--mode TP|LAT|BOTH] [--verbos
 - `--verbose`: Report every individual change.
 
 ### compare to uops / documentation
-Compare WINIC results to results from uops.info (x86 only) or selected documentation (zen4, neoverse-v2).
+Compare WINIC results to results from other sources. Currently available are uops.info (x86 only) selected documentation (zen4, neoverse-v2) and llvm-exegesis results.
+The information in those sources ranges from exact operand based latencies (uops.info: "ADD [REG1 -> FLAGS] 1cy") to vague information
+(neoverse-v2 opt guide: "MADD, MSUB Latency: 2(1)") 
+
+To have a general approach for comparing to those sources the rules are:
+For a WINIC instruction we search for the equivalent in the other source by
+- matching the asm name
+- if available checking operand number, types and metadata
+
+If the information is not sufficient to identify one exact entry, we combine the results of the candidates into a "pool" of TP/LAT metrics. 
+Then the instruction is classified as either a match, partial match or no match.
+
+| Metric | Result | Meaning |
+|---|---|---|
+|Throughput|match|All TP metrics of the pool are covered ("explained") by the WINIC TP range.|
+|Throughput|partial match|Some TP metrics of the pool are covered by the WINIC TP range.|
+|Throughput|no match|No TP metrics of the pool are covered by the WINIC TP range.|
+|Latency|match|All LAT metrics of the pool are present in the WINIC LAT values. If the other source has a LAT range and WINIC has operand based latencies that cover minimum and maximum of that range, this is also considered a match.|
+|Latency|partial match|Some LAT metrics of the pool are present in the WINIC LAT values. If the other source has a LAT range, one WINIC LAT in that range is sufficient for it to count as partial match.|
+|Latency|no match|No LAT metrics of the pool are present in the WINIC LAT values.|
+
+To keep the stats comparable across sources, the operand based latencies are *not* associated to each other even if the source would provide sufficient information to do so.
+
+WINIC results can also be ranges, however this always implies an uncertainty caused by the measurement mechanism. Therefore we do not allow WINIC ranges to produce exact matches.
 
 **Usage:**
 ```bash
