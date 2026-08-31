@@ -12,7 +12,7 @@ def _parse_uops_operand(op: ET.Element) -> Operand:
     type = op.attrib["type"] if "type" in op.attrib else None
     if index is None:
         return None
-    if type not in ["reg", "imm", "flags"]:
+    if type not in ["reg", "imm", "flags", "mem"]:
         return None
 
     read = bool(int(op.attrib.get("r", "0")))
@@ -43,11 +43,17 @@ def _parse_uops_latency(lat: ET.Element) -> Latency:
         if "cycles" in lat.attrib:
             cycles = int(lat.attrib["cycles"])
             return Latency(startOp, targetOp, cycles, cycles)
+        if "cycles_mem" in lat.attrib:
+            # we only consider the memory latency and ignore the base/index registers etc.
+            cycles = int(lat.attrib["cycles_mem"])
+            return Latency(startOp, targetOp, cycles, cycles)
         if "min_cycles" in lat.attrib and "max_cycles" in lat.attrib:
             cycles_min = int(lat.attrib["min_cycles"])
             cycles_max = int(lat.attrib["max_cycles"])
             return Latency(startOp, targetOp, cycles_min, cycles_max)
-        print('unreachable, uops entry has neither field "cycels" nor "min_cycles" and "max_cycles')
+
+        # uops entry has neither field "cycles" nor "cycles_mem" nor "min_cycles" and "max_cycles",
+        # this happens with latency measurements with where only values for base/index registers are present
         return None
     except KeyError:
         # happens e.g. on latency values regarding memory

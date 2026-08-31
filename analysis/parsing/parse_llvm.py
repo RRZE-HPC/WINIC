@@ -87,8 +87,32 @@ def _get_immidiate_width(imm: str):
 def _identify_x86_LLVM_operand(opName):
     from analysis.parsing.helper import get_register_width
 
+    memoryMap = {
+        "f32mem": ("mem", 32),
+        "f64mem": ("mem", 64),
+        "f128mem": ("mem", 128),
+        "f256mem": ("mem", 256),
+        "f512mem": ("mem", 512),
+        "i8mem": ("mem", 8),
+        "i16mem": ("mem", 16),
+        "i32mem": ("mem", 32),
+        "i64mem": ("mem", 64),
+        "i128mem": ("mem", 128),
+        "i256mem": ("mem", 256),
+        "i512mem": ("mem", 512),
+        "i8mem_NOREX": ("mem", 8),
+        "sdmem": ("mem", -1),  # TODO
+        "ssmem": ("mem", -1),
+        "opaquemem": ("mem", -1),
+    }
+
     if opName == "EFLAGS":
         return ("flags", None)
+    if "mem" in opName:
+        if opName not in memoryMap:
+            print(f"missing mem op: {opName}")
+            return ("mem", None)
+        return memoryMap[opName]
     if opName in llvm_DAGOperands:
         operand = llvm_DAGOperands[opName]
         if "OperandType" in operand and operand["OperandType"] == "OPERAND_IMMEDIATE":
@@ -132,6 +156,8 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
             return None
         elif type == "imm":
             operand = Operand(index, type, width, False, True, False, [])
+        elif type == "mem":
+            operand = Operand(index, type, width, l_inst["mayLoad"], l_inst["mayStore"], False, [])
         else:
             operand = Operand(index, type, width, False, True, False, _expand_regs(op[0]["def"]))
         inst.operands.append(operand)
@@ -170,6 +196,8 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
             return None
         elif type == "imm":
             operand = Operand(index, type, width, True, False, False, [])
+        elif type == "mem":
+            operand = Operand(index, type, width, bool(l_inst["mayLoad"]), bool(l_inst["mayStore"]), False, [])
         else:
             operand = Operand(index, type, width, True, False, False, _expand_regs(op[0]["def"]))
         inst.operands.append(operand)
