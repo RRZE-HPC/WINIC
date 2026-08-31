@@ -78,6 +78,7 @@ def _parse_uops_instruction(entry: ET.Element, arch: str):
         # there are things like {load} CMP in uops, remove those
         start, end = uops_asm.find("{"), uops_asm.find("}")
         uops_asm = uops_asm.removeprefix(uops_asm[start : end + 1]).strip()
+        uops_asm = uops_asm.removeprefix("LOCK").strip()
     except KeyError:
         return None
     uopsName = entry.attrib["string"] if "string" in entry.attrib else ""
@@ -86,6 +87,7 @@ def _parse_uops_instruction(entry: ET.Element, arch: str):
     inst.metadata["zeroing"] = bool(int(entry.attrib["zeroing"])) if "zeroing" in entry.attrib else False
     inst.metadata["evex"] = bool(int(entry.attrib["evex"])) if "evex" in entry.attrib else False
     inst.metadata["avx512"] = "AVX512" in entry.attrib["extension"] if "extension" in entry.attrib else False
+    inst.metadata["locked"] = bool(int(entry.attrib["locked"])) if "locked" in entry.attrib else False
     return inst
 
 

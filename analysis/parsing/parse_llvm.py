@@ -243,6 +243,8 @@ def parse_LLVM_x86_instruction(LLVMName: str) -> Instruction:
     inst.metadata["zeroing"] = "{z}" in l_inst["AsmString"]
     # join to also find "AVX512Ii8" etc.
     inst.metadata["avx512"] = "AVX512" in "".join(l_inst["!superclasses"]) + "".join(l_inst["!locs"])
+    if "hasLockPrefix" in l_inst:
+        inst.metadata["locked"] = bool(l_inst["hasLockPrefix"])
     return inst
 
 
