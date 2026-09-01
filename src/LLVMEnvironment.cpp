@@ -160,6 +160,8 @@ unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
             maxRegWidth = std::max(maxRegWidth, MRI->getRegClass(opInfo.RegClass).getSizeInBits());
         }
     }
+    // there are instructions that work on memory only e.g. NEG16r. Just take some default value
+    if (maxRegWidth == 0) return 64;
     return maxRegWidth / 8;
 
     // failed try to do this properly
