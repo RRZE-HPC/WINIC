@@ -152,6 +152,14 @@ class LLVMEnvironment {
     unsigned getAArch64OffsetOperandIndex(unsigned Opcode);
 
     /**
+     * \brief Checks if this instruction writes to it's base/index register while accessing memory.
+     * This happens e.g. for pre/post incrementing instructions on AArch64.
+     * \param Opcode The opcode of the instruction.
+     * \return True, if the instruction has a memory operand and writes to part of it.
+     */
+    bool hasWriteOnMemRegister(unsigned Opcode);
+
+    /**
      * \brief Returns the index of the memory access base register on AArch64.
      * \param Opcode The opcode of the load/store instruction.
      * \return The index of the base register or NO_OP_INDEX if there is none.

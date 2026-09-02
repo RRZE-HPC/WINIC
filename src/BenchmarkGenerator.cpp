@@ -270,7 +270,10 @@ genTPLoop(std::vector<unsigned> Opcodes,
         unsigned opcode = Opcodes[i];
         // this is the first generated instruction, all other instructions will use the
         // same registers as this one if they are only read
-        auto [EC, refInst] = genInst(opcode, ConstraintsVector[i], UsedRegisters, Immediate, 0);
+        unsigned memSize = getEnv().getMemoryOperandWidthUpperBound(opcode);
+        unsigned memOffset = getEnv().hasWriteOnMemRegister(opcode) ? memSize : 0;
+        auto [EC, refInst] =
+            genInst(opcode, ConstraintsVector[i], UsedRegisters, Immediate, memOffset);
         if (EC != SUCCESS) return {EC, instructions};
         instructions.push_back(refInst);
 
@@ -288,10 +291,14 @@ genTPLoop(std::vector<unsigned> Opcodes,
         // mid generation)
         std::list<MCInst> tempInstructions;
         for (unsigned j = 0; j < Opcodes.size(); j++) {
-            unsigned long memSize = getEnv().getMemoryOperandWidthUpperBound(Opcodes[j]);
+            unsigned memSize = getEnv().getMemoryOperandWidthUpperBound(Opcodes[j]);
+            // normally we use a different offset for each instruction to avoid dependencies. If
+            // this instruction increments its base register, we should not do that as the scratch
+            // memory will not be large enough
+            unsigned memOffset = getEnv().hasWriteOnMemRegister(Opcodes[j]) ? memSize : i * memSize;
 
             auto [EC, inst] =
-                genInst(Opcodes[j], ConstraintsVector[j], UsedRegisters, Immediate, i * memSize);
+                genInst(Opcodes[j], ConstraintsVector[j], UsedRegisters, Immediate, memOffset);
             if (EC == E_NO_REGISTERS) return {SUCCESS, instructions}; // shorter loops are ok
             if (EC != SUCCESS) return {EC, {instructions}};
             tempInstructions.push_back(inst);

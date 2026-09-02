@@ -291,6 +291,19 @@ unsigned LLVMEnvironment::getAArch64BaseOperandIndex(unsigned Opcode) {
     return index == NO_OP_INDEX ? NO_OP_INDEX : index - 1;
 }
 
+bool LLVMEnvironment::hasWriteOnMemRegister(unsigned Opcode) {
+    InstructionForm instructionForm = InstructionForm(Opcode);
+    const MCInstrDesc &desc = MCII->get(Opcode);
+    for (OperandForm op : instructionForm.getOperands()) {
+        if (!op.isMemory()) continue;
+
+        for (unsigned index : op.getMCIndices()) {
+            if (index < desc.getNumDefs()) return true;
+        }
+    }
+    return false;
+}
+
 bool LLVMEnvironment::mayAccessMemory(unsigned Opcode) {
     const MCInstrDesc &desc = MCII->get(Opcode);
     return desc.mayLoad() || desc.mayStore();
