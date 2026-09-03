@@ -140,8 +140,8 @@ def parse_zen4_sheet() -> List[Instruction]:
                             opList = getOpList(optionalOp5)
                             assert len(opList) == 1  # This should only have one op now as we split manually
                             op5 = opList[0]
-                            if row[0] == "RCL":
-                                print(f"{row}, {op1=},{op2=},{op3=},{op4=}, {op5=}, {row[5].split("/")=}")
+                            # if row[0] == "RCL":
+                            #     print(f"{row}, {op1=},{op2=},{op3=},{op4=}, {op5=}, {row[5].split("/")=}")
                             inst: Instruction = Instruction()
                             inst.source = "docs"
                             inst.sourceName = row[0]
