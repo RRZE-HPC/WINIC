@@ -449,10 +449,7 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
         return v1 < v2 or eq(v1, v2)
 
     def values_overlap(val1, val2):
-        return not leq(val1.cyclesMax, val2.cyclesMin) or geq(val1.cyclesMin, val2.cyclesMax)
-        # return not val1.cyclesMax < val2.cyclesMin * (1 - tolerance) or val1.cyclesMin > val2.cyclesMax * (
-        #     1 + tolerance
-        # )
+        return geq(val1.cyclesMax, val2.cyclesMin) and geq(val2.cyclesMax, val1.cyclesMin)
 
     if mode == "LAT":
         values_to_check_w = w_inst.latencies
@@ -471,7 +468,7 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
     # check special case o has range and WINIC covers start and end point
     # normally a range will count as partial match but if WINIC covers each end of the range we consider this as full match
     # this makes sense as WINIC measures single values and documentation might provide ranges
-    to_replace = []
+    to_remove = []
     for o_value in values_to_check_o:
         if not is_range(o_value):
             continue
@@ -483,7 +480,9 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
                 max_covered = True
             if eq(w_value.cyclesMin, o_value.cyclesMin) and geq(o_value.cyclesMax, w_value.cyclesMax):
                 min_covered = True
-        if not min_covered and max_covered:
+        if min_covered and max_covered:
+            found_matching_val = True
+        else:
             # check if this range has any matches
             for w_value in values_to_check_w:
                 if values_overlap(w_value, o_value):
@@ -491,14 +490,11 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
                     break
             else:  # executed if loop did not break
                 found_non_matching_val = True
-        # this range should not cause a partial match so we replace it with its start and end point
-        to_replace.append(o_value)
+        # later code cannot handle ranges
+        to_remove.append(o_value)
 
-    for v in to_replace:
+    for v in to_remove:
         values_to_check_o.remove(v)
-        # we just use TPs here as it doesn't matter in later code (which yes, is ugly)
-        values_to_check_o.append(Throughput(v.cyclesMin, v.cyclesMin))
-        values_to_check_o.append(Throughput(v.cyclesMax, v.cyclesMax))
 
     assert not any(is_range(v) for v in values_to_check_o)
 
