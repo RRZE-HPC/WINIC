@@ -43,12 +43,12 @@ def _parse_uops_latency(lat: ET.Element) -> Latency:
         if "cycles" in lat.attrib:
             cycles = int(lat.attrib["cycles"])
             upper_bound = "cycles_is_upper_bound" in lat.attrib and lat.attrib["cycles_is_upper_bound"] == "1"
-            return Latency(startOp, targetOp, 0 if upper_bound else cycles, cycles)
+            return Latency(startOp, targetOp, 1 if upper_bound else cycles, cycles)
         if "cycles_mem" in lat.attrib:
             # we only consider the memory latency and ignore the base/index registers etc.
             cycles = int(lat.attrib["cycles_mem"])
             upper_bound = "cycles_mem_is_upper_bound" in lat.attrib and lat.attrib["cycles_mem_is_upper_bound"] == "1"
-            return Latency(startOp, targetOp, 0 if upper_bound else cycles, cycles)
+            return Latency(startOp, targetOp, 1 if upper_bound else cycles, cycles)
         if "min_cycles" in lat.attrib and "max_cycles" in lat.attrib:
             return Latency(startOp, targetOp, int(lat.attrib["min_cycles"]), int(lat.attrib["max_cycles"]))
 
