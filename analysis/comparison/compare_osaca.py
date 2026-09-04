@@ -80,12 +80,6 @@ def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], 
     # parse instructions from osaca db
     o_instructions: List[Instruction] = parse_osaca_database(db_osaca)
 
-    # remove instructions accessing memory
-    temp = []
-    for o_inst in o_instructions:
-        if not any([op.type in "mem" for op in o_inst.operands]):
-            temp.append(o_inst)
-    o_instructions = temp
     print(f"osaca db has {len(o_instructions)} instructions")
 
     # group by name

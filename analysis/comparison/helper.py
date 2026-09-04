@@ -332,8 +332,9 @@ def compare_lists(
             #     print(_short(w_inst))
             #     pprint(f"candidates_by_name: {[_short(c) for c in o_candidates]}")
             #     print("\n")
-            if verbose:
+            if verbose or debug:
                 print(f"{'{'}no_candidates_for: {w_inst}{'}'}")
+            debug = False
             continue
 
         # extract all instructions with the highest score
@@ -505,8 +506,7 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
             temp.append(w_value)
             continue
         for o_value in values_to_check_o:
-            # if values_overlap(o_value, w_value):
-            if geq(o_value.cyclesMax, w_value.cyclesMin) and leq(o_value.cyclesMax, w_value.cyclesMax):
+            if values_overlap(o_value, w_value):
                 return "PARTIAL"
         found_non_matching_val = True
     values_to_check_w = temp

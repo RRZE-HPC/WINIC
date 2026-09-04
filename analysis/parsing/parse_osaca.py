@@ -83,6 +83,7 @@ def parse_osaca_database(path: str) -> List[Instruction]:
                 if "mask" in operand and operand["mask"]:
                     # we currently dont use the mask operand type. TODO improve that
                     operand_lists.append([Operand(-1, "reg", 64)])
+
             # this creates a version for each possible width of generic "reg" operands
             for combination in itertools.product(*operand_lists):
                 inst: Instruction = Instruction()
@@ -111,6 +112,11 @@ def parse_osaca_database(path: str) -> List[Instruction]:
             id_set.add(id)
             if inst.sourceName == "fmls":
                 print(f"i added inst. {inst} to result")
+
+    # all read/write information we can get is that the last operand is written to
+    for inst in result:
+        if len(inst.operands) > 0:
+            inst.operands[-1].write = True
     return result
 
 
