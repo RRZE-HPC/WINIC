@@ -94,10 +94,9 @@ fi
 # Build WINIC
 mkdir -p ../$BUILD_DIR && cd ../$BUILD_DIR
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug \
-  -DLLVM_SOURCE_DIR=../llvm-project/llvm \
-  -DLLVM_BINARY_DIR=../$LLVM_BUILD_DIR \
+  -DWINIC_LLVM_SOURCE_DIR=../llvm-project/llvm \
+  -DWINIC_LLVM_BUILD_DIR=../$LLVM_BUILD_DIR \
   -DLLVM_DIR=../$LLVM_BUILD_DIR/lib/cmake/llvm \
-  -DClang_DIR=../$LLVM_BUILD_DIR/lib/cmake/clang \
-  -DCLANG_PATH=../$LLVM_BUILD_DIR/bin/clang ..
+  -DWINIC_CLANG_PATH=../$LLVM_BUILD_DIR/bin/clang ..
   
 cmake --build . -- -j 6
