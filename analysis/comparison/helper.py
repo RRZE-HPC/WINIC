@@ -84,8 +84,6 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
                 # weak width match
                 weak_width = True
                 _dbg(f"width weak match {o1.width} != {o2.width}, subtract 1", 3)
-            else:
-                weak_width = False
 
             # check metadata
             for m in o1.metadata.keys() | o2.metadata.keys():
