@@ -19,7 +19,7 @@ def _parse_uops_operand(op: ET.Element) -> Operand:
     write = bool(int(op.attrib.get("w", "0")))
     suppressed = bool(int(op.attrib.get("suppressed", "0")))
 
-    if op.text == "0" or op.text == 1:
+    if op.text == "0" or op.text == "1":
         return None  # ignore fixed immediates
     if op.text is not None:
         regList = op.text.split(",")
@@ -28,11 +28,12 @@ def _parse_uops_operand(op: ET.Element) -> Operand:
     else:
         regList = []
 
-    if len(regList) == 1:
-        # for some reason fixed registers dont have a width in uops database :(
-        width = get_register_width(regList[0])
-    else:
+    # uops register width is sometimes weird/wrong, see VPBROADCASTD (XMM, XMM)
+    # if possible use our own decoder to get the width, otherwise fallback to uops
+    width = get_register_width(regList[0]) if len(regList) > 0 else None
+    if width is None:
         width = int(op.attrib["width"]) if "width" in op.attrib else None
+
     return Operand(index, type, width, read, write, suppressed, regList)
 
 
