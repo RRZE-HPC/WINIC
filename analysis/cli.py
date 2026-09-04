@@ -111,20 +111,23 @@ def main():
     docs_c_parser.add_argument("db", help="Path to database YAML file(s)")
     docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
     docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    docs_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # compare to exegesis
-    docs_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm-exegesis output")
-    docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
-    docs_c_parser.add_argument("db_exegesis", nargs="+", help="Paths to exegesis YAML files")
-    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    exegesis_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm-exegesis output")
+    exegesis_c_parser.add_argument("db_winic", help="Path to database YAML file")
+    exegesis_c_parser.add_argument("db_exegesis", nargs="+", help="Paths to exegesis YAML files")
+    exegesis_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    exegesis_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    exegesis_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # compare to osaca
-    docs_c_parser = sub_compare_parser.add_parser("osaca", help="Compare to osaca database")
-    docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
-    docs_c_parser.add_argument("db_osaca", help="Path to exegesis YAML file")
-    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    osaca_c_parser = sub_compare_parser.add_parser("osaca", help="Compare to osaca database")
+    osaca_c_parser.add_argument("db_winic", help="Path to database YAML file")
+    osaca_c_parser.add_argument("db_osaca", help="Path to exegesis YAML file")
+    osaca_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    osaca_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    osaca_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots out of hardcoded data")
@@ -176,6 +179,9 @@ def main():
 
             db_diff(args.db1, args.db2, args.mode, args.verbose)
         case "compare":
+            import analysis.globals as globals
+
+            globals.dbg_llvm_name = args.instruction
             if args.compare_source == "docs":
                 if args.arch == "V2":
                     from analysis.comparison.compare_v2 import compare_winic_v2
@@ -196,10 +202,8 @@ def main():
 
                 compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.verbose)
             elif args.compare_source == "uops":
-                import analysis.globals as globals
                 from analysis.comparison.compare_uops import compare_winic_uops
 
-                globals.dbg_llvm_name = args.instruction
                 compare_winic_uops(args.db, args.mode, args.arch, args.verbose)
                 # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
