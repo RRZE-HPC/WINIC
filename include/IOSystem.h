@@ -26,6 +26,7 @@ struct TPMeasurement;
 struct IOOperand {
     std::string opClass;             ///< Operand class (e.g., "register", "immediate")
     std::optional<std::string> name; ///< Optional operand name
+    std::optional<unsigned> width;   ///< Optional operand width
     bool read;                       ///< Is this operand read?
     bool write;                      ///< Is this operand written?
 };
@@ -119,6 +120,7 @@ template <> struct MappingTraits<winic::IOOperand> {
     static void mapping(IO &Io, winic::IOOperand &Op) {
         Io.mapRequired("class", Op.opClass);
         Io.mapOptional("name", Op.name);
+        Io.mapOptional("width", Op.width);
         Io.mapRequired("read", Op.read);
         Io.mapRequired("write", Op.write);
     }

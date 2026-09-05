@@ -41,8 +41,9 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
         IOOperand opOp;
         if (operandForm.isRegClass()) {
             opOp.opClass = "register";
-            opOp.name = opOp.name =
-                std::make_optional(str(getEnv().MRI->getRegClass(operandForm.getRegClassID())));
+            auto regClass = getEnv().MRI->getRegClass(operandForm.getRegClassID());
+            opOp.name = opOp.name = std::make_optional(str(regClass));
+            opOp.width = regClass.getSizeInBits();
         } else if (operandForm.isImmediate()) {
             opOp.opClass = "immediate";
         } else if (operandForm.isMemory()) {
