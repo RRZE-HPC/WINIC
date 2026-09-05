@@ -1241,6 +1241,9 @@ int run(int Argc, char **Argv) {
     info->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     info->add_flag("--internal", internal, "Print LLVM internal info without WINIC abstraction");
 
+    auto *enc = app.add_subcommand("ENC", "re-encode database");
+    enc->add_option("FILE", databasePath, "Path to WINIC database");
+
     std::string sPath, funcName, initName = "";
     unsigned numInst;
     auto *man = app.add_subcommand("MAN", "Manual");
@@ -1272,7 +1275,7 @@ int run(int Argc, char **Argv) {
     ios->precision(3);
     std::string timestamp = generateTimestamp();
 
-    if (noReport || *man || *info)
+    if (noReport || *man || *info || *enc)
         setOutputToFile("/dev/null");
     else if (*tp)
         setOutputToFile("report_TP_" + timestamp);
@@ -1505,6 +1508,27 @@ int run(int Argc, char **Argv) {
         std::cout << cyclesPerInstruction << " (clock cycles)" << std::endl;
     }
 
+    if (*enc) {
+        if (!std::filesystem::exists(databasePath)) {
+            out(std::cerr, "ERROR: database path does not exist");
+            return 1;
+        }
+        if (loadYaml(databasePath) != SUCCESS) {
+            out(std::cerr, "ERROR: re-encode failed. The database is corrupted or not compatible "
+                           "with the current WINIC "
+                           "version.");
+            return 1;
+        }
+        if (reEncodeDatabase() != SUCCESS) {
+            out(std::cerr, "ERROR: re-encoding failed.");
+            return 1;
+        }
+        if (saveYaml(databasePath) != SUCCESS) {
+            out(std::cerr, "ERROR: saving the database failed.");
+            return 1;
+        }
+        out(std::cout, "re-encoding successful");
+    }
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
     out(*ios, "total runtime: ", totalRuntime, " (s)");

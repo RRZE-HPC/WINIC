@@ -83,6 +83,14 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement Measurement);
 ErrorCode updateDatabaseEntryLAT(LatMeasurement Measurement);
 
 /**
+ * \brief Re-generates the operand info for each entry in the io database.
+ * this can be useful to upgrade an existing database if the output format changes but is compatible
+ * with the prior version.
+ * \return ErrorCode indicating success or failure.
+ */
+ErrorCode reEncodeDatabase();
+
+/**
  * \brief Loads a database from a YAML file into outputDatabase.
  *
  * Note: Currently it is not supported to load the values back into the working databases!

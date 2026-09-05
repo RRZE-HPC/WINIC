@@ -191,6 +191,27 @@ ErrorCode loadYaml(std::string Path) {
     return SUCCESS;
 }
 
+ErrorCode reEncodeDatabase() {
+    std::vector<IOInstruction> newIoInstructions;
+    for (auto ioInst : ioFile.instructions) {
+        auto tp = ioInst.throughput;
+        auto tpMin = ioInst.throughputMin;
+        auto tpMax = ioInst.throughputMax;
+        auto latencies = ioInst.latencies;
+        auto latency = ioInst.latency;
+        auto [EC, opInst] = createOpInstruction(getEnv().getOpcode(ioInst.llvmName));
+        if (EC != SUCCESS) return EC;
+        opInst.throughput = tp;
+        opInst.throughputMin = tpMin;
+        opInst.throughputMax = tpMax;
+        opInst.latencies = latencies;
+        opInst.latency = latency;
+        newIoInstructions.emplace_back(opInst);
+    }
+    ioFile.instructions = newIoInstructions;
+    return SUCCESS;
+}
+
 ErrorCode saveYaml(std::string Path) {
     if (!keepEmptyEntries) stripOutputDatabase();
     // remove tabs from mnemonics
