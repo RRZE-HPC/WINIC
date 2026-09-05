@@ -111,6 +111,10 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
     return SUCCESS;
 }
 
+std::string getIOCpu() { return ioFile.microArchitecture; };
+
+std::string getIOArchitecture() { return ioFile.isa; };
+
 ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
     InstructionForm instructionForm = InstructionForm(M.opcode);
 
@@ -193,12 +197,19 @@ ErrorCode loadYaml(std::string Path) {
 
 ErrorCode reEncodeDatabase() {
     std::vector<IOInstruction> newIoInstructions;
+    std::vector<std::string> notReEncoded;
     for (auto ioInst : ioFile.instructions) {
         auto tp = ioInst.throughput;
         auto tpMin = ioInst.throughputMin;
         auto tpMax = ioInst.throughputMax;
         auto latencies = ioInst.latencies;
         auto latency = ioInst.latency;
+        unsigned opcode = getEnv().getOpcode(ioInst.llvmName);
+        if (opcode == MAX_UNSIGNED) {
+            notReEncoded.emplace_back(ioInst.llvmName);
+            newIoInstructions.emplace_back(ioInst);
+            continue;
+        }
         auto [EC, opInst] = createOpInstruction(getEnv().getOpcode(ioInst.llvmName));
         if (EC != SUCCESS) return EC;
         opInst.throughput = tp;
@@ -208,6 +219,23 @@ ErrorCode reEncodeDatabase() {
         opInst.latency = latency;
         newIoInstructions.emplace_back(opInst);
     }
+    if (!notReEncoded.empty()) {
+        out(std::cout, "WARNING: cannot find LLVM info for ", notReEncoded.size(),
+            " instructions. Leaving those unchanged.");
+        if (notReEncoded.size() <= 20) {
+            out(std::cout, notReEncoded);
+        }
+        if (notReEncoded.size() == ioFile.instructions.size()) {
+            out(std::cout, "No instruction was recognized, check if the ISA and microarchitecture "
+                           "identifiers in the database are correct.");
+            return E_GENERIC;
+        }
+        out(std::cout,
+            "This can happen if the instructions were removed/renamed in this LLVM "
+            "version. It is strongly recommended to do a fresh run with the newest WINIC "
+            "version.");
+    }
+
     ioFile.instructions = newIoInstructions;
     return SUCCESS;
 }
@@ -222,13 +250,13 @@ ErrorCode saveYaml(std::string Path) {
     ioFile.microArchitecture = getEnv().Machine->getTargetCPU().data();
     switch (getEnv().TargetTriple.getArch()) {
     case Triple::ArchType::x86_64:
-        ioFile.isa = "x86";
+        ioFile.isa = "x86_64";
         break;
     case Triple::ArchType::aarch64:
         ioFile.isa = "aarch64";
         break;
     case Triple::ArchType::riscv64:
-        ioFile.isa = "riscv";
+        ioFile.isa = "riscv64";
         break;
     default:
         out(std::cerr, "Unsupported architecture, this should be unreachable.");

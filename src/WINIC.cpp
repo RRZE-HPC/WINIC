@@ -1124,11 +1124,9 @@ void printInstructionInfo(unsigned Opcode, bool Internal) {
 }
 
 int run(int Argc, char **Argv) {
-    double frequency;
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"winic"};
-    app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
@@ -1150,6 +1148,7 @@ int run(int Argc, char **Argv) {
     loopIterations = 1e6;
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    tp->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
     tp->add_option("-o,--output", databasePath,
                    "Path to the .yaml file to save the results to. If the file already exists new "
                    "values will be overwritten. If no file is specified, a timestamped one will "
@@ -1194,6 +1193,7 @@ int run(int Argc, char **Argv) {
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    lat->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
     lat->add_option("-o,--output", databasePath,
                     "Path to the .yaml file to save the results to. If the file already exists new "
                     "values will be overwritten. If no file is specified, a timestamped one will "
@@ -1247,6 +1247,7 @@ int run(int Argc, char **Argv) {
     std::string sPath, funcName, initName = "";
     unsigned numInst;
     auto *man = app.add_subcommand("MAN", "Manual");
+    man->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
     man->add_option("-p,--path", sPath, "Assembly file path")->required()->check(CLI::ExistingPath);
     man->add_option("--func-name", funcName, "Function to benchmark")->required();
     man->add_option("-n,--num-instructions", numInst, "Number of instructions in loop")->required();
@@ -1282,61 +1283,91 @@ int run(int Argc, char **Argv) {
     else if (*lat)
         setOutputToFile("report_LAT_" + timestamp);
 
-    out(*ios, "WINIC version ", WINIC_VERSION);
-
-    if (*info) databasePath = "/dev/null";
-    if (databasePath != "/dev/null") {
-        if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
-        if (std::filesystem::exists(databasePath)) {
-            out(*ios, "Using existing database: ", databasePath);
-            // loading the database is delayed as doing it before the measurements has a
-            // negative performance impact, probably due to the frequent forking
-        } else
-            out(*ios, "Will create new database: ", databasePath);
+    if (*enc) {
+        if (!std::filesystem::exists(databasePath)) {
+            out(std::cerr, "ERROR: database path does not exist");
+            return 1;
+        }
+        if (loadYaml(databasePath) != SUCCESS) {
+            out(std::cerr, "ERROR: re-encode failed. The database is corrupted or not compatible "
+                           "with the current WINIC "
+                           "version.");
+            return 1;
+        }
+        // ENC mode does not need to run natively, try to set up for the architecture specified in
+        // the database
+        ErrorCode ec = getEnv().setUp(getIOArchitecture(), getIOCpu());
+        if (ec != SUCCESS) {
+            std::cerr << "failed to set up environment for non-native arch: " << ecToString(ec)
+            << std::endl;
+            return 1;
+        }
+        if (reEncodeDatabase() != SUCCESS) {
+            out(std::cerr, "ERROR: re-encoding failed.");
+            return 1;
+        }
+        if (saveYaml(databasePath) != SUCCESS) {
+            out(std::cerr, "ERROR: saving the database failed.");
+            return 1;
+        }
+        out(std::cout, "Re-encoding successful");
+        return 0;
     }
 
-    std::ostringstream ss;
-    for (int i = 0; i < Argc; ++i)
-        ss << Argv[i] << " ";
-
-    out(*ios, "Timestamp: ", timestamp);
-    out(*ios, "Command: ", ss.str());
-    out(*ios, "Frequency: ", frequency, " GHz");
-    out(*ios, "Runs per kernel: ", nRuns);
-
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-
-    clockFrequency = frequency;
+    // environment setup
     ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {
         std::cerr << "failed to set up environment: " << ecToString(ec) << std::endl;
         return 1;
     }
+
+    // log configuration
+    std::ostringstream command;
+    for (int i = 0; i < Argc; ++i)
+        command << Argv[i] << " ";
+    out(*ios, "WINIC version ", WINIC_VERSION);
+    out(*ios, "Timestamp: ", timestamp);
+    out(*ios, "Command: ", command.str());
+    out(*ios, "Frequency: ", clockFrequency, " GHz");
+    out(*ios, "Runs per kernel: ", nRuns);
     out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
-    if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
 
-    // process filters
-    includeNonMemory = memory == "all" || memory == "none";
-    includeMemory = memory == "all" || memory == "only";
-    includeNonX87FP = x87fp == "all" || x87fp == "none";
-    includeX87FP = x87fp == "all" || x87fp == "only";
-
-    // skip instructions which take long and are irrelevant
-    std::set<std::string> skipInstructions;
-    std::unordered_set<unsigned> opcodeBlacklist;
-
-    if (getEnv().isX86()) {
-        // those each take > 300 cycles on Zen4, together doubling the runtime
-        skipInstructions = {"SYSCALL", "CPUID",   "RDSEED16r", "RDSEED32r", "RDSEED64r",
-                            "RDTSC",   "SLDT16r", "SLDT32r",   "SLDT64r",   "SMSW16r",
-                            "SMSW32r", "SMSW64r", "STR16r",    "STR32r",    "STR64r"};
-    }
-    for (auto name : skipInstructions)
-        opcodeBlacklist.insert(getEnv().getOpcode(name));
-
-    std::vector<unsigned> opcodes;
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
     if (*tp || *lat || *info) {
+        // set database path if not supplied
+        if (*info) databasePath = "/dev/null";
+        if (databasePath != "/dev/null") {
+            if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
+            if (std::filesystem::exists(databasePath)) {
+                out(*ios, "Using existing database: ", databasePath);
+                // loading the database is delayed as doing it before the measurements has a
+                // negative performance impact, probably due to the frequent forking
+            } else
+                out(*ios, "Will create new database: ", databasePath);
+        }
+
+        // process filters
+        if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
+        includeNonMemory = memory == "all" || memory == "none";
+        includeMemory = memory == "all" || memory == "only";
+        includeNonX87FP = x87fp == "all" || x87fp == "none";
+        includeX87FP = x87fp == "all" || x87fp == "only";
+
+        // skip instructions which take long and are irrelevant
+        std::set<std::string> skipInstructions;
+        std::unordered_set<unsigned> opcodeBlacklist;
+
+        if (getEnv().isX86()) {
+            // those each take > 300 cycles on Zen4, together doubling the runtime
+            skipInstructions = {"SYSCALL", "CPUID",   "RDSEED16r", "RDSEED32r", "RDSEED64r",
+                                "RDTSC",   "SLDT16r", "SLDT32r",   "SLDT64r",   "SMSW16r",
+                                "SMSW32r", "SMSW64r", "STR16r",    "STR32r",    "STR64r"};
+        }
+        for (auto name : skipInstructions)
+            opcodeBlacklist.insert(getEnv().getOpcode(name));
+
+        std::vector<unsigned> opcodes;
         // process instruction names or regexes
         for (auto instrName : instrNames) {
             if (instrName.find_first_of(".*+?[]()|") != std::string::npos) {
@@ -1508,27 +1539,6 @@ int run(int Argc, char **Argv) {
         std::cout << cyclesPerInstruction << " (clock cycles)" << std::endl;
     }
 
-    if (*enc) {
-        if (!std::filesystem::exists(databasePath)) {
-            out(std::cerr, "ERROR: database path does not exist");
-            return 1;
-        }
-        if (loadYaml(databasePath) != SUCCESS) {
-            out(std::cerr, "ERROR: re-encode failed. The database is corrupted or not compatible "
-                           "with the current WINIC "
-                           "version.");
-            return 1;
-        }
-        if (reEncodeDatabase() != SUCCESS) {
-            out(std::cerr, "ERROR: re-encoding failed.");
-            return 1;
-        }
-        if (saveYaml(databasePath) != SUCCESS) {
-            out(std::cerr, "ERROR: saving the database failed.");
-            return 1;
-        }
-        out(std::cout, "re-encoding successful");
-    }
     gettimeofday(&end, NULL);
     auto totalRuntime = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
     out(*ios, "total runtime: ", totalRuntime, " (s)");

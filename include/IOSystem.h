@@ -83,6 +83,16 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement Measurement);
 ErrorCode updateDatabaseEntryLAT(LatMeasurement Measurement);
 
 /**
+ * \brief Get the CPU identifier in the loaded IOFile
+ */
+std::string getIOCpu();
+
+/**
+ * \brief Get the architecture in the loaded IOFile
+ */
+std::string getIOArchitecture();
+
+/**
  * \brief Re-generates the operand info for each entry in the io database.
  * this can be useful to upgrade an existing database if the output format changes but is compatible
  * with the prior version.
