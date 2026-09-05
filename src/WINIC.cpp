@@ -52,8 +52,8 @@ namespace llvm {
 class MCInstrDesc;
 } // namespace llvm
 
-#ifndef CLANG_PATH
-#define CLANG_PATH "usr/bin/clang"
+#ifndef WINIC_CLANG_PATH
+#define WINIC_CLANG_PATH "usr/bin/clang"
 #endif
 
 namespace {
@@ -140,9 +140,9 @@ std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
 runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, unsigned Runs) {
     if (Runs == 0) return {E_NO_RUNS, {}};
     dbg(__func__, "N: ", LoopIterations, " Runs: ", Runs);
-    std::string clangPath = CLANG_PATH;
+    std::string clangPath = WINIC_CLANG_PATH;
     if (clangPath == "usr/bin/clang") {
-        std::cerr << "CLANG_PATH not set, using default" << std::endl;
+        std::cerr << "WINIC_CLANG_PATH not set, using default" << std::endl;
     }
     std::string sPath = "/dev/shm/temp.s";
     std::string oPath = "/dev/shm/temp.so";
@@ -195,7 +195,7 @@ runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, unsigned Runs) {
             archOption = str("-mcpu=", cpu);
         }
 
-        execl(CLANG_PATH, "clang", archOption.data(), "-nostdlib", "-x", "assembler-with-cpp",
+        execl(WINIC_CLANG_PATH, "clang", archOption.data(), "-nostdlib", "-x", "assembler-with-cpp",
               "-shared", sPath.data(), "-o", oPath.data(), nullptr);
         _exit(127);       // execl failed
     } else if (pid > 0) { // Parent
@@ -273,7 +273,7 @@ measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsig
     dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
         " LoopIterations: ", LoopIterations, " FunctionName: ", FunctionName,
         " InitName: ", InitName);
-    std::string clangPath = CLANG_PATH;
+    std::string clangPath = WINIC_CLANG_PATH;
     std::string oPath = "/dev/shm/temp.so";
     std::string cpu = getEnv().Machine->getTargetCPU().data();
     std::string archOption;
