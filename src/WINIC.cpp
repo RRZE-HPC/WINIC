@@ -777,7 +777,8 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
         gotNewMeasurement = false;
         size_t progress = 0;
         for (unsigned opcode : Opcodes) {
-            displayProgress({{"Measurement", progress++, Opcodes.size()}}, str("Opcode: ", opcode));
+            displayProgress({{"Measurement", progress++, Opcodes.size()}},
+                            str(getEnv().MCII->getName(opcode), "(", opcode, ")"));
             // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != E_NO_HELPER &&
