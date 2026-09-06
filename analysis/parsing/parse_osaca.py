@@ -100,7 +100,9 @@ def parse_osaca_database(path: str) -> List[Instruction]:
     for inst in instructions:
         latencies = [f"{l.cyclesMin}" for l in inst.latencies]
         throughputs = [f"{tp.cyclesMin}" for tp in inst.throughputs]
-        dec_operands = [f"{op.type}{op.width}{sorted(list(op.metadata))}" for op in inst.operands]
+        dec_operands = [
+            f"{op.type}{op.width}{sorted([f"{k}{v}" for k, v in op.metadata.items()])}" for op in inst.operands
+        ]
         id = f"{inst.sourceName}{sorted(set(latencies))}{sorted(set(throughputs))}{sorted(set(dec_operands))}"
         if id not in id_set:
             result.append(inst)
