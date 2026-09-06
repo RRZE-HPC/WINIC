@@ -10,6 +10,8 @@ def _short_op(op: Operand) -> str:
 
 
 def is_better_match_string(first: str, second: str) -> bool:
+    if len(first) != len(second):
+        return len(first) > len(second)
     if first.count("1") != second.count("1"):
         return first.count("1") > second.count("1")
     if first.find("0") != second.find("0"):
@@ -83,7 +85,7 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
                     break
                 # weak width match
                 weak_width = True
-                _dbg(f"width weak match {o1.width} != {o2.width}, subtract 1", 3)
+                _dbg(f"width weak match {o1.width} != {o2.width}, set weak_width", 3)
 
             # check metadata
             for m in o1.metadata.keys() | o2.metadata.keys():
@@ -265,6 +267,7 @@ def compare_lists(
     #         o_match_map[o_str].append(w_str)
     #     else:
     #         o_match_map[o_str] = [w_str]
+    o_inst_unmatched = copy.deepcopy(o_instructions)
     o_inst_map: dict[str, List[Instruction]] = {}
     for o_inst in o_instructions:
         map_name = _normalize_name(o_inst.asmName)
@@ -342,6 +345,9 @@ def compare_lists(
             if candidate.sim_string == best_sim_string:
                 highest_score_bin.append(candidate.inst)
 
+        for candidate in highest_score_bin:
+            if candidate in o_inst_unmatched:
+                o_inst_unmatched.remove(candidate)
         if debug:
             print(f"highest_score_bin={highest_score_bin}")
         if len(highest_score_bin) == 1:
@@ -389,6 +395,7 @@ def compare_lists(
 
         counters = get_stats(w_inst, o_inst, counters, mode, verbose)
 
+    print("unmatched: ", [x.sourceName for x in o_inst_unmatched])
     # check total number of instruction with value
     c_lat_obtained = 0  # how many instructions have a latency value
     c_tp_obtained = 0
