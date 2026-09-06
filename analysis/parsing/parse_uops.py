@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 # --- uops parsing --- #
 def _parse_uops_operand(op: ET.Element) -> Operand:
-    from .helper import get_register_width
+    from .helper import get_x86_register_width
 
     index = int(op.attrib["idx"]) if "idx" in op.attrib else None
     type = op.attrib["type"] if "type" in op.attrib else None
@@ -30,7 +30,7 @@ def _parse_uops_operand(op: ET.Element) -> Operand:
 
     # uops register width is sometimes weird/wrong, see VPBROADCASTD (XMM, XMM)
     # if possible use our own decoder to get the width, otherwise fallback to uops
-    width = get_register_width(regList[0]) if len(regList) > 0 else None
+    width = get_x86_register_width(regList[0]) if len(regList) > 0 else None
     if width is None:
         width = int(op.attrib["width"]) if "width" in op.attrib else None
 
