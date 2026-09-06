@@ -67,6 +67,7 @@ def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], 
     arch = osaca["isa"]
     if arch == "x86":
         arch = "X86"  # match our case
+    assert arch in ["X86", "AArch64"], "Cannot detect osaca database isa."
 
     # load winic instructions
     w_instructions: List[Instruction] = []
@@ -79,16 +80,6 @@ def compare_winic_osaca(db_winic, db_osaca, mode: Literal["TP", "LAT", "BOTH"], 
 
     # parse instructions from osaca db
     o_instructions: List[Instruction] = parse_osaca_database(db_osaca)
-
     print(f"osaca db has {len(o_instructions)} instructions")
-
-    # group by name
-    o_inst_map: dict[str, List[Instruction]] = {}
-    for o_inst in o_instructions:
-        map_name = o_inst.sourceName.upper()
-        if map_name in o_inst_map.keys():
-            o_inst_map[map_name].append(o_inst)
-        else:
-            o_inst_map[map_name] = [o_inst]
 
     compare_lists(w_instructions, o_instructions, mode, "loose", verbose)

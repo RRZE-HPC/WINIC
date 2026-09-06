@@ -288,6 +288,7 @@ class LLVMInterface:
 
 
 def get_env(arch: Literal["X86", "AArch64"]) -> LLVMInterface:
+    assert arch in ["X86", "AArch64"]
     global _env
     if _env is None:
         _env = LLVMInterface(arch)
