@@ -26,4 +26,4 @@ def compare_winic_v2(database, mode, verbose: bool = False):
             inst.latencies.append(Latency(None, None, lat["latencyMin"], lat["latencyMax"]))
         w_instructions.append(inst)
 
-    compare_lists(w_instructions, o_instructions, mode, "loose")
+    compare_lists(w_instructions, o_instructions, mode, "loose", verbose)
