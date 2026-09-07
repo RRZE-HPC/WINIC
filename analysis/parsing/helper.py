@@ -1,3 +1,5 @@
+from analysis.globals import *
+
 def get_x86_register_width(reg_name: str) -> int | None:
     """Return the bit-width of the given LLVM register name for x86.
 
@@ -165,3 +167,18 @@ def get_AArch64_register_width(reg_name: str) -> int | None:
         return decode_map[reg_name]
     print(f"Unhandled register: {reg_name}")
     return -1
+
+def remove_duplicates(instructions: List[Instruction]):
+    id_set = set()
+    result = []
+    for inst in instructions:
+        latencies = [f"{l.cyclesMin}" for l in inst.latencies]
+        throughputs = [f"{tp.cyclesMin}" for tp in inst.throughputs]
+        dec_operands = [
+            f"{op.type}{op.width}{sorted(op.metadata.items())}" for op in inst.operands
+        ]
+        id = f"{inst.sourceName}{sorted(set(latencies))}{sorted(set(throughputs))}{sorted(set(dec_operands))}{sorted(inst.metadata.items())}"
+        if id not in id_set:
+            result.append(inst)
+            id_set.add(id)
+    return result

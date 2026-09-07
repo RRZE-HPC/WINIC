@@ -2,6 +2,7 @@ import copy
 import itertools
 import yaml
 from analysis.globals import *
+from analysis.parsing.helper import remove_duplicates
 from typing import List
 
 
@@ -95,27 +96,16 @@ def parse_osaca_database(path: str) -> List[Instruction]:
                 instructions.append(inst)
 
     # remove any duplicate entries (e.g. because two gprs or duplicate entries in input)
-    id_set = set()
-    result = []
-    for inst in instructions:
-        latencies = [f"{l.cyclesMin}" for l in inst.latencies]
-        throughputs = [f"{tp.cyclesMin}" for tp in inst.throughputs]
-        dec_operands = [
-            f"{op.type}{op.width}{sorted([f"{k}{v}" for k, v in op.metadata.items()])}" for op in inst.operands
-        ]
-        id = f"{inst.sourceName}{sorted(set(latencies))}{sorted(set(throughputs))}{sorted(set(dec_operands))}"
-        if id not in id_set:
-            result.append(inst)
-            id_set.add(id)
+    instructions = remove_duplicates(instructions)
 
     # all read/write information we can get is that the last operand is written to on x86
-    for inst in result:
+    for inst in instructions:
         if len(inst.operands) > 0:
             if db["isa"] == "x64":
                 inst.operands[-1].write = True
             if db["isa"] == "AArch64":
                 inst.operands[0].write = True
-    return result
+    return instructions
 
 
 if __name__ == "__main__":
