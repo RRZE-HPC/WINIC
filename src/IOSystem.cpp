@@ -13,6 +13,7 @@
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -44,6 +45,13 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
             auto regClass = getEnv().MRI->getRegClass(operandForm.getRegClassID());
             opOp.name = opOp.name = std::make_optional(str(regClass));
             opOp.width = regClass.getSizeInBits();
+            // Get the architectural width of registers in this class
+            // Assume this is the maximum size among classes this register belongs to
+            auto reg = regClass.getRegister(0);
+            for (auto otherClass : getEnv().getRegClasses(reg)) {
+                unsigned size = otherClass.getSizeInBits();
+                opOp.width = size > opOp.width ? size : opOp.width;
+            }
         } else if (operandForm.isImmediate()) {
             opOp.opClass = "immediate";
         } else if (operandForm.isMemory()) {
