@@ -15,7 +15,7 @@
 #include <limits>
 #include <memory>
 #include <string>
-#include <tuple>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -43,8 +43,8 @@ extern bool keepEmptyEntries; // if true, entries with only null values are incl
  */
 void setOutputToFile(const std::string &Filename);
 
-template <typename T> inline bool contains(std::vector<T> Vector, T Element) {
-    return std::find(Vector.begin(), Vector.end(), Element) != Vector.end();
+template <typename Container, typename T> inline bool contains(const Container &Cont, T Element) {
+    return std::find(Cont.begin(), Cont.end(), Element) != Cont.end();
 }
 
 const unsigned MAX_UNSIGNED = std::numeric_limits<unsigned>::max();

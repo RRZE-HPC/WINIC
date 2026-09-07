@@ -1138,7 +1138,7 @@ int run(int Argc, char **Argv) {
     unsigned maxOpcode = 0;
     bool noReport = false;
     std::string databasePath = "";
-    std::string regInitValueString = "";
+    std::string regInitValueString = "7.0";
     std::string immValueString = "";
     std::string memory;
     std::string x87fp;
@@ -1155,8 +1155,8 @@ int run(int Argc, char **Argv) {
                    "be generated. If set to /dev/null no file will be generated");
     tp->add_option("--register-init-value", regInitValueString,
                    "Value to set registers to before benchmark. Accepts decimal, octal with "
-                   "prefix 0 or hexadecimal with prefix 0x")
-        ->default_val("4");
+                   "prefix 0, hexadecimal with prefix 0x, or floating point e.g. 7.0")
+        ->default_val("7.0");
     tp->add_option("--immediate-value", immValueString,
                    "Value to use for immediates. Accepts decimal, octal with "
                    "prefix 0 or hexadecimal with prefix 0x")
@@ -1200,8 +1200,8 @@ int run(int Argc, char **Argv) {
                     "be generated. If set to /dev/null no file will be generated");
     lat->add_option("--register-init-value", regInitValueString,
                     "Value to set registers to before benchmark. Accepts decimal, octal with "
-                    "prefix 0 or hexadecimal with prefix 0x")
-        ->default_val("4");
+                    "prefix 0, hexadecimal with prefix 0x, or floating point e.g. 7.0")
+        ->default_val("7.0");
     lat->add_option("--immediate-value", immValueString,
                     "Value to use for immediates. Accepts decimal, octal with "
                     "prefix 0 or hexadecimal with prefix 0x")
@@ -1267,8 +1267,14 @@ int run(int Argc, char **Argv) {
     app.require_subcommand(1, 1);
     CLI11_PARSE(app, Argc, Argv)
 
-    // process regInitValue
-    long regInitValue = std::stol(regInitValueString, nullptr, 0);
+    // process regInitValue and immValue
+    long regInitValue;
+    if (contains(regInitValueString, '.')) {
+        double d = std::stod(regInitValueString);
+        std::memcpy(&regInitValue, &d, sizeof(regInitValue));
+    } else {
+        regInitValue = std::stol(regInitValueString, nullptr, 0);
+    }
     long immValue = std::stol(immValueString, nullptr, 0);
 
     // configure output
@@ -1299,7 +1305,7 @@ int run(int Argc, char **Argv) {
         ErrorCode ec = getEnv().setUp(getIOArchitecture(), getIOCpu());
         if (ec != SUCCESS) {
             std::cerr << "failed to set up environment for non-native arch: " << ecToString(ec)
-            << std::endl;
+                      << std::endl;
             return 1;
         }
         if (reEncodeDatabase() != SUCCESS) {
