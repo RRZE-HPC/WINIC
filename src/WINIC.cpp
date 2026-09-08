@@ -935,6 +935,38 @@ void printInstructionInfo(unsigned Opcode, bool Internal) {
     }
 }
 
+bool testAssemblyLocation(std::string SPath, std::string SOPath) {
+    pid_t pid = fork();
+    if (pid == -1) return false;
+
+    if (pid == 0) { // Child process
+        benchmarkRunner = std::make_unique<BenchmarkRunner>(SPath, SOPath, clockFrequency,
+                                                            maxCyclesPerInstruction, outputASM);
+        AssemblyFile assembly;
+        assembly.addBenchFunction("test", "", "", "", "", 1);
+        ErrorCode ec = benchmarkRunner->assembleBenchmark(assembly);
+        if (isError(ec)) {
+            out(std::cout, "Cannot assemble benchmarks with paths ", SPath, " ", SOPath,
+                " trying to use a different location.");
+            exit(EXIT_FAILURE);
+        }
+        std::tie(ec, std::ignore) = benchmarkRunner->runBenchmark(assembly, 1, 1);
+        if (isError(ec)) {
+            out(std::cout, "Cannot run benchmarks at path ", SOPath,
+                " trying to use a different location.");
+            exit(EXIT_FAILURE);
+        }
+
+        exit(EXIT_SUCCESS);
+    } else { // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return false;
+
+        return true;
+    }
+}
+
 int run(int Argc, char **Argv) {
     std::string cpu = "";
     std::string march = "";
@@ -1159,9 +1191,37 @@ int run(int Argc, char **Argv) {
     struct timeval start, end;
     gettimeofday(&start, NULL);
     if (*tp || *lat || *man) {
-        benchmarkRunner =
-            std::make_unique<BenchmarkRunner>("/dev/shm/winic.s", "/dev/shm/winic.so",
-                                              clockFrequency, maxCyclesPerInstruction, outputASM);
+        // Determine where benchmarks will be assembled and executed. Default is /dev/shm but some
+        // systems may have it mounted with noexec.
+        std::vector<std::string> pathOptions = {"/dev/shm"};
+        if (const char *tmp = std::getenv("TMPDIR")) pathOptions.emplace_back(std::string(tmp));
+        pathOptions.emplace_back("/tmp");
+        pathOptions.emplace_back(".");
+
+        // Try to do as much as possible on /dev/shm
+        std::string sPath = "";
+        std::string soPath = "";
+        for (auto sPathOption : pathOptions) {
+            for (auto soPathOption : pathOptions) {
+                if (testAssemblyLocation(sPathOption + "/winic.s", soPathOption + "/winic.so")) {
+                    sPath = sPathOption;
+                    soPath = soPathOption;
+                    break;
+                }
+            }
+            if (!sPath.empty()) break;
+        }
+        if (sPath.empty()) {
+            out(std::cout, "Did not find a location to assemble and run benchmarks, exiting.");
+            exit(1);
+        } else {
+            if (sPath != "/dev/shm" || soPath != "/dev/shm")
+                out(std::cout, "Using ", sPath, "/winic.s to assemble and ", soPath,
+                    "/winic.so to run benchmarks.");
+            benchmarkRunner = std::make_unique<BenchmarkRunner>(
+                sPath + "/winic.s", soPath + "/winic.so", clockFrequency, maxCyclesPerInstruction,
+                outputASM);
+        }
     }
     if (*tp || *lat || *info) {
         // set database path if not supplied

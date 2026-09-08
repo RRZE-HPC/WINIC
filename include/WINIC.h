@@ -252,6 +252,14 @@ void buildLatDatabase(long RegInitValue, long Immediate);
 void printInstructionInfo(unsigned Opcode, bool Internal);
 
 /**
+ * \brief Tries to generate and execute a dummy benchmark file.
+ *
+ * \param SPath Path to put the assembly.
+ * \param SOPath Path to put the .so file.
+ */
+bool testAssemblyLocation(std::string SPath, std::string SOPath);
+
+/**
  * \brief Main entry point for the WINIC program.
  *
  * \param argc Argument count.
