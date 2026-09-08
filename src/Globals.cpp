@@ -2,8 +2,10 @@
 
 #include "LLVMDebug.h"
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
+#include "MCTargetDesc/RISCVBaseInfo.h"
 #include "llvm/TargetParser/Triple.h"
 #include <iostream>
+#include <llvm/MC/MCInstrDesc.h>
 
 namespace winic {
 
@@ -35,32 +37,52 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
     auto operandInfos = desc.operands();
     auto implDefs = desc.implicit_defs();
     auto implUses = desc.implicit_uses();
-    std::vector<unsigned> aarch64MemBaseIndices;
-    std::vector<unsigned> aarch64MemOffsetIndices;
-    std::vector<unsigned> aarch64MemOpIndices;
+    std::vector<unsigned> memBaseIndices;
+    std::vector<unsigned> memOffsetIndices;
+    std::vector<unsigned> memOpIndices;
 
     if (getEnv().isAArch64()) {
         // handle AArch64 memory operands beforehand as they are not marked as OPERAND_MEMORY
-        unsigned aarch64MemBase = getEnv().getAArch64BaseOperandIndex(Opcode);
-        unsigned aarch64MemOffset = getEnv().getAArch64OffsetOperandIndex(Opcode);
-        unsigned tiedToMemBase = aarch64MemBase != NO_OP_INDEX
-                                     ? getEnv().getTiedToOperand(desc.operands()[aarch64MemBase])
-                                     : NO_OP_INDEX;
-        unsigned tiedToMemOffset =
-            aarch64MemOffset != NO_OP_INDEX
-                ? getEnv().getTiedToOperand(desc.operands()[aarch64MemOffset])
-                : NO_OP_INDEX;
+        unsigned memBase = getEnv().getAArch64BaseOperandIndex(Opcode);
+        unsigned memOffset = getEnv().getAArch64OffsetOperandIndex(Opcode);
+        unsigned tiedToMemBase =
+            memBase != NO_OP_INDEX ? getEnv().getTiedToOperand(operandInfos[memBase]) : NO_OP_INDEX;
+        unsigned tiedToMemOffset = memOffset != NO_OP_INDEX
+                                       ? getEnv().getTiedToOperand(operandInfos[memOffset])
+                                       : NO_OP_INDEX;
 
-        if (aarch64MemBase != NO_OP_INDEX) aarch64MemBaseIndices.emplace_back(aarch64MemBase);
-        if (tiedToMemBase != NO_OP_INDEX) aarch64MemBaseIndices.emplace_back(tiedToMemBase);
-        if (aarch64MemOffset != NO_OP_INDEX) aarch64MemOffsetIndices.emplace_back(aarch64MemOffset);
-        if (tiedToMemOffset != NO_OP_INDEX) aarch64MemOffsetIndices.emplace_back(tiedToMemOffset);
+        if (memBase != NO_OP_INDEX) memBaseIndices.emplace_back(memBase);
+        if (tiedToMemBase != NO_OP_INDEX) memBaseIndices.emplace_back(tiedToMemBase);
+        if (memOffset != NO_OP_INDEX) memOffsetIndices.emplace_back(memOffset);
+        if (tiedToMemOffset != NO_OP_INDEX) memOffsetIndices.emplace_back(tiedToMemOffset);
 
-        aarch64MemOpIndices = aarch64MemBaseIndices;
-        aarch64MemOpIndices.insert(aarch64MemOpIndices.end(), aarch64MemOffsetIndices.begin(),
-                                   aarch64MemOffsetIndices.end());
-        dbg(__func__, desc);
-        dbg(__func__, aarch64MemBase, " ", aarch64MemOffset);
+        memOpIndices = memBaseIndices;
+        memOpIndices.insert(memOpIndices.end(), memOffsetIndices.begin(), memOffsetIndices.end());
+    } else if (getEnv().isRISCV()) {
+        // handle RISCV memory operands beforehand
+        // assumes there is at most one OPERAND_MEMORY
+        std::vector<unsigned char> offsetImmTypes = {RISCVOp::OPERAND_SIMM12_LO};
+        for (unsigned i = 0; i < desc.getNumOperands(); i++) {
+            auto operandInfo = operandInfos[i];
+            if (operandInfo.OperandType != MCOI::OPERAND_MEMORY) continue;
+            unsigned tiedToMemBase = getEnv().getTiedToOperand(operandInfos[i]);
+            unsigned tiedToMemOffset = NO_OP_INDEX;
+            unsigned memOffset = NO_OP_INDEX;
+
+            // check if there is an immediate
+            if (i + 1 < desc.getNumOperands() &&
+                contains(offsetImmTypes, operandInfos[i + 1].OperandType)) {
+                tiedToMemOffset = getEnv().getTiedToOperand(operandInfos[i + 1]);
+                memOffset = i + 1;
+            }
+            memBaseIndices.emplace_back(i);
+            if (tiedToMemBase != NO_OP_INDEX) memBaseIndices.emplace_back(tiedToMemBase);
+            if (memOffset != NO_OP_INDEX) memOffsetIndices.emplace_back(memOffset);
+            if (tiedToMemOffset != NO_OP_INDEX) memOffsetIndices.emplace_back(tiedToMemOffset);
+            memOpIndices = memBaseIndices;
+            memOpIndices.insert(memOpIndices.end(), memOffsetIndices.begin(),
+                                memOffsetIndices.end());
+        }
     }
 
     unsigned currentIndex = 0;
@@ -72,12 +94,14 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
         processedOperands.insert(i);
         auto operandInfo = operandInfos[i];
         // check if this is an Aarch64 memory operand
-        if (getEnv().isAArch64() && (contains(aarch64MemOpIndices, i))) {
-            processedOperands.insert(aarch64MemOpIndices.begin(), aarch64MemOpIndices.end());
-            operands.emplace_back(
-                OperandForm(currentIndex, aarch64MemOpIndices,
-                            AArch64MemoryOperand(aarch64MemBaseIndices, aarch64MemOffsetIndices),
-                            desc.mayStore(), desc.mayLoad()));
+        if (contains(memOpIndices, i)) {
+            processedOperands.insert(memOpIndices.begin(), memOpIndices.end());
+            auto memoryOperand =
+                getEnv().isAArch64()
+                    ? OperandKind{AArch64MemoryOperand(memBaseIndices, memOffsetIndices)}
+                    : OperandKind{RISCVMemoryOperand(memBaseIndices, memOffsetIndices)};
+            operands.emplace_back(OperandForm(currentIndex, memOpIndices, std::move(memoryOperand),
+                                              desc.mayStore(), desc.mayLoad()));
         } else if (operandInfo.OperandType == MCOI::OPERAND_REGISTER) {
             if (def) {
                 // check if there is a tiedTo use operand
@@ -180,28 +204,22 @@ void OperandForm::setImmediateOperand(MCInst *Inst, unsigned Imm) {
 void OperandForm::setMemoryOperand(MCInst *Inst, MCRegister BaseRegister, unsigned Displacement) {
     assert(isMemory());
     initMCInst(Inst);
+    MemoryOperand memOp = getMemoryOperand();
+    for (unsigned index : memOp.baseIndices)
+        Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
+    for (unsigned index : memOp.offsetIndices)
+        Inst->getOperand(index) = MCOperand::createImm(Displacement);
+
+    // only x86 has more than base and offset
     if (getEnv().isX86()) {
         X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
 
-        for (unsigned index : memOp->baseIndices)
-            Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
         for (unsigned index : memOp->scaleIndices)
             Inst->getOperand(index) = MCOperand::createImm(0);
         for (unsigned index : memOp->indexIndices)
             Inst->getOperand(index) = MCOperand::createReg(0);
-        for (unsigned index : memOp->offsetIndices)
-            Inst->getOperand(index) = MCOperand::createImm(Displacement);
         for (unsigned index : memOp->segmentIndices)
             Inst->getOperand(index) = MCOperand::createReg(0);
-    } else if (getEnv().isAArch64()) {
-        AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
-
-        for (unsigned index : memOp->baseIndices)
-            Inst->getOperand(index) = MCOperand::createReg(BaseRegister);
-        for (unsigned index : memOp->offsetIndices)
-            Inst->getOperand(index) = MCOperand::createImm(Displacement);
-    } else if (getEnv().isRISCV()) {
-        out(std::cerr, "RISCV memory not implemented yet");
     }
 }
 
@@ -227,19 +245,9 @@ void OperandForm::setTargetSpecificOperand(MCInst *Inst, unsigned Imm) {
 }
 
 unsigned OperandForm::getMemoryOperandOffset(MCInst Inst) {
-    assert(isMemory());
-    if (getEnv().isX86()) {
-        X86MemoryOperand *memOp = std::get_if<X86MemoryOperand>(&kind);
-        return Inst.getOperand(memOp->offsetIndices[0]).getImm();
-    }
-    if (getEnv().isAArch64()) {
-        AArch64MemoryOperand *memOp = std::get_if<AArch64MemoryOperand>(&kind);
-        // dbg(__func__, memOp->offsetIndices);
-        return Inst.getOperand(memOp->offsetIndices[0]).getImm();
-    }
-    if (getEnv().isRISCV()) {
-        out(std::cerr, "RISCV memory not implemented yet");
-    }
+    assert(hasMemoryOffsetImm());
+    MemoryOperand memOp = getMemoryOperand();
+    return Inst.getOperand(memOp.offsetIndices[0]).getImm();
     return NO_OP_INDEX;
 }
 

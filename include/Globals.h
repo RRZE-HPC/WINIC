@@ -100,8 +100,15 @@ class ImmediateOperand {
 };
 
 class MemoryOperand {
+  protected:
+    MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
+        : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {};
+
   public:
-    MemoryOperand() {};
+    // indices in the MCInst that have to be set to the base register. There might be more than one
+    // as MCInst duplicates operands when they are both defs and uses (see DEV.md)
+    std::vector<unsigned> baseIndices;
+    std::vector<unsigned> offsetIndices;
 
     std::string toCompactString() const { return "Mem"; }
 
@@ -113,12 +120,7 @@ class MemoryOperand {
 class AArch64MemoryOperand : public MemoryOperand {
   public:
     AArch64MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
-        : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {}
-
-    // indices in the MCInst that have to be set to the base register. There might be more than one
-    // as MCInst duplicates operands when they are both defs and uses (see DEV.md)
-    std::vector<unsigned> baseIndices;
-    std::vector<unsigned> offsetIndices;
+        : MemoryOperand(BaseIndices, OffsetIndices) {}
 };
 
 class X86MemoryOperand : public MemoryOperand {
@@ -126,23 +128,18 @@ class X86MemoryOperand : public MemoryOperand {
     X86MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> ScaleIndices,
                      std::vector<unsigned> IndexIndices, std::vector<unsigned> OffsetIndices,
                      std::vector<unsigned> SegmentIndices)
-        : baseIndices(BaseIndices), scaleIndices(ScaleIndices), indexIndices(IndexIndices),
-          offsetIndices(OffsetIndices), segmentIndices(SegmentIndices) {}
+        : MemoryOperand(BaseIndices, OffsetIndices), scaleIndices(ScaleIndices),
+          indexIndices(IndexIndices), segmentIndices(SegmentIndices) {}
 
-    std::vector<unsigned> baseIndices;
     std::vector<unsigned> scaleIndices;
     std::vector<unsigned> indexIndices;
-    std::vector<unsigned> offsetIndices;
     std::vector<unsigned> segmentIndices;
 };
 
 class RISCVMemoryOperand : public MemoryOperand {
   public:
     RISCVMemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
-        : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {}
-
-    std::vector<unsigned> baseIndices;
-    std::vector<unsigned> offsetIndices;
+        : MemoryOperand(BaseIndices, OffsetIndices) {}
 };
 
 class TargetSpecificOperand {
@@ -239,6 +236,27 @@ class OperandForm {
     bool isImmediate() const { return std::holds_alternative<ImmediateOperand>(kind); }
 
     bool isTargetSpecific() const { return std::holds_alternative<TargetSpecificOperand>(kind); }
+
+    const MemoryOperand &getMemoryOperand() const {
+        assert(isMemory());
+
+        return std::visit(
+            [](const auto &Operand) -> const MemoryOperand & {
+                using T = std::decay_t<decltype(Operand)>;
+                if constexpr (std::is_base_of_v<MemoryOperand, T>) {
+                    return Operand;
+                } else {
+                    assert(false && "Unreachable: Not a memory operand");
+                    std::abort();
+                }
+            },
+            kind);
+    }
+
+    bool hasMemoryOffsetImm() const {
+        assert(isMemory());
+        return !getMemoryOperand().offsetIndices.empty();
+    }
 
     MCRegister getRegister() const { return std::get_if<RegisterOperand>(&kind)->getRegister(); }
 
