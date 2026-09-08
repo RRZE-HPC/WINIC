@@ -1,7 +1,6 @@
 #ifndef LLVM_INSTR_GEN_H
 #define LLVM_INSTR_GEN_H
 
-#include "AssemblyFile.h"
 #include "ErrorCode.h"
 #include "Globals.h"
 #include "llvm/MC/MCRegister.h"
@@ -52,17 +51,6 @@ inline bool isUnusualLat(double A) {
     if (A > 600) return true;
     return !equalWithTolerance(std::round(A), A);
 }
-
-/**
- * \brief Runs a benchmark on the provided assembly file.
- *
- * \param Assembly The assembly file to benchmark.
- * \param N Number of loop iterations per run.
- * \param Runs Number of benchmark runs.
- * \return Pair of error code and a map from function names to lists of measured times.
- */
-std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs);
 
 /**
  * \brief Calculates the cycles per instruction based on measured runtimes.

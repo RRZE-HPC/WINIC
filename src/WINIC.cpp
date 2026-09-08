@@ -2,6 +2,7 @@
 
 #include "AssemblyFile.h"
 #include "BenchmarkGenerator.h"
+#include "BenchmarkRunner.h"
 #include "CLI11.hpp"
 #include "CustomDebug.h"
 #include "ErrorCode.h"
@@ -19,17 +20,13 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Target/TargetMachine.h"
 #include <algorithm>
-#include <cctype>
 #include <chrono>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <dlfcn.h>
-#include <fcntl.h>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -64,6 +61,7 @@ bool showProgress;
 bool outputASM;
 bool runInSubprocess;
 double maxCyclesPerInstruction;
+std::unique_ptr<winic::BenchmarkRunner> benchmarkRunner;
 
 static std::string generateTimestamp() {
     // Get current time
@@ -132,140 +130,11 @@ void prepAsmDir() {
         fs::remove_all(entry.path());
     }
 }
+
+std::string soPath = "/dev/shm/winic.so";
 } // namespace
 
 namespace winic {
-
-std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, unsigned Runs) {
-    if (Runs == 0) return {E_NO_RUNS, {}};
-    dbg(__func__, "N: ", LoopIterations, " Runs: ", Runs);
-    std::string clangPath = WINIC_CLANG_PATH;
-    if (clangPath == "usr/bin/clang") {
-        std::cerr << "WINIC_CLANG_PATH not set, using default" << std::endl;
-    }
-    std::string sPath = "/dev/shm/temp.s";
-    std::string oPath = "/dev/shm/temp.so";
-    std::ofstream asmFile(sPath);
-    if (!asmFile) {
-        std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {E_FILE, {}};
-    }
-    asmFile << Assembly.generateAssembly();
-    asmFile.close();
-    if (outputASM) {
-        std::string debugPath =
-            std::filesystem::current_path().string() + "/asm/" + Assembly.getName() + ".s";
-        std::ofstream debugFile(debugPath);
-        if (!debugFile) {
-            std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
-        } else {
-            debugFile << Assembly.generateAssembly();
-            debugFile.close();
-        }
-    }
-
-    // assemble benchmark
-    pid_t pid = fork();
-    if (pid == 0) { // Child
-        int fd;
-        if (outputASM) {
-            fd = open("assembler_out.log", O_WRONLY | O_TRUNC | O_CREAT, 0644);
-            if (fd == -1) {
-                perror("open assembler_out.log failed");
-                _exit(127);
-            }
-        } else {
-            fd = open("/dev/null", O_WRONLY);
-            if (fd == -1) {
-                perror("open /dev/null failed");
-                _exit(127);
-            }
-        }
-        dup2(fd, STDOUT_FILENO);
-        dup2(fd, STDERR_FILENO);
-        std::string cpu = getEnv().Machine->getTargetCPU().data();
-        std::string archOption;
-        if (getEnv().isRISCV() && cpu.find("generic") != std::string::npos) {
-            // generic riscv64 will fail to assemble benchmarks, use very
-            // permissive -march flag as workaround
-            cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
-            archOption = str("-march=", cpu);
-        } else {
-            archOption = str("-mcpu=", cpu);
-        }
-
-        execl(WINIC_CLANG_PATH, "clang", archOption.data(), "-nostdlib", "-x", "assembler-with-cpp",
-              "-shared", sPath.data(), "-o", oPath.data(), nullptr);
-        _exit(127);       // execl failed
-    } else if (pid > 0) { // Parent
-        int status;
-        waitpid(pid, &status, 0);
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            if (WEXITSTATUS(status) == 127) return {E_EXEC, {}};
-            return {E_ASSEMBLY, {}};
-        }
-    }
-
-    // from ibench
-    void *handle = nullptr;
-    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        std::cerr << "dlopen: failed to open .so file" << std::endl;
-        return {E_FILE, {}};
-    }
-    // get handles to function in the assembly file
-    std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
-    std::unordered_map<std::string, double (*)()> initFunctionMap;
-    for (std::string functionName : Assembly.getInitFunctionNames()) {
-        auto functionPtr = (double (*)())dlsym(handle, functionName.data());
-        if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
-            return {E_GENERIC, {}};
-        }
-        initFunctionMap[functionName] = functionPtr;
-    }
-    for (std::string functionName : Assembly.getBenchFunctionNames()) {
-        auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
-        if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
-            return {E_GENERIC, {}};
-        }
-        benchFunctionMap[functionName] = functionPtr;
-    }
-    // may have results from prior runs
-    struct timeval start, end;
-    std::unordered_map<std::string, std::list<double>> benchtimes;
-
-    for (auto [benchFunctionName, benchFunctionPointer] : benchFunctionMap) {
-        auto benchFunction = benchFunctionPointer;
-        auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionName)];
-        auto &list = benchtimes[benchFunctionName];
-        unsigned numInst = Assembly.getNumInstFor(benchFunctionName);
-        double runtimeLimit =
-            maxCyclesPerInstruction * (numInst * LoopIterations) / (clockFrequency * 1e3);
-
-        dbg(__func__, "running ", Assembly.getName(), " function: ", benchFunctionName);
-        for (unsigned i = 0; i < Runs; i++) {
-            if (initFunction) (*initFunction)();
-
-            gettimeofday(&start, NULL);
-            (*benchFunction)(LoopIterations);
-            gettimeofday(&end, NULL);
-
-            double benchtime =
-                (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
-            list.insert(list.end(), benchtime);
-            if (benchtime > runtimeLimit) return {S_RUNTIME_LIMIT, benchtimes};
-        }
-    }
-
-    dlclose(handle);
-    for (auto [name, times] : benchtimes) {
-        dbg(__func__, "benchtimes for ", name, ": ", times);
-    }
-
-    return {SUCCESS, benchtimes};
-}
 
 std::pair<ErrorCode, std::vector<double>>
 measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
@@ -273,55 +142,15 @@ measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsig
     dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
         " LoopIterations: ", LoopIterations, " FunctionName: ", FunctionName,
         " InitName: ", InitName);
-    std::string clangPath = WINIC_CLANG_PATH;
-    std::string oPath = "/dev/shm/temp.so";
-    std::string cpu = getEnv().Machine->getTargetCPU().data();
-    std::string archOption;
-    if (getEnv().isRISCV() && cpu.find("generic") != std::string::npos) {
-        // generic riscv64 will fail to assemble benchmarks, use very
-        // permissive -march flag as workaround
-        cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
-        archOption = str("-march=", cpu);
-    } else {
-        archOption = str("-mcpu=", cpu);
-    }
-    std::string command = clangPath + " " + archOption.data() +
-                          " -nostdlib -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
-                          " 2> assembler_out.log";
-    if (system(command.data()) != 0) return {E_ASSEMBLY, {}};
+    std::unordered_map<std::string, std::vector<double>> benchResults;
+    AssemblyFile assembly;
+    assembly.addBenchFunction(FunctionName, "", "", "", InitName, NumInst);
 
-    // from ibench
-    void *handle;
-    double (*function)(int);
-    double (*init)() = nullptr;
-    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        std::cerr << "dlopen: failed to open .so file" << std::endl;
-        return {E_ASSEMBLY, {}};
-    }
-    if (!InitName.empty()) {
-        if ((init = (double (*)())dlsym(handle, InitName.data())) == NULL) {
-            std::cerr << "dlsym: couldn't find function " << InitName << std::endl;
-            return {E_GENERIC, {}};
-        }
-    }
-    if ((function = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
-        std::cerr << "dlsym: couldn't find function " << FunctionName << std::endl;
-        return {E_GENERIC, {}};
-    }
-    struct timeval start, end;
-    std::vector<double> benchtimes;
-    for (unsigned i = 0; i < Runs; i++) {
-        if (init) (*init)();
-        gettimeofday(&start, NULL);
-        // actual call to benchmarked function
-        (*function)(LoopIterations);
-        gettimeofday(&end, NULL);
-        benchtimes.insert(benchtimes.end(),
-                          (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
-    }
+    ErrorCode ec = benchmarkRunner->assembleBenchmark(SPath);
+    if (ec != SUCCESS) return {ec, {}};
 
-    dlclose(handle);
-    return {SUCCESS, benchtimes};
+    std::tie(ec, benchResults) = benchmarkRunner->runBenchmark(assembly, LoopIterations, Runs);
+    return {SUCCESS, benchResults[FunctionName]};
 }
 
 std::pair<ErrorCode, double>
@@ -480,7 +309,7 @@ measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate) {
     AssemblyFile assembly;
     ErrorCode ec;
     std::set<MCRegister> usedRegs;
-    std::unordered_map<std::string, std::list<double>> benchResults;
+    std::unordered_map<std::string, std::vector<double>> benchResults;
 
     auto [ec1, helperOpcode, helperConstraints] = findTPHelperInstruction(Opcode, Immediate);
     if (ec1 != SUCCESS) return {ec1, -1, -1};
@@ -490,8 +319,12 @@ measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate) {
     std::tie(ec, assembly) = genTPBenchmark(Opcode, &numInst, 1, usedRegs, helperConstraints,
                                             helperOpcode, RegInitValue, Immediate);
     if (ec != SUCCESS) return {ec, -1, -1};
+
     assembly.setName(getEnv().MCII->getName(Opcode).str());
-    std::tie(ec, benchResults) = runBenchmark(assembly, loopIterations, nRuns);
+    ec = benchmarkRunner->assembleBenchmark(assembly);
+    if (ec != SUCCESS) return {ec, -1, -1};
+
+    std::tie(ec, benchResults) = benchmarkRunner->runBenchmark(assembly, loopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1, -1};
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
@@ -540,15 +373,19 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
     ErrorCode ec;
     ErrorCode warning = NO_ERROR_CODE;
     AssemblyFile assembly;
-    std::unordered_map<std::string, std::list<double>> benchResults;
+    std::unordered_map<std::string, std::vector<double>> benchResults;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
     std::tie(ec, assembly) =
         genLatBenchmark(Measurements, &instructionCount, {}, RegInitValue, Immediate);
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
+
     assembly.setName(Measurements.front().toFilenameString());
-    std::tie(ec, benchResults) = runBenchmark(assembly, LoopIterations, nRuns);
+    ec = benchmarkRunner->assembleBenchmark(assembly);
+    if (ec != SUCCESS) return {ec, -1};
+
+    std::tie(ec, benchResults) = benchmarkRunner->runBenchmark(assembly, LoopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1};
 
     // take minimum of runs. "lat" and "lat2" is naming convention defined in
@@ -1242,6 +1079,12 @@ int run(int Argc, char **Argv) {
     app.require_subcommand(1, 1);
     CLI11_PARSE(app, Argc, Argv)
 
+    // check if WINIC_CLANG_PATH is set
+    std::string clangPath = WINIC_CLANG_PATH;
+    if (clangPath == "usr/bin/clang") {
+        out(std::cerr, "WINIC_CLANG_PATH not set, trying default usr/bin/clang");
+    }
+
     // process regInitValue and immValue
     long regInitValue;
     if (contains(regInitValueString, '.')) {
@@ -1315,6 +1158,11 @@ int run(int Argc, char **Argv) {
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
+    if (*tp || *lat || *man) {
+        benchmarkRunner =
+            std::make_unique<BenchmarkRunner>("/dev/shm/winic.s", "/dev/shm/winic.so",
+                                              clockFrequency, maxCyclesPerInstruction, outputASM);
+    }
     if (*tp || *lat || *info) {
         // set database path if not supplied
         if (*info) databasePath = "/dev/null";
