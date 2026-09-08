@@ -225,15 +225,6 @@ measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsig
                        std::string FunctionName, std::string InitName = "");
 
 /**
- * \brief Checks if two opcodes are variants of the same instruction with different operands.
- *
- * \param A First opcode.
- * \param B Second opcode.
- * \return True if A and B are variants, false otherwise.
- */
-bool isVariant(unsigned A, unsigned B);
-
-/**
  * \brief Runs a small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any
  * other way.
  *
