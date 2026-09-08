@@ -28,6 +28,18 @@ ErrorCode BenchmarkRunner::assembleBenchmark(AssemblyFile Assembly) {
     }
     asmFile << Assembly.generateAssembly();
     asmFile.close();
+    if (outputASM) {
+        std::string asmPath =
+            std::filesystem::current_path().string() + "/asm/" + Assembly.getName() + ".s";
+        std::ofstream debugFile(asmPath);
+        if (!debugFile) {
+            std::cerr << "Failed to create debug file at " << asmPath.data() << std::endl;
+        } else {
+            debugFile << Assembly.generateAssembly();
+            debugFile.close();
+        }
+    }
+
     return assembleBenchmark(sPath);
 }
 
@@ -81,18 +93,6 @@ BenchmarkRunner::runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, un
     if (Runs == 0) return {E_NO_RUNS, {}};
     dbg(__func__, "N: ", LoopIterations, " Runs: ", Runs);
 
-    if (outputASM) {
-        std::string debugPath =
-            std::filesystem::current_path().string() + "/asm/" + Assembly.getName() + ".s";
-        std::ofstream debugFile(debugPath);
-        if (!debugFile) {
-            std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
-        } else {
-            debugFile << Assembly.generateAssembly();
-            debugFile.close();
-        }
-    }
-
     // from ibench
     void *handle = nullptr;
     if ((handle = dlopen(soPath.data(), RTLD_LAZY)) == NULL) {
@@ -107,7 +107,10 @@ BenchmarkRunner::runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, un
     for (std::string functionName : Assembly.getInitFunctionNames()) {
         auto functionPtr = (double (*)())dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
+            const char *error = dlerror();
+            out(std::cerr, "dlsym: couldn't find function ", functionName, " ",
+                error != nullptr ? error : "");
+            dlclose(handle);
             return {E_GENERIC, {}};
         }
         initFunctionMap[functionName] = functionPtr;
@@ -115,7 +118,8 @@ BenchmarkRunner::runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, un
     for (std::string functionName : Assembly.getBenchFunctionNames()) {
         auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
         if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
+            out(std::cerr, "dlsym: couldn't find function ", functionName.data());
+            dlclose(handle);
             return {E_GENERIC, {}};
         }
         benchFunctionMap[functionName] = functionPtr;
@@ -143,7 +147,10 @@ BenchmarkRunner::runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, un
             double benchtime =
                 (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
             list.insert(list.end(), benchtime);
-            if (benchtime > runtimeLimit) return {S_RUNTIME_LIMIT, benchtimes};
+            if (benchtime > runtimeLimit) {
+                dlclose(handle);
+                return {S_RUNTIME_LIMIT, benchtimes};
+            }
         }
     }
 
