@@ -117,24 +117,24 @@ std::string AssemblyFile::generateBenchFunction(BenchFunction Function) {
     std::string result;
     llvm::raw_string_ostream rso(result);
     Template benchTemplate = getTemplate();
-    rso << replaceFunctionName(benchTemplate.preLoop, Function.name);
+    rso << benchTemplate.preLoop;
     rso << indentBlock(Function.preLoopCode, 2);
-    rso << replaceFunctionName(benchTemplate.beginLoop, Function.name);
+    rso << benchTemplate.beginLoop;
     rso << indentBlock(Function.loopCode, 2);
-    rso << replaceFunctionName(benchTemplate.endLoop, Function.name);
+    rso << benchTemplate.endLoop;
     rso << indentBlock(Function.postLoopCode, 2);
-    rso << replaceFunctionName(benchTemplate.postLoop, Function.name);
-    return result;
+    rso << benchTemplate.postLoop;
+    return replaceFunctionName(result, Function.name);
 }
 
 std::string AssemblyFile::generateInitFunction(InitFunction Function) {
     std::string result;
     llvm::raw_string_ostream rso(result);
     Template benchTemplate = getTemplate();
-    rso << replaceFunctionName(benchTemplate.preInit, Function.name);
+    rso << benchTemplate.preInit;
     rso << indentBlock(Function.initCode, 2);
-    rso << replaceFunctionName(benchTemplate.postInit, Function.name);
-    return result;
+    rso << benchTemplate.postInit;
+    return replaceFunctionName(result, Function.name);
 }
 
 } // namespace winic
