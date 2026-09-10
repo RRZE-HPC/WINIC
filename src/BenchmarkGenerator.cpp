@@ -133,12 +133,26 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
         }
     }
 
-    // if this benchmark accesses memory, set the memory base register to the buffer address each
-    // iteration so loads/stores with auto-increment don't segfault
-    std::string setMemCode = "";
-    for (auto m : Measurements)
-        if (getEnv().mayAccessMemory(m.opcode))
-            setMemCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
+    // If this benchmark accesses memory, set the memory base registers to the buffer address
+    std::string loadMem = "";
+    std::set<MCRegister> memBaseRegs = getMemBaseRegs(instructions);
+    for (MCRegister reg : memBaseRegs) {
+        loadMem = str(loadMem,
+                      replaceAllInstances(getTemplate().loadMemoryAddress, "reg",
+                                          getEnv().getRegAsmName(reg)),
+                      "\n");
+    }
+
+    // If an instruction updates the memory base register, we need to generate code to reset it in
+    // the loop
+    std::string loopMemReset = "";
+    for (MCInst inst : instructions) {
+        InstructionForm instructionForm = InstructionForm(inst.getOpcode());
+        if (instructionForm.hasDefOfMemBaseRegister()) {
+            loopMemReset = getTemplate().genResetMemInLoopCode(
+                loadMem, getEnv().getRegAsmName(*memBaseRegs.begin()));
+        }
+    }
 
     std::string loopCode;
     llvm::raw_string_ostream lco(loopCode);
@@ -162,11 +176,11 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
     ico << restoreRegs << "\n";
 
     AssemblyFile assemblyFile;
-    assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("lat", saveRegs + regInit, setMemCode + loopCode, restoreRegs,
-                                  "init", *TargetInstrCount * instructions.size());
-    assemblyFile.addBenchFunction("lat2", saveRegs + regInit, setMemCode + loopCode + loopCode,
-                                  restoreRegs, "init", *TargetInstrCount * instructions.size() * 2);
+    assemblyFile.addBenchFunction("lat", saveRegs + regInit + loadMem, loopMemReset + loopCode,
+                                  restoreRegs, "", *TargetInstrCount * instructions.size());
+    assemblyFile.addBenchFunction("lat2", saveRegs + regInit + loadMem,
+                                  loopMemReset + loopCode + loopCode, restoreRegs, "",
+                                  *TargetInstrCount * instructions.size() * 2);
 
     // check if each instruction of the sequence has exactly one dependency to the next one.
     // otherwise return a warning
@@ -239,25 +253,37 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
         slo << "\n";
     }
 
-    // if this benchmark accesses memory, set the memory base register to the buffer address each
-    // iteration so loads/stores with auto-increment don't segfault
-    std::string setMemCode = "";
-    if (getEnv().mayAccessMemory(Opcode) ||
-        (HelperOpcode != MAX_UNSIGNED && getEnv().mayAccessMemory(HelperOpcode)))
-        setMemCode = str(benchTemplate.setScratchMemoryBaseReg, "\n");
+    // If this benchmark accesses memory, set the memory base registers to the buffer address
+    std::string loadMem = "";
+    std::set<MCRegister> memBaseRegs = getMemBaseRegs(instructions);
+    for (MCRegister reg : memBaseRegs) {
+        loadMem = str(loadMem,
+                      replaceAllInstances(getTemplate().loadMemoryAddress, "reg",
+                                          getEnv().getRegAsmName(reg)),
+                      "\n");
+    }
+
+    // If an instruction updates the memory base register, we need to generate code to reset it in
+    // the loop
+    std::string loopMemReset = "";
+    for (unsigned opcode : opcodes) {
+        InstructionForm instructionForm = InstructionForm(opcode);
+        if (instructionForm.hasDefOfMemBaseRegister()) {
+            loopMemReset = getTemplate().genResetMemInLoopCode(
+                loadMem, getEnv().getRegAsmName(*memBaseRegs.begin()));
+        }
+    }
 
     std::string loopCode;
     for (unsigned i = 0; i < UnrollCount; i++)
         loopCode.append(singleLoopCode);
 
-    std::string initCode = saveRegs + singleLoopCode + restoreRegs + "\n";
-
     AssemblyFile assemblyFile;
-    assemblyFile.addInitFunction("init", initCode);
-    assemblyFile.addBenchFunction("tp", saveRegs + regInit, setMemCode + loopCode, restoreRegs,
-                                  "init", instructions.size());
-    assemblyFile.addBenchFunction("tp2", saveRegs + regInit, setMemCode + loopCode + loopCode,
-                                  restoreRegs, "init", instructions.size() * 2);
+    assemblyFile.addBenchFunction("tp", saveRegs + regInit + loadMem, loopMemReset + loopCode,
+                                  restoreRegs, "", instructions.size());
+    assemblyFile.addBenchFunction("tp2", saveRegs + regInit + loadMem,
+                                  loopMemReset + loopCode + loopCode, restoreRegs, "",
+                                  instructions.size() * 2);
     return {SUCCESS, assemblyFile};
 }
 
@@ -283,6 +309,12 @@ genTPLoop(std::vector<unsigned> Opcodes,
         for (auto operand : instructionForm.getUseOnlyOps()) {
             if (operand.isRegClass())
                 ConstraintsVector[i].insert({operand.getIndex(), operand.getReg(&refInst)});
+            if (operand.isMemory() && !instructionForm.hasDefOfMemBaseRegister()) {
+                // The base register is not written to, so we can also use the same one for each
+                // instruction
+                ConstraintsVector[i].insert(
+                    {operand.getIndex(), operand.getMemoryOperandBaseReg(&refInst)});
+            }
         }
     }
 
@@ -335,13 +367,6 @@ whichOperandCanUse(unsigned Opcode, std::string Type, MCRegister RequiredRegiste
 std::pair<ErrorCode, MCInst>
 genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
         std::set<MCRegister> &UsedRegisters, unsigned Immediate, unsigned MemDisplacement) {
-
-    // make sure fixed registers are not used anywhere else than they are supposed to by adding
-    // them to usedRegisters beforehand
-    std::set<MCRegister> localUsedRegisters;
-    for (auto c : Constraints)
-        localUsedRegisters.insert(c.second);
-
     MCInst inst;
     inst.setOpcode(Opcode);
     inst.clear();
@@ -349,11 +374,31 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
     for (auto op : instructionForm.getOperands()) {
         // check for constraint
         if (Constraints.find(op.getIndex()) != Constraints.end()) {
-            op.setRegClassOperand(&inst, Constraints[op.getIndex()]);
+            // Constraints can either target register operands or memory operand base registers
+            if (op.isRegClass()) {
+                op.setRegClassOperand(&inst, Constraints[op.getIndex()]);
+            }
+            if (op.isMemory()) {
+                op.setMemoryOperand(&inst, Constraints[op.getIndex()], MemDisplacement);
+            }
             continue;
         }
         if (op.isMemory()) {
-            op.setMemoryOperand(&inst, getTemplate().scratchMemoryBaseReg, MemDisplacement);
+            // if (instructionForm.hasDefOfMemBaseRegister()) {
+            // Need a different base register for each instruction
+            unsigned regClassID = AArch64::GPR64commonRegClassID;
+            if (getEnv().isAArch64())
+                regClassID = AArch64::GPR64commonRegClassID;
+            else if (getEnv().isX86())
+                regClassID = X86::GR64_NOREX2_NOSPRegClassID;
+            else if (getEnv().isRISCV())
+                regClassID = 1; // TODO
+
+            const MCRegisterClass &regClass = getEnv().MRI->getRegClass(regClassID);
+            auto [ec, reg] = getFreeRegisterInClass(regClass, UsedRegisters);
+            if (isError(ec)) return {ec, {}};
+            op.setMemoryOperand(&inst, reg, MemDisplacement);
+            UsedRegisters.insert(reg);
         }
         if (op.isImmediate()) {
             op.setImmediateOperand(&inst, Immediate);
@@ -374,13 +419,8 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
                                 [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
                     continue;
 
-                // don't reuse any registers
-                if (std::any_of(localUsedRegisters.begin(), localUsedRegisters.end(),
-                                [reg](MCRegister R) { return getEnv().TRI->regsOverlap(reg, R); }))
-                    continue;
-
                 op.setRegClassOperand(&inst, reg);
-                localUsedRegisters.insert(reg);
+                UsedRegisters.insert(reg);
                 foundRegister = true;
                 break;
             }
@@ -388,7 +428,6 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
         }
     }
 
-    UsedRegisters.insert(localUsedRegisters.begin(), localUsedRegisters.end());
     return {SUCCESS, inst};
 }
 
@@ -461,6 +500,26 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
                     DependencyType(RegisterOperand(def), RegisterOperand(use)));
 
     return dependencies;
+}
+
+std::set<MCRegister> getMemBaseRegs(std::vector<MCInst> Instructions) {
+    // find all registers that are memory base pointers
+    std::map<unsigned, InstructionForm> instructionForms;
+    for (auto inst : Instructions) {
+        if (instructionForms.find(inst.getOpcode()) != instructionForms.end()) continue;
+
+        instructionForms.insert({inst.getOpcode(), InstructionForm(inst.getOpcode())});
+    }
+    std::set<MCRegister> writtenBaseRegs;
+    for (auto inst : Instructions) {
+        auto instructionForm = instructionForms.at(inst.getOpcode());
+        for (auto opForm : instructionForm.getOperands()) {
+            if (!opForm.isMemory()) continue;
+            MCRegister reg = opForm.getMemoryOperandBaseReg(&inst);
+            writtenBaseRegs.insert(reg);
+        }
+    }
+    return writtenBaseRegs;
 }
 
 std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {

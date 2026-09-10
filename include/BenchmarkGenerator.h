@@ -143,6 +143,13 @@ getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters);
 std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
 
 /**
+ * \brief Finds all memory access base register.
+ * \param Instructions Instructions to search for base registers in.
+ * \return Set with all memory base registers.
+ */
+std::set<MCRegister> getMemBaseRegs(std::vector<MCInst> Instructions);
+
+/**
  * \brief Generates code to save a register.
  * \param Reg The register to save.
  * \return Pair of ErrorCode and assembly code string.

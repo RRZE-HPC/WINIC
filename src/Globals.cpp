@@ -185,6 +185,18 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
     }
 }
 
+bool InstructionForm::hasDefOfMemBaseRegister() const {
+    for (OperandForm opForm : operands){
+        if (!opForm.isMemory()) continue;
+        MemoryOperand memOp = opForm.getMemoryOperand();
+        const MCInstrDesc &desc = getEnv().MCII->get(opcode);
+        for (unsigned mcInd : memOp.baseIndices) {
+            if (mcInd < desc.getNumDefs()) return true;
+        }
+    }
+    return false;
+}
+
 void OperandForm::setRegClassOperand(MCInst *Inst, MCRegister Reg) {
     assert(isRegClass());
     initMCInst(Inst);
@@ -248,7 +260,11 @@ unsigned OperandForm::getMemoryOperandOffset(MCInst Inst) {
     assert(hasMemoryOffsetImm());
     MemoryOperand memOp = getMemoryOperand();
     return Inst.getOperand(memOp.offsetIndices[0]).getImm();
-    return NO_OP_INDEX;
+}
+
+MCRegister OperandForm::getMemoryOperandBaseReg(MCInst *Inst){
+    MemoryOperand memOp = getMemoryOperand();
+    return Inst->getOperand(memOp.baseIndices[0]).getReg();
 }
 
 } // namespace winic

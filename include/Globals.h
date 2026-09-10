@@ -294,6 +294,11 @@ class OperandForm {
     unsigned getMemoryOperandOffset(MCInst Inst);
 
     /**
+     * \brief For a given MCInst, get the base register of the memory access.
+     */
+    MCRegister getMemoryOperandBaseReg(MCInst *Inst);
+
+    /**
      * \brief For a given MCInst, get the register that is used for this operand.
      * Has to be a registerClassOperand.
      */
@@ -346,6 +351,8 @@ class InstructionForm {
     unsigned getOpcode() const { return opcode; }
 
     std::string getName() const { return getEnv().MCII->getName(opcode).str(); }
+
+    bool hasDefOfMemBaseRegister() const;
 
     /**
      * \brief sorts operands by their indices.

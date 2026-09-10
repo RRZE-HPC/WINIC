@@ -138,7 +138,7 @@ BenchmarkRunner::runBenchmark(AssemblyFile Assembly, unsigned LoopIterations, un
 
         dbg(__func__, "running ", Assembly.getName(), " function: ", benchFunctionName);
         for (unsigned i = 0; i < Runs; i++) {
-            if (initFunction) (*initFunction)();
+            (*benchFunction)(3);
 
             gettimeofday(&start, NULL);
             (*benchFunction)(LoopIterations);

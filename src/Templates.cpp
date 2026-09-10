@@ -42,14 +42,14 @@ static size_t countOccurrences(const std::string &Str, const std::string &Sub) {
 namespace winic {
 
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-                   string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
-                   std::list<RegInitTemplate> RegInitTemplates,
-                   llvm::MCRegister ScratchMemoryBaseReg, string SetScratchMemoryBaseReg)
+                   string ResetLoop, string EndLoop, string PostLoop, string Suffix,
+                   std::set<string> UsedRegisters, std::list<RegInitTemplate> RegInitTemplates,
+                   llvm::MCRegister BufferEndReg, string LoadMemoryAddress)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
-      preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
-      postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
+      preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), resetLoop(std::move(ResetLoop)),
+      endLoop(std::move(EndLoop)), postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
       usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)),
-      scratchMemoryBaseReg(ScratchMemoryBaseReg), setScratchMemoryBaseReg(SetScratchMemoryBaseReg) {
+      bufferEndReg(BufferEndReg), loadMemoryAddress(LoadMemoryAddress) {
     // for readability of this file, strings have a leading newline
     // this gets removed here
     trimLeadingNewline(this->prefix);
@@ -57,6 +57,7 @@ Template::Template(string Prefix, string PreInit, string PostInit, string PreLoo
     trimLeadingNewline(this->postInit);
     trimLeadingNewline(this->preLoop);
     trimLeadingNewline(this->beginLoop);
+    trimLeadingNewline(this->resetLoop);
     trimLeadingNewline(this->endLoop);
     trimLeadingNewline(this->postLoop);
     trimLeadingNewline(this->suffix);
@@ -68,6 +69,11 @@ void Template::trimLeadingNewline(string &Str) {
     if (!Str.empty() && Str[0] == '\n') {
         Str.erase(0, 1);
     }
+}
+
+string Template::genResetMemInLoopCode(string ResetCode, string CompareReg) {
+    string loopMemReset = replaceAllInstances(resetLoop, "reset_code", ResetCode);
+    return replaceAllInstances(loopMemReset, "reg", CompareReg);
 }
 
 // AI
@@ -137,7 +143,6 @@ buffer:
 .type init, @function
 .align 32
 functionName:
-    lea r9, [rip + buffer]
 )",
     R"(
     ret
@@ -151,12 +156,14 @@ functionName:
 functionName:
 )",
     R"(
-    lea r9, [rip + buffer]
     xor       i, i
     test      N, N
     jle       done_functionName
 loop_functionName:
     inc       i
+)",
+    R"(
+    // x86 has base reg auto increment so this should never be generated
 )",
     R"(
     cmp       i, N
@@ -170,7 +177,7 @@ done_functionName:
     R"(
 .section .note.GNU-stack,"",@progbits
 )",
-    {"edi", "r8d", "rbp", "rsp", "r9"},
+    {"edi", "r8d", "rbp", "rsp"},
     {{
          R"(
     mov	reg, imm
@@ -214,7 +221,7 @@ done_functionName:
          X86::EAX,
      }},
     X86::R9,
-    "lea r9, [rip + buffer]"};
+    "lea reg, [rip + buffer]"};
 
 Template AArch64Template = {
     R"(
@@ -224,6 +231,7 @@ Template AArch64Template = {
 .p2align 12 
 buffer:
     .skip 4096
+buffer_end:
 .text
 
 )",
@@ -232,7 +240,7 @@ buffer:
 .type functionName, @function
 .align 2
 functionName:
-    adr x9, buffer
+    adr x9, buffer_end
     ptrue p0.d
 )",
     R"(
@@ -268,9 +276,16 @@ functionName:
     mov     x4, N
 )",
     R"(
-    adr x9, buffer
+    adr x9, buffer_end
+    subs x9, x9, 256
     ptrue p0.d
 loop_functionName:
+)",
+    R"(
+    cmp x9, reg
+    b.hs instructions_functionName
+    reset_code
+    instructions_functionName:
 )",
     R"(
     subs      x4, x4, #1
@@ -299,7 +314,7 @@ done_functionName:
 )",
     R"(
 )",
-    {"x4", "x9"},
+    {"x0", "x4", "x9"},
     {{
          R"(
     movk	reg, #imm, lsl #0
@@ -325,7 +340,7 @@ done_functionName:
          AArch64::X0,
      }},
     AArch64::X9,
-    "adr x9, buffer"};
+    "adr reg, buffer"};
 
 Template RISCVTemplate = {
     R"(
@@ -403,6 +418,9 @@ functionName:
     R"(
 loop_functionName:
     addi    t0, t0, 1           # i++
+)",
+    R"(
+    TODO
 )",
     R"(
     blt     t0, t1, loop_functionName
