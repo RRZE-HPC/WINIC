@@ -87,7 +87,7 @@ findTPHelperInstruction(unsigned Opcode, long Immediate);
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
 std::tuple<ErrorCode, double, double>
-measureThroughput(unsigned Opcode, long RegInitValue, long Immediate);
+measureThroughput(unsigned Opcode, initType RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureThroughput in a subprocess to recover from segfaults during benchmarking.
@@ -99,7 +99,7 @@ measureThroughput(unsigned Opcode, long RegInitValue, long Immediate);
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
 std::tuple<ErrorCode, double, double>
-measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate);
+measureThroughputInSubprocess(unsigned Opcode, initType RegInitValue, long Immediate);
 
 /**
  * \brief Measures the throughput of the instruction with the given opcode.
@@ -114,7 +114,7 @@ measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate
  * \return Tuple of error code, lower bound, and upper bound for throughput.
  */
 std::tuple<ErrorCode, double, double>
-measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate);
+measureThroughputInProcess(unsigned Opcode, initType RegInitValue, long Immediate);
 
 /**
  * \brief Measures the latency of the provided instruction chain.
@@ -131,7 +131,7 @@ measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate);
  */
 std::pair<ErrorCode, double>
 measureLatency(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
-               long RegInitValue, long Immediate);
+               initType RegInitValue, long Immediate);
 
 /**
  * \brief Calls measureLatency in a subprocess to recover from segfaults during benchmarking.
@@ -144,7 +144,7 @@ measureLatency(const std::vector<LatMeasurement> &Measurements, unsigned LoopIte
  */
 std::pair<ErrorCode, double>
 measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
-                           long RegInitValue, long Immediate);
+                           initType RegInitValue, long Immediate);
 
 /**
  * \brief Measures the latency of the provided instruction chain.
@@ -161,7 +161,7 @@ measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsi
  */
 std::pair<ErrorCode, double>
 measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
-                        long RegInitValue, long Immediate);
+                        initType RegInitValue, long Immediate);
 
 /**
  * \brief Manually runs a benchmark from an assembly file at a given path.
@@ -222,7 +222,7 @@ measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsig
  * \param Immediate Immediate value to use in the test instruction.
  * \return Error code indicating the result.
  */
-ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate);
+ErrorCode canMeasure(LatMeasurement Measurement, initType RegInit, long Immediate);
 
 /**
  * \brief Measures the first MaxOpcode instructions or all if MaxOpcode is zero or not supplied.
@@ -232,7 +232,7 @@ ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate);
  * \param RegInitValue Value to initialize registers with.
  * \param Immediate Immediate value to use during measurements.
  */
-void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Immediate);
+void buildTPDatabase(std::vector<unsigned> Opcodes, initType RegInitValue, long Immediate);
 
 /**
  * \brief Builds the latency database by measuring all relevant instructions.
@@ -241,7 +241,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
  * \param RegInitValue Value to initialize registers with.
  * \param Immediate Immediate value to use during measurements.
  */
-void buildLatDatabase(long RegInitValue, long Immediate);
+void buildLatDatabase(initType RegInitValue, long Immediate);
 
 /**
  * \brief Prints a line with name, opcode, operands and some flags for an instruction.

@@ -1,5 +1,6 @@
 #include "Templates.h"
 
+#include "AssemblyFile.h"
 #include "Globals.h"
 #include "LLVMEnvironment.h"
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
@@ -14,6 +15,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <type_traits>
+#include <variant>
 
 // AI
 static void replaceAll(std::string &Str, const std::string &From, const std::string &To) {
@@ -87,44 +89,37 @@ template <typename To, typename From> static To bitCast(const From &Input) {
     return to;
 }
 
-template <typename T> string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, T Imm) {
-    if constexpr (std::is_floating_point_v<T>) {
-        using UInt = std::conditional_t<sizeof(T) == 4, uint32_t, uint64_t>;
-        return fillRegInitTemplate(Reg, bitCast<UInt>(Imm));
-    } else {
-        static_assert(std::is_unsigned_v<T>);
-
-        std::string result = this->templateString;
-        // insert register
-        replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
-        // replace imm occurences. If multiple are found the immediate is split up into n segments
-        unsigned split = countOccurrences(this->templateString, "imm");
-        if (split == 0) return result;
-        unsigned totalBits = sizeof(T) * 8;
-        unsigned segmentBits = totalBits / split;
-
-        T mask;
-        if (segmentBits == totalBits)
-            mask = ~T(0);
-        else {
-            mask = T(1) << segmentBits - T(1);
-        }
-        for (unsigned splitPart = 0; splitPart < split; splitPart++) {
-            std::stringstream ss;
-            // extract the current segment of the immediate and convert it to hex
-
-            ss << std::hex << ((Imm >> (splitPart * segmentBits)) & mask);
-            std::string hexString = ss.str();
-            result.replace(result.find("imm"), 3, "0x" + hexString);
-        }
-        return result;
+string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, initType Imm) {
+    if (std::holds_alternative<double>(Imm)) {
+        double imm = std::get<double>(Imm);
+        return fillRegInitTemplate(Reg, bitCast<uint64_t>(imm));
     }
-}
+    uint64_t imm = std::get<uint64_t>(Imm);
+    std::string result = this->templateString;
+    // insert register
+    replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
+    // replace imm occurences. If multiple are found the immediate is split up into n segments
+    unsigned split = countOccurrences(this->templateString, "imm");
+    if (split == 0) return result;
+    unsigned totalBits = 64;
+    unsigned segmentBits = totalBits / split;
 
-template std::string RegInitTemplate::fillRegInitTemplate<double>(llvm::MCRegister, double);
-template std::string RegInitTemplate::fillRegInitTemplate<float>(llvm::MCRegister, float);
-template std::string RegInitTemplate::fillRegInitTemplate<uint32_t>(llvm::MCRegister, uint32_t);
-template std::string RegInitTemplate::fillRegInitTemplate<uint64_t>(llvm::MCRegister, uint64_t);
+    uint64_t mask;
+    if (segmentBits == totalBits)
+        mask = ~uint64_t(0);
+    else {
+        mask = (uint64_t(1) << segmentBits) - uint64_t(1);
+    }
+    for (unsigned splitPart = 0; splitPart < split; splitPart++) {
+        std::stringstream ss;
+        // extract the current segment of the immediate and convert it to hex
+
+        ss << std::hex << ((imm >> (splitPart * segmentBits)) & mask);
+        std::string hexString = ss.str();
+        result.replace(result.find("imm"), 3, "0x" + hexString);
+    }
+    return result;
+}
 
 Template X86Template = {
     R"(

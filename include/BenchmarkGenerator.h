@@ -39,7 +39,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode);
  */
 std::pair<ErrorCode, AssemblyFile>
 genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *TargetInstrCount,
-                std::set<MCRegister> UsedRegisters = {}, long RegInitValue = 4, long Immediate = 7);
+                std::set<MCRegister> UsedRegisters, initType RegInitValue, long Immediate = 7);
 
 /**
  * \brief Generates a throughput benchmark for a given opcode.
@@ -55,7 +55,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
 std::pair<ErrorCode, AssemblyFile>
 genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount,
                std::set<MCRegister> UsedRegisters, std::map<unsigned, MCRegister> HelperConstraints,
-               unsigned HelperOpcode, long RegInitValue, long Immediate);
+               unsigned HelperOpcode, initType RegInitValue, long Immediate);
 
 /**
  * \brief Generates the inner loop for a throughput measurement.
@@ -163,7 +163,7 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
  */
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
 
-std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitValue);
+std::string genRegInitCode(std::vector<MCInst> Instructions, initType RegInitValue);
 
 /**
  * \brief Generates initialization code for a register.
@@ -171,7 +171,7 @@ std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitVal
  * \param Value The value to initialize the register with, current maximum 15.
  * \return Assembly code string for register initialization or empty string on error.
  */
-template <typename T> std::string genSetRegister(MCRegister Reg, T Value);
+std::string genSetRegister(MCRegister Reg, initType Value);
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.

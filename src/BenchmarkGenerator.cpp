@@ -60,7 +60,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
 
 std::pair<ErrorCode, AssemblyFile>
 genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *TargetInstrCount,
-                std::set<MCRegister> UsedRegisters, long RegInitValue, long Immediate) {
+                std::set<MCRegister> UsedRegisters, initType RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(),
         " TargetInstrCount: ", *TargetInstrCount, " UsedRegisters.size(): ", UsedRegisters.size());
     auto benchTemplate = getTemplate();
@@ -197,7 +197,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
 std::pair<ErrorCode, AssemblyFile>
 genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount,
                std::set<MCRegister> UsedRegisters, std::map<unsigned, MCRegister> HelperConstraints,
-               unsigned HelperOpcode, long RegInitValue, long Immediate) {
+               unsigned HelperOpcode, initType RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode, " Name: ", getEnv().MCII->getName(Opcode).str(),
         " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
         " UsedRegisters.size(): ", UsedRegisters.size(),
@@ -565,7 +565,7 @@ std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg) {
     return {E_UNSUPPORTED_ARCH, ""};
 }
 
-template <typename T> std::string genSetRegister(MCRegister Reg, T Value) {
+std::string genSetRegister(MCRegister Reg, initType Value) {
     // this might be called with no value for Reg, as memory operands are made up of registers
     // and immediates and registers in memory operands might be empty
     if (Reg == 0) {
@@ -600,12 +600,12 @@ template <typename T> std::string genSetRegister(MCRegister Reg, T Value) {
     return "";
 }
 
-std::string genRegInitCode(std::vector<MCInst> Instructions, uint64_t RegInitValue) {
+std::string genRegInitCode(std::vector<MCInst> Instructions, initType RegInitValue) {
     // override some register types
-    std::map<unsigned, std::variant<uint32_t, uint64_t, float, double>> regInitMap;
+    std::map<unsigned, std::variant<uint64_t, double>> regInitMap;
     if (getEnv().isX86()) {
         regInitMap = {
-            {X86::VK8WMRegClassID, uint32_t{0b11111111}}, // x86 mask register
+            {X86::VK8WMRegClassID, uint64_t{0b11111111}}, // x86 mask register
             // {X86::GR32RegClassID, float(7.0)},
             // {X86::VR512RegClassID, double{5}},
         };

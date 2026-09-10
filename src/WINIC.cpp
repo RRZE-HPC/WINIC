@@ -278,14 +278,14 @@ findTPHelperInstruction(unsigned Opcode, long Immediate) {
 }
 
 std::tuple<ErrorCode, double, double>
-measureThroughput(unsigned Opcode, long RegInitValue, long Immediate) {
+measureThroughput(unsigned Opcode, initType RegInitValue, long Immediate) {
     return runInSubprocess ? measureThroughputInSubprocess(Opcode, RegInitValue, Immediate)
                            : measureThroughputInProcess(Opcode, RegInitValue, Immediate);
 }
 
 std::pair<ErrorCode, double>
 measureLatency(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
-               long RegInitValue, long Immediate) {
+               initType RegInitValue, long Immediate) {
     return runInSubprocess
                ? measureLatencyInSubprocess(Measurements, LoopIterations, RegInitValue, Immediate)
                : measureLatencyInProcess(Measurements, LoopIterations, RegInitValue, Immediate);
@@ -301,7 +301,7 @@ measureManual(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopI
 }
 
 std::tuple<ErrorCode, double, double>
-measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate) {
+measureThroughputInProcess(unsigned Opcode, initType RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode);
     // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
     // instructions like random value generation or CPUID
@@ -363,7 +363,7 @@ measureThroughputInProcess(unsigned Opcode, long RegInitValue, long Immediate) {
 
 std::pair<ErrorCode, double>
 measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
-                        long RegInitValue, long Immediate) {
+                        initType RegInitValue, long Immediate) {
     dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopIterations: ", LoopIterations,
         " Immediate: ", Immediate);
 
@@ -415,7 +415,7 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
 }
 
 std::tuple<ErrorCode, double, double>
-measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate) {
+measureThroughputInSubprocess(unsigned Opcode, initType RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedLowerBound = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -477,7 +477,7 @@ measureThroughputInSubprocess(unsigned Opcode, long RegInitValue, long Immediate
 
 std::pair<ErrorCode, double>
 measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
-                           long RegInitValue, long Immediate) {
+                           initType RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -572,13 +572,13 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst,
 }
 
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
-ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate) {
+ErrorCode canMeasure(LatMeasurement Measurement, initType RegInit, long Immediate) {
     auto [EC, lat] = measureLatency({Measurement}, 2, RegInit, Immediate);
     if (!isError(EC)) return SUCCESS;
     return EC;
 }
 
-void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Immediate) {
+void buildTPDatabase(std::vector<unsigned> Opcodes, initType RegInitValue, long Immediate) {
     dbg(__func__, "Opcodes.size(): ", Opcodes.size());
     // mark instructions to be measured
     for (unsigned opcode : Opcodes)
@@ -618,7 +618,7 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
     }
 }
 
-void buildLatDatabase(long RegInitValue, long Immediate) {
+void buildLatDatabase(initType RegInitValue, long Immediate) {
     out(*ios, "Number of measurements: ", latencyDatabase.size());
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
@@ -1118,14 +1118,14 @@ int run(int Argc, char **Argv) {
     }
 
     // process regInitValue and immValue
-    long regInitValue;
+
+    initType regInitValue;
     if (contains(regInitValueString, '.')) {
-        double d = std::stod(regInitValueString);
-        std::memcpy(&regInitValue, &d, sizeof(regInitValue));
+        regInitValue = std::stod(regInitValueString);
     } else {
-        regInitValue = std::stol(regInitValueString, nullptr, 0);
+        regInitValue = static_cast<uint64_t>(std::stoll(regInitValueString, nullptr, 0));
     }
-    long immValue = std::stol(immValueString, nullptr, 0);
+    long immValue = std::stoll(immValueString, nullptr, 0);
 
     // configure output
     std::cout.precision(3);

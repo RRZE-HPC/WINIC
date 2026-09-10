@@ -36,6 +36,8 @@ extern bool includeMemory;
 extern bool includeNonMemory;
 extern bool keepEmptyEntries; // if true, entries with only null values are included in the output
 
+using initType = std::variant<double, uint64_t>;
+
 /**
  * \brief Sets the output stream to a file.
  * \param Filename The name of the file to write output to.

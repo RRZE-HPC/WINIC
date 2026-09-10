@@ -1,10 +1,9 @@
 #ifndef TEMPLATES_H
 #define TEMPLATES_H
 
+#include "Globals.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/TargetParser/Triple.h"
-#include <AssemblyFile.h>
-#include <cstdint>
 #include <list>
 #include <set>
 #include <string>
@@ -19,7 +18,7 @@ struct RegInitTemplate {
     std::optional<llvm::MCRegister> dependencyReg;
 
   public:
-    template <typename T> string fillRegInitTemplate(llvm::MCRegister Reg, T Imm);
+    string fillRegInitTemplate(llvm::MCRegister Reg, initType Imm);
 };
 
 /**
@@ -42,7 +41,8 @@ struct Template {
 
     /**
      * \brief Generate an assembly snippet that executes ResetCode if the content of CompareReg is
-     * greater or equal to the BufferEndReg. Used to reset memory base registers once they run past the buffer end.
+     * greater or equal to the BufferEndReg. Used to reset memory base registers once they run past
+     * the buffer end.
      * \param ResetCode Code to execute.
      * \param CompareReg Register to use for checking if a reset is necessary.
      * \return Assembly snippet
