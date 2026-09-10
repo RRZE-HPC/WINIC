@@ -403,12 +403,15 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg) {
 
 std::pair<ErrorCode, MCRegister>
 getFreeRegisterInClass(const MCRegisterClass &RegClass, std::set<MCRegister> UsedRegisters) {
-    for (auto reg : RegClass)
+    for (auto reg : RegClass) {
+        bool used = false;
         for (auto usedReg : UsedRegisters) {
-            if (!getEnv().TRI->regsOverlap(reg, usedReg)) {
-                return {SUCCESS, reg};
+            if (getEnv().TRI->regsOverlap(reg, usedReg)) {
+                used = true;
             }
         }
+        if (!used) return {SUCCESS, reg};
+    }
     return {E_NO_REGISTERS, MAX_UNSIGNED};
 }
 
