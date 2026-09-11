@@ -279,7 +279,6 @@ unsigned LLVMEnvironment::getAArch64OffsetOperandIndex(unsigned Opcode) {
     TypeSize scale(0U, false), width(0U, false);
     int64_t minOffset, maxOffset;
     if (!AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
-        dbg(__func__, "did not get a mem op info ");
         return NO_OP_INDEX;
     }
 

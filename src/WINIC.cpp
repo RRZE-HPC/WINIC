@@ -941,7 +941,7 @@ bool testAssemblyLocation(std::string SPath, std::string SOPath) {
 
     if (pid == 0) { // Child process
         benchmarkRunner = std::make_unique<BenchmarkRunner>(SPath, SOPath, clockFrequency,
-                                                            maxCyclesPerInstruction, outputASM);
+                                                            maxCyclesPerInstruction, false);
         AssemblyFile assembly;
         assembly.addBenchFunction("test", "", "", "", "", 1);
         ErrorCode ec = benchmarkRunner->assembleBenchmark(assembly);
@@ -1190,6 +1190,7 @@ int run(int Argc, char **Argv) {
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
+    if (*man) outputASM = true;
     if (*tp || *lat || *man) {
         // Determine where benchmarks will be assembled and executed. Default is /dev/shm but some
         // systems may have it mounted with noexec.
