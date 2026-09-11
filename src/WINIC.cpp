@@ -57,6 +57,7 @@ namespace {
 double clockFrequency;
 unsigned nRuns;          // number of repititions for each benchmark
 unsigned loopIterations; // number of iterations of the benchmarking kernel loop
+unsigned targetLoopBodySize;
 bool showProgress;
 bool outputASM;
 bool runInSubprocess;
@@ -303,9 +304,9 @@ measureManual(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopI
 std::tuple<ErrorCode, double, double>
 measureThroughputInProcess(unsigned Opcode, initType RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode);
-    // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
-    // instructions like random value generation or CPUID
-    unsigned numInst = 12;
+    // make the generator generate up to targetLoopBodySize instructions, this ensures reasonable
+    // runtimes on slow instructions like random value generation or CPUID
+    unsigned numInst = targetLoopBodySize;
     AssemblyFile assembly;
     ErrorCode ec;
     std::set<MCRegister> usedRegs;
@@ -367,9 +368,9 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
     dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopIterations: ", LoopIterations,
         " Immediate: ", Immediate);
 
-    // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
-    // instructions like random value generation or CPUID
-    unsigned instructionCount = 12;
+    // make the generator generate up to targetLoopBodySize instructions, this ensures reasonable
+    // runtimes on slow instructions like random value generation or CPUID
+    unsigned instructionCount = targetLoopBodySize;
     ErrorCode ec;
     ErrorCode warning = NO_ERROR_CODE;
     AssemblyFile assembly;
@@ -780,7 +781,7 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
 
             // TODO this check technically should invalidate the combination of instructions not
             // current one
-            unsigned numInst = 12;
+            unsigned numInst = targetLoopBodySize;
             // TODO this is technically not save as genLatBenchmark can segfault in MCInstr printing
             auto [ec, assembly] =
                 genLatBenchmark({*mA, *mB}, &numInst, {}, RegInitValue, Immediate);
@@ -990,6 +991,7 @@ int run(int Argc, char **Argv) {
     includeNonMemory = true;
     maxCyclesPerInstruction = 300;
     loopIterations = 1e6;
+    targetLoopBodySize = 12;
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
     tp->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
@@ -1012,6 +1014,10 @@ int run(int Argc, char **Argv) {
                    "Number of loop iterations of the kernel. Higher values increase precision but "
                    "also increase runtime.")
         ->default_val(1000000);
+    tp->add_option("--loop-size", targetLoopBodySize,
+                   "Target Number of instructions in the Loop body. Shorter bodies might be "
+                   "generated if there are not enough registers.")
+        ->default_val(12);
     tp->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     tp->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
@@ -1057,6 +1063,10 @@ int run(int Argc, char **Argv) {
                     "Number of loop iterations of the kernel. Higher values increase precision but "
                     "also increase runtime.")
         ->default_val(1000000);
+    lat->add_option("--loop-size", targetLoopBodySize,
+                    "Target Number of instructions in the Loop body. Shorter bodies might be "
+                    "generated if there are not enough registers.")
+        ->default_val(12);
     lat->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     lat->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
