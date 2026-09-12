@@ -7,6 +7,7 @@
 #include "LLVMDebug.h"
 #include "LLVMEnvironment.h"
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
+#include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
 #include "Templates.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -392,7 +393,7 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
             else if (getEnv().isX86())
                 regClassID = X86::GR64_NOREX2_NOSPRegClassID;
             else if (getEnv().isRISCV())
-                regClassID = 1; // TODO
+                regClassID = RISCV::GPRRegClassID;
 
             const MCRegisterClass &regClass = getEnv().MRI->getRegClass(regClassID);
             auto [ec, reg] = getFreeRegisterInClass(regClass, UsedRegisters);
@@ -461,6 +462,7 @@ getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters) 
 }
 
 std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
+    // does not consider auto increments
     std::list<DependencyType> dependencies;
     InstructionForm instructionForm1 = InstructionForm(Inst1.getOpcode());
     InstructionForm instructionForm2 = InstructionForm(Inst2.getOpcode());
@@ -472,7 +474,8 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
         if (operandForm.isRegister()) defs1.insert(operandForm.getRegister());
         if (operandForm.isRegClass())
             defs1.insert(Inst1.getOperand(operandForm.getMCIndices()[0]).getReg());
-        if (operandForm.isMemory()) memOffsets1.insert(operandForm.getMemoryOperandOffset(Inst1));
+        if (operandForm.hasMemoryOffsetImm())
+            memOffsets1.insert(operandForm.getMemoryOperandOffset(Inst1));
     }
 
     // collect all registers and memory locations Inst2 will use
@@ -482,7 +485,8 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
         if (operandForm.isRegister()) uses2.insert(operandForm.getRegister());
         if (operandForm.isRegClass())
             uses2.insert(Inst2.getOperand(operandForm.getMCIndices()[0]).getReg());
-        if (operandForm.isMemory()) memOffsets2.insert(operandForm.getMemoryOperandOffset(Inst2));
+        if (operandForm.hasMemoryOffsetImm())
+            memOffsets2.insert(operandForm.getMemoryOperandOffset(Inst2));
     }
 
     // create dependencyType for every register which is defined by 1 and used by 2
@@ -687,6 +691,12 @@ ErrorCode isValid(unsigned Opcode) {
     inst.setOpcode(desc.getOpcode());
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
     if (!iName) return S_NO_MNEMONIC;
+    // Check if we can construct a proper InstructionForm. On RISCV, some register operands do not
+    // have a regClassId associated with them for some reason.
+    InstructionForm instructionForm = InstructionForm(Opcode);
+    for (OperandForm opForm : instructionForm.getOperands()) {
+        if (opForm.isRegClass() && !opForm.hasValidRegClassId()) return E_INVALID_REG_CLASS;
+    }
     // if (X86II::isPrefix(Instruction.TSFlags)) return INSTRUCION_PREFIX;
     // TODO some instructions have isCodeGenOnly flag, how to check it?
     // TODO some pseudo instructions are not marked as pseudo (ABS_Fp32)

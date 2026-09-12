@@ -45,6 +45,7 @@ enum ErrorCode {
     E_EXEC,
     E_UNROLL_ANOMALY,
     E_UNUSUAL_LATENCY,
+    E_INVALID_REG_CLASS,
     E_GENERIC,
 };
 

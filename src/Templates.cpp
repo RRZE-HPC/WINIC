@@ -215,7 +215,7 @@ done_functionName:
          llvm::X86::VK8WMRegClassID,
          X86::EAX,
      }},
-    X86::R9,
+    X86::R9, // not used on this platform
     "lea reg, [rip + buffer]"};
 
 Template AArch64Template = {
@@ -339,6 +339,10 @@ done_functionName:
 
 Template RISCVTemplate = {
     R"(
+.bss
+.p2align 12 
+buffer:
+    .skip 4096
 .section .text
 
 )",
@@ -464,8 +468,8 @@ done_functionName:
          llvm::RISCV::VRRegClassID,
          RISCV::X11,
      }},
-    RISCV::X9,
-    "auipc x9, %pcrel_hi(buffer)\t    addi  x9, x9, %pcrel_lo(buffer)"}; // TODO test
+    RISCV::X9, // not used on this platform
+    "la reg, buffer"};
 
 Template getTemplate() {
     if (getEnv().isX86()) return X86Template;

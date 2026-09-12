@@ -82,6 +82,8 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_EXEC";
     case E_UNROLL_ANOMALY:
         return "ERROR_UNROLL_ANOMALY";
+    case E_INVALID_REG_CLASS:
+    return "ERROR_INVALID_REG_CLASS";
     case E_UNUSUAL_LATENCY:
         return "ERROR_UNUSUAL_LATENCY";
     case E_GENERIC:

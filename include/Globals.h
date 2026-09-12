@@ -60,13 +60,20 @@ class RegisterClassOperand {
 
     unsigned getRegClassID() const { return regClassID; }
 
+    bool hasValidRegClassId() const { return regClassID < getEnv().MRI->getNumRegClasses(); }
+
     std::string toCompactString() const {
-        return str("Class<", getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClassID)),
-                   ">");
+        if (hasValidRegClassId())
+            return str("Class<",
+                       getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClassID)), ">");
+
+        return "Class<Invalid>";
     }
 
     std::string toFilenameString() const {
-        return str(getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClassID)));
+        if (hasValidRegClassId())
+            return str(getEnv().MRI->getRegClassName(&getEnv().MRI->getRegClass(regClassID)));
+        return "Class<Invalid>";
     }
 
     bool operator==(const RegisterClassOperand &Other) const {
@@ -255,16 +262,13 @@ class OperandForm {
             kind);
     }
 
-    bool hasMemoryOffsetImm() const {
-        assert(isMemory());
-        return !getMemoryOperand().offsetIndices.empty();
-    }
+    bool hasMemoryOffsetImm() const;
 
-    MCRegister getRegister() const { return std::get_if<RegisterOperand>(&kind)->getRegister(); }
+    MCRegister getRegister() const;
 
-    unsigned getRegClassID() const {
-        return std::get_if<RegisterClassOperand>(&kind)->getRegClassID();
-    }
+    bool hasValidRegClassId() const;
+
+    unsigned getRegClassID() const;
 
     MCRegister getTargetSpecificType() const {
         return std::get_if<TargetSpecificOperand>(&kind)->getType();

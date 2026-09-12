@@ -58,31 +58,6 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
 
         memOpIndices = memBaseIndices;
         memOpIndices.insert(memOpIndices.end(), memOffsetIndices.begin(), memOffsetIndices.end());
-    } else if (getEnv().isRISCV()) {
-        // handle RISCV memory operands beforehand
-        // assumes there is at most one OPERAND_MEMORY
-        std::vector<unsigned char> offsetImmTypes = {RISCVOp::OPERAND_SIMM12_LO};
-        for (unsigned i = 0; i < desc.getNumOperands(); i++) {
-            auto operandInfo = operandInfos[i];
-            if (operandInfo.OperandType != MCOI::OPERAND_MEMORY) continue;
-            unsigned tiedToMemBase = getEnv().getTiedToOperand(operandInfos[i]);
-            unsigned tiedToMemOffset = NO_OP_INDEX;
-            unsigned memOffset = NO_OP_INDEX;
-
-            // check if there is an immediate
-            if (i + 1 < desc.getNumOperands() &&
-                contains(offsetImmTypes, operandInfos[i + 1].OperandType)) {
-                tiedToMemOffset = getEnv().getTiedToOperand(operandInfos[i + 1]);
-                memOffset = i + 1;
-            }
-            memBaseIndices.emplace_back(i);
-            if (tiedToMemBase != NO_OP_INDEX) memBaseIndices.emplace_back(tiedToMemBase);
-            if (memOffset != NO_OP_INDEX) memOffsetIndices.emplace_back(memOffset);
-            if (tiedToMemOffset != NO_OP_INDEX) memOffsetIndices.emplace_back(tiedToMemOffset);
-            memOpIndices = memBaseIndices;
-            memOpIndices.insert(memOpIndices.end(), memOffsetIndices.begin(),
-                                memOffsetIndices.end());
-        }
     }
 
     unsigned currentIndex = 0;
@@ -143,16 +118,33 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
             if (getEnv().isRISCV()) {
                 // on RISCV there are mostly single OPERAND_MEMORYs or OPERAND_MEMORY followed by
                 // some target specific immediate
-                if (operandInfos.size() < i + 1 ||
-                    operandInfos[i + 1].OperandType < MCOI::OPERAND_FIRST_TARGET) {
-                    // this memory operand has no immediate. We can currently not generate latency
-                    // chains without one, so just fail for now.
-                    continue;
+                std::set<RISCVOp::OperandType> memImmTypes = {
+                    RISCVOp::OperandType::OPERAND_UIMM2,
+                    RISCVOp::OperandType::OPERAND_UIMM2_LSB0,
+                    RISCVOp::OperandType::OPERAND_UIMM4,
+                    RISCVOp::OperandType::OPERAND_UIMM5,
+                    RISCVOp::OperandType::OPERAND_UIMM5_LSB0,
+                    RISCVOp::OperandType::OPERAND_UIMM6_LSB0,
+                    RISCVOp::OperandType::OPERAND_UIMM7_LSB00,
+                    RISCVOp::OperandType::OPERAND_UIMM8_LSB00,
+                    RISCVOp::OperandType::OPERAND_UIMM8_LSB000,
+                    RISCVOp::OperandType::OPERAND_UIMM9_LSB000,
+                    RISCVOp::OperandType::OPERAND_SIMM12_LSB00000,
+                    RISCVOp::OperandType::OPERAND_SIMM26,
+                    RISCVOp::OperandType::OPERAND_SIMM12_LO,
+                    RISCVOp::OperandType::OPERAND_VMASK, // unsure if this works
+                };
+                std::vector<unsigned> mcIndices = {i};
+                std::vector<unsigned> offsetIndices = {};
+                if (i + 1 < operandInfos.size() &&
+                    contains(memImmTypes, operandInfos[i + 1].OperandType)) {
+                    mcIndices.emplace_back(i + 1);
+                    offsetIndices.emplace_back(i + 1);
                 }
-                operands.emplace_back(OperandForm(currentIndex, {i, i + 1},
-                                                  RISCVMemoryOperand({i}, {i + 1}), desc.mayStore(),
-                                                  desc.mayLoad()));
-                i++;
+                operands.emplace_back(OperandForm(currentIndex, mcIndices,
+                                                  RISCVMemoryOperand({i}, offsetIndices),
+                                                  desc.mayStore(), desc.mayLoad()));
+                i += mcIndices.size();
             }
         } else if (operandInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
             // Immediates can only be uses
@@ -186,7 +178,7 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
 }
 
 bool InstructionForm::hasDefOfMemBaseRegister() const {
-    for (OperandForm opForm : operands){
+    for (OperandForm opForm : operands) {
         if (!opForm.isMemory()) continue;
         MemoryOperand memOp = opForm.getMemoryOperand();
         const MCInstrDesc &desc = getEnv().MCII->get(opcode);
@@ -195,6 +187,26 @@ bool InstructionForm::hasDefOfMemBaseRegister() const {
         }
     }
     return false;
+}
+
+bool OperandForm::hasMemoryOffsetImm() const {
+    if (!isMemory()) return false;
+    return !getMemoryOperand().offsetIndices.empty();
+}
+
+MCRegister OperandForm::getRegister() const {
+    assert(isRegister());
+    return std::get_if<RegisterOperand>(&kind)->getRegister();
+}
+
+bool OperandForm::hasValidRegClassId() const {
+    assert(isRegClass());
+    return std::get_if<RegisterClassOperand>(&kind)->hasValidRegClassId();
+}
+
+unsigned OperandForm::getRegClassID() const {
+    assert(isRegClass());
+    return std::get_if<RegisterClassOperand>(&kind)->getRegClassID();
 }
 
 void OperandForm::setRegClassOperand(MCInst *Inst, MCRegister Reg) {
@@ -262,7 +274,7 @@ unsigned OperandForm::getMemoryOperandOffset(MCInst Inst) {
     return Inst.getOperand(memOp.offsetIndices[0]).getImm();
 }
 
-MCRegister OperandForm::getMemoryOperandBaseReg(MCInst *Inst){
+MCRegister OperandForm::getMemoryOperandBaseReg(MCInst *Inst) {
     MemoryOperand memOp = getMemoryOperand();
     return Inst->getOperand(memOp.baseIndices[0]).getReg();
 }
