@@ -45,15 +45,10 @@ def compare_winic_exegesis(db_winic, db_exegesis, mode: Literal["TP", "LAT", "BO
         print(f"{len(w_unmatched)} winic entrys not present in exegesis output: \n {sorted(w_unmatched)}")
 
     counters: CompareCounters = CompareCounters()
-    for name in exact_matches:
-        p = False
-        if w_inst.sourceName == "abc":
-            print(w_inst)
-            print(o_inst)
-            p = True
+    for name in sorted(list(exact_matches)):
         w_inst = w_inst_map.get(name)
         o_inst = o_inst_map.get(name)
-        counters = get_stats(w_inst, o_inst, counters, mode, p)
+        counters = get_stats(w_inst, o_inst, counters, mode, verbose)
 
     # check total number of instruction with value
     c_lat_obtained = 0  # how many instructions have a latency value
@@ -67,9 +62,7 @@ def compare_winic_exegesis(db_winic, db_exegesis, mode: Literal["TP", "LAT", "BO
     print(f"{c_lat_obtained=}")
     print(f"{c_tp_obtained=}\n")
     if len(exact_matches) != 0:
-        print(f"\t{counters.c_lat_full=}, {counters.c_lat_full*100/len(exact_matches):.2f}%")
-        print(f"\t{counters.c_lat_partial=}, {counters.c_lat_partial*100/len(exact_matches):.2f}%")
-        print(f"\t{counters.c_lat_no=}, {counters.c_lat_no*100/len(exact_matches):.2f}%\n")
-        print(f"\t{counters.c_tp_full=}, {counters.c_tp_full*100/len(exact_matches):.2f}%")
-        print(f"\t{counters.c_tp_partial=}, {counters.c_tp_partial*100/len(exact_matches):.2f}%")
-        print(f"\t{counters.c_tp_no=}, {counters.c_tp_no*100/len(exact_matches):.2f}%")
+        if mode in ["LAT", "BOTH"]:
+            counters.print_counters("LAT", len(exact_matches))
+        if mode in ["TP", "BOTH"]:
+            counters.print_counters("TP", len(exact_matches))

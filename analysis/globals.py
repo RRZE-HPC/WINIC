@@ -106,7 +106,7 @@ def val_eq(val1: Latency | Throughput, val2: Latency | Throughput, tolerance: fl
         return False
 
 
-@dataclass
+@dataclass(order=True)
 class Instruction:
     source: Literal["winic", "uops", "docs", "exegesis", "osaca"] = "winic"
     sourceName: str = ""
