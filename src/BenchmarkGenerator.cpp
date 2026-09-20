@@ -624,7 +624,7 @@ std::string genRegInitCode(std::vector<MCInst> Instructions, initType RegInitVal
         for (unsigned i = 0; i < inst.getNumOperands(); i++) {
             // need to check using MCOI because there are registers hiding in memory operands and
             // initialising those will break the memory accesses
-            if (desc.operands()[i].OperandType != MCOI::OPERAND_REGISTER) continue;
+            if (!inst.getOperand(i).isReg()) continue;
             MCRegister reg = inst.getOperand(i).getReg();
             if (initialized.find(reg) != initialized.end()) continue;
 

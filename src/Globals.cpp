@@ -144,7 +144,7 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
                 operands.emplace_back(OperandForm(currentIndex, mcIndices,
                                                   RISCVMemoryOperand({i}, offsetIndices),
                                                   desc.mayStore(), desc.mayLoad()));
-                i += mcIndices.size();
+                i += mcIndices.size() - 1;
             }
         } else if (operandInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
             // Immediates can only be uses
