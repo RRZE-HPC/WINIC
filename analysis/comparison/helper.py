@@ -454,8 +454,9 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
     def leq(v1: float, v2: float):
         return v1 < v2 or eq(v1, v2)
 
-    def values_overlap(val1, val2):
-        return geq(val1.cyclesMax, val2.cyclesMin) and geq(val2.cyclesMax, val1.cyclesMin)
+    def covers(val1, val2):
+        # returns True if val2 is fully contained in val1
+        return geq(val2.cyclesMin, val1.cyclesMin) and leq(val2.cyclesMax, val1.cyclesMax)
 
     if mode == "LAT":
         values_to_check_w = w_inst.latencies
@@ -469,76 +470,23 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
     if len(values_to_check_o) == 0:
         return "NO_DATA"
 
-    found_matching_val = False
-    found_non_matching_val = False
-    # check special case o has range and WINIC covers start and end point
-    # normally a range will count as partial match but if WINIC covers each end of the range we consider this as full match
-    # this makes sense as WINIC measures single values and documentation might provide ranges
-    to_remove = []
-    for o_value in values_to_check_o:
-        if not is_range(o_value):
-            continue
-        max_covered = False
-        min_covered = False
-        for w_value in values_to_check_w:
-            # check max is covered and winic range does not exceed other range
-            if eq(w_value.cyclesMax, o_value.cyclesMax) and geq(w_value.cyclesMin, o_value.cyclesMin):
-                max_covered = True
-            if eq(w_value.cyclesMin, o_value.cyclesMin) and geq(o_value.cyclesMax, w_value.cyclesMax):
-                min_covered = True
-        if min_covered and max_covered:
-            found_matching_val = True
-        else:
-            # check if this range has any matches
-            for w_value in values_to_check_w:
-                if values_overlap(w_value, o_value):
-                    found_matching_val = True
-                    break
-            else:  # executed if loop did not break
-                found_non_matching_val = True
-        # later code cannot handle ranges
-        to_remove.append(o_value)
-
-    for v in to_remove:
-        values_to_check_o.remove(v)
-
-    assert not any(is_range(v) for v in values_to_check_o)
-
-    # now the other way round, but for WINIC, ranges are uncertainties - not facts, so they always cause partial matches
-    temp = []
-    for w_value in values_to_check_w:
-        if not is_range(w_value):
-            temp.append(w_value)
-            continue
-        for o_value in values_to_check_o:
-            if values_overlap(o_value, w_value):
-                return "PARTIAL"
-        found_non_matching_val = True
-    values_to_check_w = temp
-
-    assert not any(is_range(v) for v in values_to_check_w)
-
-    # from now on there are no ranges left
-    values_o = set([v.cyclesMin for v in values_to_check_o])
-    values_w = set([v.cyclesMin for v in values_to_check_w])
-
-    for o_value in values_o:
-        if any(eq(w_value, o_value) for w_value in values_w):
-            found_matching_val = True
-        else:
-            found_non_matching_val = True
-    for w_value in values_w:
-        if any(eq(w_value, o_value) for o_value in values_o):
-            found_matching_val = True
-        else:
-            found_non_matching_val = True
-
-    if found_matching_val and not found_non_matching_val:
+    # check if all values from the other source are covered by some WINIC value
+    if all(any(covers(w, o) for w in values_to_check_w) for o in values_to_check_o):
         return "FULL"
-    elif found_matching_val:
+
+    # check if all WINIC values are covered by some value form the other source
+    if all(any(covers(o, w) for o in values_to_check_o) for w in values_to_check_w):
+        return "FULL"
+
+    # check if any values from the other source is covered by some WINIC value
+    if any(any(covers(w, o) for w in values_to_check_w) for o in values_to_check_o):
         return "PARTIAL"
-    else:
-        return "NO"
+
+    # check if any WINIC value is covered by some value form the other source
+    if any(any(covers(o, w) for o in values_to_check_o) for w in values_to_check_w):
+        return "PARTIAL"
+
+    return "NO"
 
 
 def equal_tolerance(val1: float, val2: float, tolerance: float):
