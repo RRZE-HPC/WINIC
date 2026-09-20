@@ -1,4 +1,6 @@
+from typing import List
 from analysis.parsing.parse_winic import read_WINIC_db
+from analysis.globals import Latency, is_range, covers
 
 
 def count_ranges(database, pr: bool = False):
@@ -41,41 +43,59 @@ def count_ranges(database, pr: bool = False):
 
 
 def count_instr_different_sublatencies(database, pr: bool = False):
+
     db = read_WINIC_db(database)
-    different_latencies_ranges = []
-    different_latencies_exact = []
+    one_latency = []
+    same_latencies = []
+    different_latencies_range = []
+    different_latencies = []
     # Go through each instruction
     for db_entry in db:
         latencies = db_entry.get("operandLatencies", None)
-        min_values = set()
-        has_range = False
+        all_values: List[Latency] = []
+        exact_values: List[Latency] = []
+        ranges: List[Latency] = []
 
         # add latency values to set
-        for lat in latencies:
-            min = lat.get("latencyMin", None)
-            max = lat.get("latencyMax", None)
-            if min is not None and max is not None:
-                min_values.add(min)
-                if min != max:
-                    has_range = True
+        for lat_entry in latencies:
+            min_val = lat_entry.get("latencyMin", None)
+            max_val = lat_entry.get("latencyMax", None)
+            lat = Latency(None, None, min_val, max_val)
+            if min_val is not None and max_val is not None:
+                all_values.append(lat)
+                if is_range(lat):
+                    ranges.append(lat)
+                else:
+                    exact_values.append(lat)
 
-        # Check if there are at least two different latency values
-        if len(min_values) >= 2:
-            # distinguish instructions with ranges and ones without
-            if has_range:
-                different_latencies_ranges.append(db_entry.get("llvmName", None))
+        if len(all_values) == 0:
+            continue
+        elif len(all_values) == 1:
+            one_latency.append(db_entry.get("llvmName", None))
+        elif len(ranges) == 0:
+            if len(set([e.cyclesMin for e in exact_values])) == 1:
+                same_latencies.append(db_entry.get("llvmName", None))
             else:
-                different_latencies_exact.append(db_entry.get("llvmName", None))
+                different_latencies.append(db_entry.get("llvmName", None))
+        else:
+            # check if all exact values overlap with each range
+            if all(all(covers(r, e) for e in exact_values) for r in ranges):
+                different_latencies_range.append(db_entry.get("llvmName", None))
+            else:
+                # there is a range that can not in reality be the same as the exact latency
+                different_latencies.append(db_entry.get("llvmName", None))
 
+    print(f"{len(one_latency)} instructions have only one latency value")
+    print(f"{len(same_latencies)} instructions have multiple latencies but they have the same value")
     print(
-        f"{len(different_latencies_ranges)} instructions have at least two different latency values, but also have some range as result"
+        f"{len(different_latencies_range)} instructions might have different latency values, but the those are ranges"
     )
-    print(
-        f"{len(different_latencies_exact)} instructions have at least two different latency values, and have only exact values"
-    )
+    print(f"{len(different_latencies)} instructions have different latency values")
     if pr:
-        print(f"List of instructions with different sub-latencies and ranges: {different_latencies_ranges}")
-        print(f"List of instructions with different sub-latencies and no ranges: {different_latencies_exact}")
+        print(f"List of instructions with one latency: {one_latency}")
+        print(f"List of instructions with multiple latencies but the same value: {same_latencies}")
+        print(f"List of instructions with different latencies but a range: {different_latencies_range}")
+        print(f"List of instructions with different latencies: {different_latencies}")
 
 
 def plot_distribution(database):

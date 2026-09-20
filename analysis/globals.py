@@ -135,6 +135,32 @@ def has_tp(inst: Instruction) -> bool:
     return any(v.cyclesMin is not None for v in inst.throughputs)
 
 
+def is_range(val):
+    return val.cyclesMin != val.cyclesMax
+
+
+# set tolerance here
+tolerance = 0.1
+
+
+def eq(v1: float, v2: float):
+    v_tolerance = max(v1, v2) * tolerance
+    return abs(v1 - v2) < v_tolerance
+
+
+def geq(v1: float, v2: float):
+    return v1 > v2 or eq(v1, v2)
+
+
+def leq(v1: float, v2: float):
+    return v1 < v2 or eq(v1, v2)
+
+
+def covers(val1, val2):
+    # returns True if val2 is fully contained in val1
+    return geq(val2.cyclesMin, val1.cyclesMin) and leq(val2.cyclesMax, val1.cyclesMax)
+
+
 # AI generated
 def progress_bar(current, total, bar_length=40, prefix="Progress", suffix=""):
     """
