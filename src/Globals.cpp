@@ -4,6 +4,7 @@
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
 #include "MCTargetDesc/RISCVBaseInfo.h"
 #include "llvm/TargetParser/Triple.h"
+#include <MCTargetDesc/RISCVMCTargetDesc.h>
 #include <iostream>
 #include <llvm/MC/MCInstrDesc.h>
 
@@ -263,6 +264,12 @@ void OperandForm::setTargetSpecificOperand(MCInst *Inst, unsigned Imm) {
         ...
     }
     */
+    // for now, at least handle this because it happens frequently
+    if (getEnv().isRISCV() && getTargetSpecificType() == RISCVOp::OPERAND_VMASK) {
+        for (auto mcInd : mcIndices)
+            Inst->getOperand(mcInd) = MCOperand::createReg(RISCV::V0);
+        return;
+    }
     // however, i dont have time for this so for now we just attempt to plug in immediates
     for (auto mcInd : mcIndices)
         Inst->getOperand(mcInd) = MCOperand::createImm(Imm);
