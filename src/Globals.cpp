@@ -133,7 +133,6 @@ InstructionForm::InstructionForm(unsigned Opcode) : opcode(Opcode), operands({})
                     RISCVOp::OperandType::OPERAND_SIMM12_LSB00000,
                     RISCVOp::OperandType::OPERAND_SIMM26,
                     RISCVOp::OperandType::OPERAND_SIMM12_LO,
-                    RISCVOp::OperandType::OPERAND_VMASK, // unsure if this works
                 };
                 std::vector<unsigned> mcIndices = {i};
                 std::vector<unsigned> offsetIndices = {};
