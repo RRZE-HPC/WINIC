@@ -291,7 +291,7 @@ unsigned LLVMEnvironment::getAArch64BaseOperandIndex(unsigned Opcode) {
 }
 
 bool LLVMEnvironment::hasWriteOnMemRegister(unsigned Opcode) {
-    InstructionForm instructionForm = InstructionForm(Opcode);
+    InstructionForm instructionForm = instructionForms.get(Opcode);
     const MCInstrDesc &desc = MCII->get(Opcode);
     for (OperandForm op : instructionForm.getOperands()) {
         if (!op.isMemory()) continue;

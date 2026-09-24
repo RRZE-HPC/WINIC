@@ -111,7 +111,7 @@ class ImmediateOperand {
 class MemoryOperand {
   protected:
     MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> OffsetIndices)
-        : baseIndices(BaseIndices), offsetIndices(OffsetIndices) {};
+        : baseIndices(std::move(BaseIndices)), offsetIndices(std::move(OffsetIndices)) {};
 
   public:
     // indices in the MCInst that have to be set to the base register. There might be more than one
@@ -137,8 +137,9 @@ class X86MemoryOperand : public MemoryOperand {
     X86MemoryOperand(std::vector<unsigned> BaseIndices, std::vector<unsigned> ScaleIndices,
                      std::vector<unsigned> IndexIndices, std::vector<unsigned> OffsetIndices,
                      std::vector<unsigned> SegmentIndices)
-        : MemoryOperand(BaseIndices, OffsetIndices), scaleIndices(ScaleIndices),
-          indexIndices(IndexIndices), segmentIndices(SegmentIndices) {}
+        : MemoryOperand(std::move(BaseIndices), std::move(OffsetIndices)),
+          scaleIndices(std::move(ScaleIndices)), indexIndices(std::move(IndexIndices)),
+          segmentIndices(std::move(SegmentIndices)) {}
 
     std::vector<unsigned> scaleIndices;
     std::vector<unsigned> indexIndices;
@@ -328,7 +329,7 @@ class InstructionForm {
   public:
     InstructionForm(unsigned Opcode);
 
-    std::vector<OperandForm> getDefOps() {
+    std::vector<OperandForm> getDefOps() const {
         std::vector<OperandForm> result;
         for (auto op : operands)
             if (op.isDef()) result.emplace_back(op);
@@ -336,7 +337,7 @@ class InstructionForm {
         return result;
     }
 
-    std::vector<OperandForm> getUseOps() {
+    std::vector<OperandForm> getUseOps() const {
         std::vector<OperandForm> result;
         for (auto op : operands)
             if (op.isUse()) result.emplace_back(op);
@@ -344,7 +345,7 @@ class InstructionForm {
         return result;
     }
 
-    std::vector<OperandForm> getUseOnlyOps() {
+    std::vector<OperandForm> getUseOnlyOps() const {
         std::vector<OperandForm> result;
         for (auto op : operands)
             if (op.isUse() && !op.isDef()) result.emplace_back(op);
@@ -508,6 +509,25 @@ inline std::ostream &operator<<(std::ostream &OS, const TPMeasurement &Op) {
     if (!isError(Op.ec)) return OS << str(name, " [", Op.lowerTP, ";", Op.upperTP, "]");
     return OS << str(name, " [", ecToString(Op.ec), "]");
 }
+
+class InstructionFormCache {
+    static constexpr unsigned NUM_OPCODES = 25000;
+
+    std::vector<std::optional<InstructionForm>> forms;
+
+  public:
+    InstructionFormCache() : forms(NUM_OPCODES) {}
+
+    const InstructionForm &get(unsigned Opcode) {
+        assert(Opcode < NUM_OPCODES);
+
+        auto &form = forms[Opcode];
+        if (!form) form.emplace(Opcode);
+        return *form;
+    }
+};
+
+extern InstructionFormCache instructionForms;
 
 } // namespace winic
 

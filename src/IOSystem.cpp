@@ -33,7 +33,7 @@
 namespace winic {
 
 std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
-    InstructionForm instructionForm = InstructionForm(Opcode);
+    InstructionForm instructionForm = instructionForms.get(Opcode);
     std::vector<IOOperand> operands;
 
     // make sure operands are sorted
@@ -124,7 +124,7 @@ std::string getIOCpu() { return ioFile.microArchitecture; };
 std::string getIOArchitecture() { return ioFile.isa; };
 
 ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
-    InstructionForm instructionForm = InstructionForm(M.opcode);
+    InstructionForm instructionForm = instructionForms.get(M.opcode);
 
     std::string useIndexString = std::to_string(M.useIndex);
     std::string defIndexString = std::to_string(M.defIndex);

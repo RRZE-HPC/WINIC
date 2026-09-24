@@ -930,7 +930,7 @@ void printInstructionInfo(unsigned Opcode, bool Internal) {
         out(std::cout, res, "] {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
             ", mayStore:", desc.mayStore(), "}");
     } else {
-        InstructionForm instructionForm = InstructionForm(Opcode);
+        const InstructionForm &instructionForm = instructionForms.get(Opcode);
         out(std::cout, instructionForm, " {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
             ", mayStore:", desc.mayStore(), "}");
     }

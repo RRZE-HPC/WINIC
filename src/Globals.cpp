@@ -22,6 +22,7 @@ bool includeNonX87FP;
 bool includeMemory;
 bool includeNonMemory;
 bool keepEmptyEntries;
+InstructionFormCache instructionForms;
 
 void setOutputToFile(const std::string &Filename) {
     fileStream = std::make_unique<std::ofstream>(Filename);

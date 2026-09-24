@@ -47,9 +47,9 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     }
 
     // build measurements
-    InstructionForm instruction = InstructionForm(Opcode);
-    for (auto defOp : instruction.getDefOps()) {
-        for (auto useOp : instruction.getUseOps()) {
+    const InstructionForm &instructionForm = instructionForms.get(Opcode);
+    for (auto defOp : instructionForm.getDefOps()) {
+        for (auto useOp : instructionForm.getUseOps()) {
             LatMeasurement m =
                 LatMeasurement(Opcode, DependencyType(defOp.getKind(), useOp.getKind()),
                                defOp.getIndex(), useOp.getIndex());
@@ -148,7 +148,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
     // the loop
     std::string loopMemReset = "";
     for (MCInst inst : instructions) {
-        InstructionForm instructionForm = InstructionForm(inst.getOpcode());
+        const InstructionForm &instructionForm = instructionForms.get(inst.getOpcode());
         if (instructionForm.hasDefOfMemBaseRegister()) {
             loopMemReset = getTemplate().genResetMemInLoopCode(
                 loadMem, getEnv().getRegAsmName(*memBaseRegs.begin()));
@@ -268,7 +268,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
     // the loop
     std::string loopMemReset = "";
     for (unsigned opcode : opcodes) {
-        InstructionForm instructionForm = InstructionForm(opcode);
+        const InstructionForm &instructionForm = instructionForms.get(Opcode);
         if (instructionForm.hasDefOfMemBaseRegister()) {
             loopMemReset = getTemplate().genResetMemInLoopCode(
                 loadMem, getEnv().getRegAsmName(*memBaseRegs.begin()));
@@ -306,7 +306,7 @@ genTPLoop(std::vector<unsigned> Opcodes,
 
         // constrain all other instructions of this opcode to use the same use registers as the
         // first one
-        InstructionForm instructionForm = InstructionForm(opcode);
+        const InstructionForm &instructionForm = instructionForms.get(opcode);
         for (auto operand : instructionForm.getUseOnlyOps()) {
             if (operand.isRegClass())
                 ConstraintsVector[i].insert({operand.getIndex(), operand.getReg(&refInst)});
@@ -371,7 +371,7 @@ genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
     MCInst inst;
     inst.setOpcode(Opcode);
     inst.clear();
-    InstructionForm instructionForm = InstructionForm(Opcode);
+    const InstructionForm &instructionForm = instructionForms.get(Opcode);
     for (auto op : instructionForm.getOperands()) {
         // check for constraint
         if (Constraints.find(op.getIndex()) != Constraints.end()) {
@@ -464,8 +464,8 @@ getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters) 
 std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
     // does not consider auto increments
     std::list<DependencyType> dependencies;
-    InstructionForm instructionForm1 = InstructionForm(Inst1.getOpcode());
-    InstructionForm instructionForm2 = InstructionForm(Inst2.getOpcode());
+    InstructionForm instructionForm1 = instructionForms.get(Inst1.getOpcode());
+    InstructionForm instructionForm2 = instructionForms.get(Inst2.getOpcode());
 
     // collect all registers and memory locations Inst1 will define
     std::set<MCRegister> defs1;
@@ -508,15 +508,15 @@ std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2) {
 
 std::set<MCRegister> getMemBaseRegs(std::vector<MCInst> Instructions) {
     // find all registers that are memory base pointers
-    std::map<unsigned, InstructionForm> instructionForms;
+    std::map<unsigned, InstructionForm> instructionFormMap;
     for (auto inst : Instructions) {
-        if (instructionForms.find(inst.getOpcode()) != instructionForms.end()) continue;
+        if (instructionFormMap.find(inst.getOpcode()) != instructionFormMap.end()) continue;
 
-        instructionForms.insert({inst.getOpcode(), InstructionForm(inst.getOpcode())});
+        instructionFormMap.insert({inst.getOpcode(), instructionForms.get(inst.getOpcode())});
     }
     std::set<MCRegister> writtenBaseRegs;
     for (auto inst : Instructions) {
-        auto instructionForm = instructionForms.at(inst.getOpcode());
+        auto instructionForm = instructionFormMap.at(inst.getOpcode());
         for (auto opForm : instructionForm.getOperands()) {
             if (!opForm.isMemory()) continue;
             MCRegister reg = opForm.getMemoryOperandBaseReg(&inst);
@@ -693,7 +693,7 @@ ErrorCode isValid(unsigned Opcode) {
     if (!iName) return S_NO_MNEMONIC;
     // Check if we can construct a proper InstructionForm. On RISCV, some register operands do not
     // have a regClassId associated with them for some reason.
-    InstructionForm instructionForm = InstructionForm(Opcode);
+    const InstructionForm &instructionForm = instructionForms.get(Opcode);
     for (OperandForm opForm : instructionForm.getOperands()) {
         if (opForm.isRegClass() && !opForm.hasValidRegClassId()) return E_INVALID_REG_CLASS;
     }
