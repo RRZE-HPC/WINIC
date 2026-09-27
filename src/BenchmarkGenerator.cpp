@@ -515,16 +515,16 @@ std::set<MCRegister> getMemBaseRegs(std::vector<MCInst> Instructions) {
 
         instructionFormMap.insert({inst.getOpcode(), instructionForms.get(inst.getOpcode())});
     }
-    std::set<MCRegister> writtenBaseRegs;
+    std::set<MCRegister> baseRegs;
     for (auto inst : Instructions) {
         auto instructionForm = instructionFormMap.at(inst.getOpcode());
         for (auto opForm : instructionForm.getOperands()) {
             if (!opForm.isMemory()) continue;
             MCRegister reg = opForm.getMemoryOperandBaseReg(&inst);
-            writtenBaseRegs.insert(reg);
+            baseRegs.insert(reg);
         }
     }
-    return writtenBaseRegs;
+    return baseRegs;
 }
 
 std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg) {
