@@ -50,6 +50,7 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode) {
     const InstructionForm &instructionForm = instructionForms.get(Opcode);
     for (auto defOp : instructionForm.getDefOps()) {
         for (auto useOp : instructionForm.getUseOps()) {
+            if (useOp.isImmediate() || defOp.isImmediate()) continue;
             LatMeasurement m =
                 LatMeasurement(Opcode, DependencyType(defOp.getKind(), useOp.getKind()),
                                defOp.getIndex(), useOp.getIndex());
