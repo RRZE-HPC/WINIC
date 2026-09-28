@@ -395,7 +395,8 @@ def compare_lists(
 
         counters = get_stats(w_inst, o_inst, counters, mode, verbose)
 
-    print("unmatched: ", [x.sourceName for x in o_inst_unmatched])
+    if verbose:
+        print("unmatched: ", [x.sourceName for x in o_inst_unmatched])
     # check total number of instruction with value
     c_lat_obtained = 0  # how many instructions have a latency value
     c_tp_obtained = 0
