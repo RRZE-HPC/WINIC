@@ -169,7 +169,6 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         ioInstr->latencies.insert(ioInstr->latencies.end(), lat);
     }
     // take maximum latency value as instruction latency
-    ioInstr->latency = 0;
     for (IOLatency lat : ioInstr->latencies)
         ioInstr->latency = std::max(ioInstr->latency, lat.max);
 
