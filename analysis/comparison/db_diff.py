@@ -33,7 +33,11 @@ def db_diff(database1, database2, mode: Literal["TP", "LAT", "BOTH"], verbose=Fa
                 break
         if entry2 == None:
             # only count as missing if entry1 has any value
-            if entry1["throughput"] is not None or entry1["latency"] is not None:
+            if (
+                (mode == "TP" and entry1["throughput"] is not None)
+                or (mode == "LAT" and entry1["latency"] is not None)
+                or (mode == "BOTH" and entry1["throughput"] is not None or entry1["latency"] is not None)
+            ):
                 verbose_output += entry1["llvmName"] + " missing in new data\n"
                 c_missing += 1
         else:
