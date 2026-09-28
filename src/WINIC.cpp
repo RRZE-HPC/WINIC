@@ -779,17 +779,6 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
                 mA->opcode == mB->opcode)
                 continue;
 
-            // TODO this check technically should invalidate the combination of instructions not
-            // current one
-            unsigned numInst = targetLoopBodySize;
-            // TODO this is technically not save as genLatBenchmark can segfault in MCInstr printing
-            auto [ec, assembly] =
-                genLatBenchmark({*mA, *mB}, &numInst, {}, RegInitValue, Immediate);
-            if (ec == W_MULTIPLE_DEPENDENCIES) {
-                out(*ios, "\tDetected multiple dependencies between ", *mA, " and ", *mB,
-                    "so they are not useful as helper combination");
-                continue;
-            }
             auto [EC, lat] = measureLatency({*mA, *mB}, loopIterations, RegInitValue, Immediate);
             if (isError(EC)) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
@@ -803,6 +792,13 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
                     opcodeBlacklist.emplace(mB->opcode);
                     mB->ec = EC;
                 }
+                continue;
+            }
+            if (EC == W_MULTIPLE_DEPENDENCIES) {
+                // TODO this check technically should invalidate the combination of instructions not
+                // current one
+                out(*ios, "\tDetected multiple dependencies between ", *mA, " and ", *mB,
+                    "so they are not useful as helper combination");
                 continue;
             }
 
