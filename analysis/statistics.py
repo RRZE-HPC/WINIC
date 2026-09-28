@@ -49,6 +49,8 @@ def count_instr_different_sublatencies(database, pr: bool = False):
     same_latencies = []
     different_latencies_range = []
     different_latencies = []
+    total_lat_values = 0
+    total_possible_lat_values = 0
     # Go through each instruction
     for db_entry in db:
         latencies = db_entry.get("operandLatencies", None)
@@ -58,6 +60,7 @@ def count_instr_different_sublatencies(database, pr: bool = False):
 
         # add latency values to set
         for lat_entry in latencies:
+            total_possible_lat_values += 1
             min_val = lat_entry.get("latencyMin", None)
             max_val = lat_entry.get("latencyMax", None)
             lat = Latency(None, None, min_val, max_val)
@@ -67,6 +70,7 @@ def count_instr_different_sublatencies(database, pr: bool = False):
                     ranges.append(lat)
                 else:
                     exact_values.append(lat)
+                total_lat_values += 1
 
         if len(all_values) == 0:
             continue
@@ -91,6 +95,8 @@ def count_instr_different_sublatencies(database, pr: bool = False):
         f"{len(different_latencies_range)} instructions might have different latency values, but the those are ranges"
     )
     print(f"{len(different_latencies)} instructions have different latency values")
+    print(f"{total_lat_values} latency values overall")
+    print(f"{total_possible_lat_values} latency values possible including ones WINIC did not measure")
     if pr:
         print(f"List of instructions with one latency: {one_latency}")
         print(f"List of instructions with multiple latencies but the same value: {same_latencies}")
