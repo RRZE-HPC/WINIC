@@ -1,5 +1,8 @@
 # Notes for Developers
 
+## ENC mode
+The encoding mode is used to update a database format to a new version. It currently only supports simple changes like metadata additions.
+
 ## LLVM Instruction Format
 
 LLVM instructions store a read from a register and a write to the same register as two distinct operands:
@@ -209,13 +212,13 @@ LLVM interface:
 | E_UNREACHABLE           | error   | no  | Unreachable code executed. This should never happen. Please file a bug report if you encounter this. |
 
 ## Safety
-
 MCInstPrinter->PrintInst can fail or even segfault if the operands are not set correctly. It is therefore only used in functions that are run in a subprocess.
 
 ## Limitations
 WINIC has some non-obvious limitations:
 - The path over text representation -> assembler -> benchmark binary loses some information. There are instruction forms where there are different encodings for the same semantics, we do not have any control over which one the assembler chooses.
 - WINIC can not generate latency chains on base/index registers of memory operands
+- gather/scatter do not work as WINIC does not know register content are supposed to be addresses. 
 
 ## IWYU Makefile
 The MAKEFILE is a helper to run LLVMs include-what-you-use on all WINIC source files. It expects the LLVM repo in `llvm-project` and a x86 llvm build in `llvm-build-x86` (generate using `setup.sh --dir x86`)
