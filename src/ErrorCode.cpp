@@ -14,6 +14,8 @@ std::string ecToString(ErrorCode EC) {
         return "NO_ERROR_CODE";
     case W_MULTIPLE_DEPENDENCIES:
         return "WARNING_MULTIPLE_DEPENDENCIES";
+    case W_FLAGS_TO_FLAGS:
+        return "WARNING_FLAGS_TO_FLAGS";
     case S_MEMORY_OPERAND:
         return "SKIP_MEMORY_OPERAND";
     case S_PCREL_OPERAND:
@@ -85,7 +87,7 @@ std::string ecToString(ErrorCode EC) {
     case E_UNROLL_ANOMALY:
         return "ERROR_UNROLL_ANOMALY";
     case E_INVALID_REG_CLASS:
-    return "ERROR_INVALID_REG_CLASS";
+        return "ERROR_INVALID_REG_CLASS";
     case E_UNUSUAL_LATENCY:
         return "ERROR_UNUSUAL_LATENCY";
     case E_GENERIC:

@@ -80,6 +80,15 @@ class LLVMEnvironment {
     unsigned getMemoryOperandWidthUpperBound(unsigned Opcode);
 
     /**
+     * \brief Converts the desired offset value to the immediate needed to generate that value.
+     * \param Opcode The opcode of the instruction to generate for.
+     * \param Offset The target offset.
+     * \return An immediate, that when plugged into the memory operand of an MCInst of the Opcode,
+     * produces the target Offset.
+     */
+    unsigned memoryOperandOffsetToImmediate(unsigned Opcode, unsigned Offset);
+
+    /**
      * \brief Checks if a register belongs to a given register class.
      * \param Reg The register to check.
      * \param RegClass The register class.

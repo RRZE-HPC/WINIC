@@ -399,6 +399,7 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
     double time2 = *std::min_element(benchResults["lat2"].begin(), benchResults["lat2"].end());
     double cycles;
     std::tie(ec, cycles) = calculateCycles(time1, time2, instructionCount, LoopIterations, false);
+    cycles *= Measurements.size(); // report a combined result, not per instruction
     if (ec != SUCCESS) {
         std::string chainString = "";
         for (auto m : Measurements) {
@@ -714,33 +715,42 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
         double minCombinedLat = 1000;
         // first make sure we have a starting point for each type
         while (itA != measurementsA.end()) {
-            LatMeasurement *m = *(itA++);
-            if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            const ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
-            if (EC == SUCCESS) {
-                smallestA = m;
+            LatMeasurement *mA = *(itA++);
+            if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
+            const ErrorCode EC = canMeasure(*mA, RegInitValue, Immediate);
+            if (EC != SUCCESS) {
+                out(*ios, "\tcannot measure ", mA->toString(), " ", ecToString(EC));
+                opcodeBlacklist.emplace(mA->opcode);
+                continue;
+            }
+            while (itB != measurementsB.end()) {
+                LatMeasurement *mB = *(itB++);
+                if (mB->opcode == mA->opcode) continue;
+                if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
+                const ErrorCode EC = canMeasure(*mB, RegInitValue, Immediate);
+                if (EC != SUCCESS) {
+                    out(*ios, "\tcannot measure ", mB->toString(), " ", ecToString(EC));
+                    opcodeBlacklist.emplace(mB->opcode);
+                    continue;
+                }
+                auto [EC1, lat] =
+                    measureLatency({*mA, *mB}, loopIterations, RegInitValue, Immediate);
+                if (isError(EC1)) {
+                    out(*ios,
+                        "\tVery unusual: both instructions can be executed "
+                        "individually but fail when interleaved: \n\t\t",
+                        *mA, "\t", *mB);
+
+                    continue;
+                }
+                smallestA = mA;
+                smallestB = mB;
                 break;
             }
-            out(*ios, "\tcannot measure ", m->toString(), " ", ecToString(EC));
-            opcodeBlacklist.emplace(m->opcode);
+            if (smallestB != nullptr) break;
         }
         if (smallestA == nullptr) {
-            out(*ios, "\tno measurement of type ", dTypeA, " can be executed successfully");
-            continue;
-        }
-        while (itB != measurementsB.end()) {
-            LatMeasurement *m = *(itB++);
-            if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            const ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
-            if (EC == SUCCESS) {
-                smallestB = m;
-                break;
-            }
-            out(*ios, "\tcannot measure ", m->toString(), " ", ecToString(EC));
-            opcodeBlacklist.emplace(m->opcode);
-        }
-        if (smallestB == nullptr) {
-            out(*ios, "\tno measurement of type ", dTypeB, " can be executed successfully");
+            out(*ios, "\tdid not find a pair that can be measured");
             continue;
         }
         // measure the combined latency of the two instructions as a baseline

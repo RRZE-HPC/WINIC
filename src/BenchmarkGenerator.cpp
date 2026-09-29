@@ -74,49 +74,199 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
             UsedRegisters.insert(reg);
     }
 
-    // generate an instruction for every measurement. When e.g. two instructions are interleaved to
-    // form a latency chain, Measurements.size is 2
-    std::map<unsigned, MCRegister> chosenRegisters;
-    std::vector<MCInst> instructions;
-    for (unsigned i = 0; i < Measurements.size(); i++) {
-        LatMeasurement m = Measurements.at(i);
-        unsigned memDisplacement = i * getEnv().getMemoryOperandWidthUpperBound(m.opcode);
-        std::map<unsigned, MCRegister> constraints;
+    // The part of the chain that spans over the loop instructions must not depend on a FLAGS
+    // result, as the loop logic itself modifies the flags.
+    // Try to rotate the measurements so no FLAGS dependency spans over the loop
+    ErrorCode globalEC = SUCCESS;
+    std::vector<LatMeasurement> reorderedMeasurements = Measurements;
+    bool isFlags = true;
+    for (int i = 0; i < reorderedMeasurements.size() + 1; i++) {
+        if (auto *regOp = std::get_if<RegisterOperand>(&reorderedMeasurements[0].type.useOp)) {
+            if ((getEnv().isX86() && regOp->getRegister() == X86::EFLAGS) ||
+                (getEnv().isAArch64() && regOp->getRegister() == AArch64::NZCV)) {
+                std::rotate(reorderedMeasurements.begin(), reorderedMeasurements.begin() + 1,
+                            reorderedMeasurements.end());
+            } else {
+                isFlags = false;
+            }
+        } else {
+            isFlags = false;
+        }
+    }
+    if (isFlags) {
+        globalEC = W_FLAGS_TO_FLAGS;
+    }
 
-        // choose registers for the operands building the latency chain
-        for (auto [opIndex, op] :
-             {std::make_pair(m.defIndex, m.type.defOp), std::make_pair(m.useIndex, m.type.useOp)}) {
-            if (auto *registerClassOperand = std::get_if<RegisterClassOperand>(&op)) {
-                // currently only the class is known, we have to specify which register to
-                // use for generating the instruction
-                unsigned regClassID = registerClassOperand->getRegClassID();
-                if (chosenRegisters.find(regClassID) != chosenRegisters.end()) {
-                    // we already chose a register for this class
-                    constraints.insert({opIndex, chosenRegisters[regClassID]});
-                } else {
-                    // no register chosen for this class yet, choose a register
-                    // from the class to use in all instructions
-                    auto [EC, chosenReg] = getFreeRegisterInClass(regClassID, UsedRegisters);
-                    if (isError(EC)) return {EC, AssemblyFile()};
-                    constraints.insert({opIndex, chosenReg});
-                    chosenRegisters.insert({regClassID, chosenReg});
-                    UsedRegisters.insert(chosenReg);
+    // Decide on memory generation mode: if variableMemBaseReg is true, when needing a different
+    // memory location we use a different base register, if it is false, we only change the offset
+    bool variableMemBaseReg = false;
+    unsigned memOperandWidth = 0;
+    for (auto m : reorderedMeasurements) {
+        const InstructionForm &instructionForm = instructionForms.get(m.opcode);
+        if (instructionForm.hasDefOfMemBaseRegister()) variableMemBaseReg = true;
+        // find maximum width of accessed memory
+        unsigned memWidth = getEnv().getMemoryOperandWidthUpperBound(m.opcode);
+        if (memWidth > memOperandWidth) memOperandWidth = memWidth;
+    }
+
+    int currentMIndex = 0;
+    // a block consists of one instruction of each measurementmeasurements
+    unsigned currentBlockIndex = 0;
+    std::vector<MCInst> instructions;
+    std::vector<std::map<unsigned, MCRegister>> globalConstraints(Measurements.size());
+    bool lastInstruction = false; // track if this is the last instruction to generate
+    unsigned targetBlockCount = *TargetInstrCount / Measurements.size();
+    MCRegister reusedMemBaseReg = 0; // this is fine as default, MCRegister 0 is undefined
+    unsigned memOffset = 0;
+    // at element n store the UsedRegister state before instruction n was generated
+    std::vector<std::set<MCRegister>> usedRegistersHistory(targetBlockCount * Measurements.size());
+    while (true) {
+        LatMeasurement m = reorderedMeasurements.at(currentMIndex);
+        LatMeasurement prevM = reorderedMeasurements.at((currentMIndex - 1 + Measurements.size()) %
+                                                        Measurements.size());
+        LatMeasurement nextM = reorderedMeasurements.at((currentMIndex + 1) % Measurements.size());
+        const InstructionForm &instructionForm = instructionForms.get(m.opcode);
+        std::map<unsigned, MCRegister> constraints;
+        constraints.insert(globalConstraints[currentMIndex].begin(),
+                           globalConstraints[currentMIndex].end());
+        // check if this is the last instruction
+        if (currentMIndex + 1 >= Measurements.size() && currentBlockIndex + 1 >= targetBlockCount) {
+            lastInstruction = true;
+        }
+        if (instructions.size() != 0) {
+            // make sure to have a dependency on the previous instruction as specified by the
+            // measurement
+            InstructionForm prevInstructionForm =
+                instructionForms.get(instructions.back().getOpcode());
+            OperandForm prevOperand = prevInstructionForm.getOperands().at(prevM.defIndex);
+            // increment memory operand if this defines a memory operand
+            if (std::holds_alternative<AArch64MemoryOperand>(m.type.defOp) ||
+                std::holds_alternative<X86MemoryOperand>(m.type.defOp) ||
+                std::holds_alternative<RISCVMemoryOperand>(m.type.defOp)) {
+                if (!variableMemBaseReg) memOffset += memOperandWidth;
+                // doing nothing "increments" the register as genInst will choose a fresh one
+            }
+
+            // constrain the use operand to the operand written to by the prior instruction
+            if (auto *regClassOperand = std::get_if<RegisterClassOperand>(&m.type.useOp)) {
+                if (prevOperand.isRegClass() &&
+                    prevOperand.getRegClassID() == regClassOperand->getRegClassID()) {
+                    MCRegister reg = prevOperand.getReg(&instructions.back());
+                    // out(std::cout, "previous is ", instructions.back(), " taking operand ")
+                    constraints.insert({m.useIndex, reg});
                 }
-            } else if (auto *registerOperand = std::get_if<RegisterOperand>(&op))
+            } else if (auto *registerOperand = std::get_if<RegisterOperand>(&m.type.useOp)) {
+                UsedRegisters.insert(registerOperand->getRegister());
+            } else if (std::holds_alternative<AArch64MemoryOperand>(m.type.useOp) ||
+                       std::holds_alternative<X86MemoryOperand>(m.type.useOp) ||
+                       std::holds_alternative<RISCVMemoryOperand>(m.type.useOp)) {
+                if (prevOperand.hasMemoryOffsetImm()) {
+                    memOffset = prevOperand.getMemoryOperandOffset(instructions.back());
+                }
+                if (prevOperand.isMemory()) {
+                    MCRegister reg = prevOperand.getMemoryOperandBaseReg(&instructions.back());
+                    if (reusedMemBaseReg != 0) {
+                        reg = reusedMemBaseReg;
+                    }
+                    constraints.insert({m.useIndex, reg});
+                }
+            }
+            // use reusedMemBaseReg if able
+            if (!variableMemBaseReg && reusedMemBaseReg != 0) {
+                for (int i = 0; i < instructionForm.getOperands().size(); i++) {
+                    if (instructionForm.getOperands().at(i).isMemory()) {
+                        constraints.insert({i, reusedMemBaseReg});
+                    }
+                }
+            }
+        }
+        // handle special case: this is the last instruction
+        if (instructions.size() != 0 && lastInstruction) {
+            // chain to first one
+            InstructionForm firstInstructionForm =
+                instructionForms.get(instructions.front().getOpcode());
+            OperandForm firstOperand = firstInstructionForm.getOperands().at(nextM.useIndex);
+            if (auto *regClassOperand = std::get_if<RegisterClassOperand>(&m.type.defOp)) {
+                // this check is needed as someone might pass weird LatMeasurement combinations
+                // (e.g. to check if it can be generated)
+                if (firstOperand.isRegClass() &&
+                    firstOperand.getRegClassID() == regClassOperand->getRegClassID()) {
+                    MCRegister reg = firstOperand.getReg(&instructions.front());
+                    constraints.insert({m.defIndex, reg});
+                }
+            } else if (auto *registerOperand = std::get_if<RegisterOperand>(&m.type.defOp))
                 // implicit def/use -> this provides a register directly
                 UsedRegisters.insert(registerOperand->getRegister());
-            else if (std::holds_alternative<AArch64MemoryOperand>(op) ||
-                     std::holds_alternative<X86MemoryOperand>(op) ||
-                     std::holds_alternative<RISCVMemoryOperand>(op)) {
-                memDisplacement = 0;
+            else if (std::holds_alternative<AArch64MemoryOperand>(m.type.defOp) ||
+                     std::holds_alternative<X86MemoryOperand>(m.type.defOp) ||
+                     std::holds_alternative<RISCVMemoryOperand>(m.type.defOp)) {
+                if (firstOperand.hasMemoryOffsetImm()) {
+                    memOffset = firstOperand.getMemoryOperandOffset(instructions.front());
+                }
+                if (firstOperand.isMemory()) {
+                    MCRegister reg = firstOperand.getMemoryOperandBaseReg(&instructions.front());
+                    if (reusedMemBaseReg != 0) {
+                        reg = reusedMemBaseReg;
+                    }
+                    constraints.insert({m.defIndex, reg});
+                }
             }
         }
 
+        // generate the instruction
+        // dbg(__func__, "generating instruction ", m.toString(), " ", constraints, " ", memOffset);
+        usedRegistersHistory[instructions.size()] = UsedRegisters;
         auto [EC, instruction] =
-            genInst(m.opcode, constraints, UsedRegisters, Immediate, memDisplacement);
+            genInst(m.opcode, constraints, UsedRegisters, Immediate,
+                    getEnv().memoryOperandOffsetToImmediate(m.opcode, memOffset));
+
+        if (EC == E_NO_REGISTERS) {
+            // shorter loops are ok, but we have to rewind generation to the last instruction of the
+            // last complete block
+            while (instructions.size() % Measurements.size() != 0)
+                instructions.pop_back();
+
+            instructions.pop_back();
+            currentMIndex = Measurements.size() - 1;
+            currentBlockIndex--;
+            UsedRegisters = usedRegistersHistory[instructions.size()];
+            // trigger regeneration of last instruction to complete loop
+            lastInstruction = true;
+            targetBlockCount = currentBlockIndex;
+            continue;
+        }
         if (EC != SUCCESS) return {EC, AssemblyFile()};
+
+        if (currentBlockIndex == 0) {
+            // constrain all other instructions of this opcode to use the same use registers as the
+            // first one (to save registers)
+            for (auto operand : instructionForm.getUseOnlyOps()) {
+                if (operand.getIndex() == m.defIndex || operand.getIndex() == m.useIndex)
+                    continue; // do not overwrite existing constraints from chain
+                if (operand.isRegClass())
+                    globalConstraints[currentMIndex].insert(
+                        {operand.getIndex(), operand.getReg(&instruction)});
+            }
+            for (auto operand : instructionForm.getOperands()) {
+                // If base register is not written to, we can also use the same one for each
+                // instruction
+                if (reusedMemBaseReg == 0 && !variableMemBaseReg && operand.isMemory()) {
+                    reusedMemBaseReg = operand.getMemoryOperandBaseReg(&instruction);
+                }
+            }
+        }
+
         instructions.emplace_back(instruction);
+        currentMIndex++;
+        if (currentMIndex >= Measurements.size()) {
+            // generated one of each instructions
+            currentMIndex = 0;
+            currentBlockIndex++;
+            // check if generation is complete
+            if (currentBlockIndex >= targetBlockCount) break;
+        }
     }
+    *TargetInstrCount = instructions.size();
 
     // save registers used
     std::string saveRegs;
@@ -151,31 +301,24 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
     for (MCInst inst : instructions) {
         const InstructionForm &instructionForm = instructionForms.get(inst.getOpcode());
         if (instructionForm.hasDefOfMemBaseRegister()) {
-            loopMemReset = getTemplate().genResetMemInLoopCode(
-                loadMem, getEnv().getRegAsmName(*memBaseRegs.begin()));
+            MCRegister compareReg; // the representative register used to check if a reset needed
+            for (auto op : instructionForm.getOperands())
+                if (op.isMemory()) compareReg = op.getMemoryOperandBaseReg(&inst);
+            loopMemReset =
+                getTemplate().genResetMemInLoopCode(loadMem, getEnv().getRegAsmName(compareReg));
+            break;
         }
     }
 
     std::string loopCode;
     llvm::raw_string_ostream lco(loopCode);
-    for (unsigned i = 0; i < *TargetInstrCount; ++i) {
-        for (auto inst : instructions) {
-            getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, lco);
-            lco << "\n";
-        }
-    }
-    std::string initCode;
-    std::string regInit;
-    llvm::raw_string_ostream ico(initCode);
-    llvm::raw_string_ostream rio(regInit);
-    ico << saveRegs << "\n";
-    rio << genRegInitCode(instructions, RegInitValue);
     for (auto inst : instructions) {
-        // execute each instruction once in the init function to e.g. mark registers as avx
-        getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, ico);
-        ico << "\n";
+        getEnv().MIP->printInst(&inst, 0, "", *getEnv().MSTI, lco);
+        lco << "\n";
     }
-    ico << restoreRegs << "\n";
+    std::string regInit;
+    llvm::raw_string_ostream rio(regInit);
+    rio << genRegInitCode(instructions, RegInitValue);
 
     AssemblyFile assemblyFile;
     assemblyFile.addBenchFunction("lat", saveRegs + regInit + loadMem, loopMemReset + loopCode,
@@ -193,7 +336,7 @@ genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *Targe
     if (getDependencies(instructions[instructions.size() - 1], instructions[0]).size() != 1)
         return {W_MULTIPLE_DEPENDENCIES, assemblyFile};
 
-    return {SUCCESS, assemblyFile};
+    return {globalEC, assemblyFile};
 }
 
 std::pair<ErrorCode, AssemblyFile>

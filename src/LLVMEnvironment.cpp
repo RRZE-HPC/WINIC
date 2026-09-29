@@ -136,6 +136,21 @@ bool LLVMEnvironment::isRISCV() {
     return MSTI->getTargetTriple().getArch() == Triple::ArchType::riscv64;
 }
 
+unsigned LLVMEnvironment::memoryOperandOffsetToImmediate(unsigned Opcode, unsigned Offset) {
+    if (getEnv().isAArch64()) {
+        // check if the target specific helpers can provide an exact width
+        TypeSize scale(0U, false), width(0U, false);
+        int64_t minOffset, maxOffset;
+        if (AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
+            // when width=8 and scale=4 this returns 2. LLVM later scales the immediate up by the
+            // factor of 4 while printing the instruction
+            if (width.isFixed()) return Offset / scale;
+        }
+    }
+    // all other architectures don't do fancy stuff i think
+    return Offset;
+}
+
 unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
     const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
 
@@ -146,7 +161,7 @@ unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
         if (AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
             // when width=8 and scale=4 this returns 2. LLVM later scales the immediate up by the
             // factor of 4 while printing the instruction
-            if (width.isFixed()) return width / scale;
+            if (width.isFixed()) return width;
         }
     }
 

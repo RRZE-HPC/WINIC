@@ -9,7 +9,8 @@ enum ErrorCode {
     SUCCESS,
     NO_ERROR_CODE,
     W_MULTIPLE_DEPENDENCIES, // warnings
-    S_MEMORY_OPERAND,        // skip reasons
+    W_FLAGS_TO_FLAGS,
+    S_MEMORY_OPERAND, // skip reasons
     S_PCREL_OPERAND,
     S_UNKNOWN_OPERAND,
     S_PSEUDO_INSTRUCTION,
