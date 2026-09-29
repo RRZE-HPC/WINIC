@@ -200,10 +200,10 @@ std::pair<ErrorCode, AssemblyFile>
 genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount,
                std::set<MCRegister> UsedRegisters, std::map<unsigned, MCRegister> HelperConstraints,
                unsigned HelperOpcode, initType RegInitValue, long Immediate) {
-    dbg(__func__, "Opcode: ", Opcode, " Name: ", getEnv().MCII->getName(Opcode).str(),
-        " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
+    dbg(__func__, " TargetInstrCount: ", *TargetInstrCount, " UnrollCount: ", UnrollCount,
         " UsedRegisters.size(): ", UsedRegisters.size(),
         " HelperConstraints.size(): ", HelperConstraints.size());
+    dbg(__func__, instructionForms.get(Opcode));
     if (HelperOpcode != MAX_UNSIGNED)
         dbg(__func__, "Helper: ", getEnv().MCII->getName(HelperOpcode));
     auto benchTemplate = getTemplate();

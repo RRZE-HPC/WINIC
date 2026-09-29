@@ -630,7 +630,7 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
     std::set<DependencyType> completedTypes;
 
     // classify measurements by operand combination, measure if trivial
-    if (showProgress) std::cout << "phase1: trivial measurements" << std::endl;
+    if (showProgress) std::cout << "\nphase1: trivial measurements" << std::endl;
     size_t progressPhaseOne = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
@@ -1349,7 +1349,10 @@ int run(int Argc, char **Argv) {
             buildTPDatabase(opcodes, regInitValue, immValue);
         } else if (*lat) {
             out(*ios, "Mode: Latency");
+            if (showProgress) out(std::cout, "building instruction representations");
+            int i = 0;
             for (auto opcode : opcodes) {
+                displayProgress({{"opcode", i++, opcodes.size()}}, "");
                 if (opcodeBlacklist.find(opcode) != opcodeBlacklist.end()) continue;
 
                 auto measurements = genLatMeasurements(opcode);
