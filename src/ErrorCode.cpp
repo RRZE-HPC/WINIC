@@ -1,6 +1,8 @@
 #include "ErrorCode.h"
 
+#include <Globals.h>
 #include <string>
+#include <vector>
 
 namespace winic {
 
@@ -93,16 +95,26 @@ std::string ecToString(ErrorCode EC) {
 }
 
 bool isError(ErrorCode EC) {
-    return EC != SUCCESS && EC != W_MULTIPLE_DEPENDENCIES && EC != NO_ERROR_CODE &&
-           EC != S_RUNTIME_LIMIT;
+    std::vector<ErrorCode> codes = {SUCCESS, W_MULTIPLE_DEPENDENCIES, W_FLAGS_TO_FLAGS,
+                                    NO_ERROR_CODE, S_RUNTIME_LIMIT};
+    return !contains(codes, EC);
 }
 
-bool wasExecuted(ErrorCode EC) {
-    return EC == SUCCESS || EC == E_UNROLL_ANOMALY || EC == E_UNUSUAL_LATENCY;
+bool finishedExecution(ErrorCode EC) {
+    std::vector<ErrorCode> codes = {SUCCESS,           E_UNROLL_ANOMALY,
+                                    E_UNUSUAL_LATENCY, W_MULTIPLE_DEPENDENCIES,
+                                    W_FLAGS_TO_FLAGS,  NO_ERROR_CODE};
+    return contains(codes, EC);
+}
+
+bool invalidatesOpcode(ErrorCode EC) {
+    std::vector<ErrorCode> codes = {E_SIGNAL, E_EXEC, E_SIGSEGV, E_ILLEGAL_INSTRUCTION, E_ASSEMBLY};
+    return contains(codes, EC);
 }
 
 bool hasResultWith(ErrorCode EC) {
-    return EC == SUCCESS || EC == W_MULTIPLE_DEPENDENCIES || EC == NO_ERROR_CODE;
+    std::vector<ErrorCode> codes = {SUCCESS, W_MULTIPLE_DEPENDENCIES, NO_ERROR_CODE};
+    return contains(codes, EC);
 }
 
 } // namespace winic

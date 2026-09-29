@@ -579,7 +579,7 @@ measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst,
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
 ErrorCode canMeasure(LatMeasurement Measurement, initType RegInit, long Immediate) {
     auto [EC, lat] = measureLatency({Measurement}, 2, RegInit, Immediate);
-    if (!isError(EC)) return SUCCESS;
+    if (finishedExecution(EC)) return SUCCESS;
     return EC;
 }
 
@@ -654,7 +654,7 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
                     str("\t", measurement.toStringWithBounds(),
                         "\n\t\tWARNING generated instructions have multiple dependencies. "
                         "If they have different latencies the lower one will be shadowed\n");
-            else if (isError(EC)) {
+            else if (invalidatesOpcode(EC)) {
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement.toStringWithBounds(), "\n\t\t", ecToString(EC),
                         ", this instruction cannot be measured on this platform\n");

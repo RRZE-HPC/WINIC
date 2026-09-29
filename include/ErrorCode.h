@@ -55,7 +55,10 @@ std::string ecToString(ErrorCode EC);
 bool isError(ErrorCode EC);
 
 // returns true if the benchmark was generated and executed without failing
-bool wasExecuted(ErrorCode EC);
+bool finishedExecution(ErrorCode EC);
+
+// returns true if it is not expected any measurement of this opcode is possible
+bool invalidatesOpcode(ErrorCode EC);
 
 // returns true a measurement with this EC has a value
 bool hasResultWith(ErrorCode EC);
