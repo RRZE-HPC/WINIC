@@ -788,12 +788,10 @@ void buildLatDatabase(initType RegInitValue, long Immediate) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
                     " was unsuccessful, EC: ", ecToString(EC));
                 if (currentIterator == "A") {
-                    out(*ios, "\t assuming ", *mA, " was the problem and blacklisting it");
-                    opcodeBlacklist.emplace(mA->opcode);
+                    out(*ios, "\t assuming ", *mA, " was the problem and skipping it");
                     mA->ec = EC;
                 } else {
-                    out(*ios, "\t assuming ", *mB, " was the problem and blacklisting it");
-                    opcodeBlacklist.emplace(mB->opcode);
+                    out(*ios, "\t assuming ", *mB, " was the problem and skipping it");
                     mB->ec = EC;
                 }
                 continue;
