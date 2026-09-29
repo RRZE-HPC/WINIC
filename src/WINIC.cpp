@@ -382,7 +382,11 @@ measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigne
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
 
-    assembly.setName(Measurements.front().toFilenameString());
+    std::string filenameString = Measurements.front().toFilenameString();
+    for (int i = 1; i < Measurements.size(); i++) {
+        filenameString = str(filenameString, "_", Measurements.at(i).toFilenameString());
+    }
+    assembly.setName(filenameString);
     ec = benchmarkRunner->assembleBenchmark(assembly);
     if (ec != SUCCESS) return {ec, -1};
 
