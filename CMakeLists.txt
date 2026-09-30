@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(winic VERSION 0.2.0 LANGUAGES CXX C)
+project(winic VERSION 0.3.0 LANGUAGES CXX C)
 
 # Require C++17
 set(CMAKE_CXX_STANDARD 17)
