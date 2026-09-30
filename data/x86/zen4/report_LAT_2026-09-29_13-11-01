@@ -1,0 +1,3301 @@
+WINIC version 0.3.0
+Timestamp: 2026-09-29_13-11-01
+Command: ./winic LAT -f 1.5 -i ADC64mi32_ND ADC64mi8_ND ADC64mr ADC64mr_EVEX ADC64mr_ND ADC64ri32 ADC64ri32_EVEX ADC64ri32_ND ADC64ri8 ADC64ri8_EVEX ADC64ri8_ND ADC64rm ADC64rm_EVEX ADC64rm_ND ADC64rr ADC64rr_EVEX ADC64rr_EVEX_REV ADC64rr_ND ADC64rr_ND_REV ADC64rr_REV ADCX64rm ADCX64rm_EVEX ADCX64rm_ND ADCX64rr ADCX64rr_EVEX ADCX64rr_ND ADD64mi32_ND ADD64mi8_ND ADD64mr ADD64mr_EVEX ADD64mr_ND ADD64ri32 ADD64ri32_EVEX ADD64ri32_ND ADD64ri8 ADD64ri8_EVEX ADD64ri8_ND ADD64rm ADD64rm_EVEX ADD64rm_ND ADD64rr ADD64rr_EVEX ADD64rr_EVEX_REV ADD64rr_ND ADD64rr_ND_REV ADD64rr_REV ADOX64rm ADOX64rm_EVEX ADOX64rm_ND ADOX64rr ADOX64rr_EVEX ADOX64rr_ND AND64mi32_ND AND64mi8_ND AND64mr AND64mr_EVEX AND64mr_ND AND64ri32 AND64ri32_EVEX AND64ri32_ND AND64ri8 AND64ri8_EVEX AND64ri8_ND AND64rm AND64rm_EVEX AND64rm_ND AND64rr AND64rr_EVEX AND64rr_EVEX_REV AND64rr_ND AND64rr_ND_REV AND64rr_REV ANDN64rm ANDN64rm_EVEX ANDN64rr ANDN64rr_EVEX BEXTR64rm BEXTR64rm_EVEX BEXTR64rr BEXTR64rr_EVEX BEXTRI64mi BEXTRI64ri BLCFILL64rm BLCFILL64rr BLCI64rm BLCI64rr BLCIC64rm BLCIC64rr BLCMSK64rm BLCMSK64rr BLCS64rm BLCS64rr BLSFILL64rm BLSFILL64rr BLSI64rm BLSI64rm_EVEX BLSI64rr BLSI64rr_EVEX BLSIC64rm BLSIC64rr BLSMSK64rm BLSMSK64rm_EVEX BLSMSK64rr BLSMSK64rr_EVEX BLSR64rm BLSR64rm_EVEX BLSR64rr BLSR64rr_EVEX BSF64rm BSF64rr BSR64rm BSR64rr BT64mr BT64ri8 BT64rr BTC64mr BTC64ri8 BTC64rr BTR64mr BTR64ri8 BTR64rr BTS64mr BTS64ri8 BTS64rr BZHI64rm BZHI64rm_EVEX BZHI64rr BZHI64rr_EVEX CCMP64mr CCMP64ri32 CCMP64ri8 CCMP64rm CCMP64rr CCMP64rr_REV CFCMOV64mr CFCMOV64rm CFCMOV64rm_ND CFCMOV64rr CFCMOV64rr_ND CFCMOV64rr_REV CMOV64rm CMOV64rm_ND CMOV64rr CMOV64rr_ND CMP64mr CMP64ri32 CMP64ri8 CMP64rm CMP64rr CMP64rr_REV CMPCCXADDmr64 CMPCCXADDmr64_EVEX CMPXCHG64rm CMPXCHG64rr CTEST64mr CTEST64ri32 CTEST64rr DEC64m_ND DEC64r DEC64r_EVEX DEC64r_ND DIV64r DIV64r_EVEX DYN_ALLOCA_64 ENQCMD64 ENQCMD64_EVEX ENQCMDS64 ENQCMDS64_EVEX IDIV64r IDIV64r_EVEX IMUL64r IMUL64r_EVEX IMUL64rm IMUL64rm_EVEX IMUL64rm_ND IMUL64rmi32 IMUL64rmi32_EVEX IMUL64rmi8 IMUL64rmi8_EVEX IMUL64rr IMUL64rr_EVEX IMUL64rr_ND IMUL64rri32 IMUL64rri32_EVEX IMUL64rri8 IMUL64rri8_EVEX IMULZU64rmi32 IMULZU64rmi8 IMULZU64rri32 IMULZU64rri8 INC64m_ND INC64r INC64r_EVEX INC64r_ND KCFI_CHECK LAR64rm LAR64rr LCMPXCHG64 LOCK_ADD64mr LOCK_AND64mr LOCK_BTC_RM64rm LOCK_BTR_RM64rm LOCK_BTS_RM64rm LOCK_OR64mr LOCK_SUB64mr LOCK_XOR64mr LSL64rm LSL64rr LWPINS64rmi LWPINS64rri LXADD64 LZCNT64rm LZCNT64rm_EVEX LZCNT64rr LZCNT64rr_EVEX MUL64r MUL64r_EVEX NEG64m_ND NEG64r NEG64r_EVEX NEG64r_ND OR64mi32_ND OR64mi8_ND OR64mr OR64mr_EVEX OR64mr_ND OR64ri32 OR64ri32_EVEX OR64ri32_ND OR64ri8 OR64ri8_EVEX OR64ri8_ND OR64rm OR64rm_EVEX OR64rm_ND OR64rr OR64rr_EVEX OR64rr_EVEX_REV OR64rr_ND OR64rr_ND_REV OR64rr_REV POPCNT64rm POPCNT64rm_EVEX POPCNT64rr POPCNT64rr_EVEX PROBED_ALLOCA_64 SAR64m1_ND SAR64mCL_ND SAR64mi_ND SAR64r1 SAR64r1_EVEX SAR64r1_ND SAR64rCL SAR64rCL_EVEX SAR64rCL_ND SAR64ri SAR64ri_EVEX SAR64ri_ND SBB64mi32_ND SBB64mi8_ND SBB64mr SBB64mr_EVEX SBB64mr_ND SBB64ri32 SBB64ri32_EVEX SBB64ri32_ND SBB64ri8 SBB64ri8_EVEX SBB64ri8_ND SBB64rm SBB64rm_EVEX SBB64rm_ND SBB64rr SBB64rr_EVEX SBB64rr_EVEX_REV SBB64rr_ND SBB64rr_ND_REV SBB64rr_REV SEG_ALLOCA_64 SHL64m1_ND SHL64mCL_ND SHL64mi_ND SHL64r1 SHL64r1_EVEX SHL64r1_ND SHL64rCL SHL64rCL_EVEX SHL64rCL_ND SHL64ri SHL64ri_EVEX SHL64ri_ND SHLD64mrCL SHLD64mrCL_EVEX SHLD64mrCL_ND SHLD64mri8 SHLD64mri8_EVEX SHLD64mri8_ND SHLD64rrCL SHLD64rrCL_EVEX SHLD64rrCL_ND SHLD64rri8 SHLD64rri8_EVEX SHLD64rri8_ND SHR64m1_ND SHR64mCL_ND SHR64mi_ND SHR64r1 SHR64r1_EVEX SHR64r1_ND SHR64rCL SHR64rCL_EVEX SHR64rCL_ND SHR64ri SHR64ri_EVEX SHR64ri_ND SHRD64mrCL SHRD64mrCL_EVEX SHRD64mrCL_ND SHRD64mri8 SHRD64mri8_EVEX SHRD64mri8_ND SHRD64rrCL SHRD64rrCL_EVEX SHRD64rrCL_ND SHRD64rri8 SHRD64rri8_EVEX SHRD64rri8_ND SUB64mi32_ND SUB64mi8_ND SUB64mr SUB64mr_EVEX SUB64mr_ND SUB64ri32 SUB64ri32_EVEX SUB64ri32_ND SUB64ri8 SUB64ri8_EVEX SUB64ri8_ND SUB64rm SUB64rm_EVEX SUB64rm_ND SUB64rr SUB64rr_EVEX SUB64rr_EVEX_REV SUB64rr_ND SUB64rr_ND_REV SUB64rr_REV T1MSKC64rm T1MSKC64rr TEST64mr TEST64ri32 TEST64rr TZCNT64rm TZCNT64rm_EVEX TZCNT64rr TZCNT64rr_EVEX TZMSK64rm TZMSK64rr VAARG_64 XADD64rm XADD64rr XOR64mi32_ND XOR64mi8_ND XOR64mr XOR64mr_EVEX XOR64mr_ND XOR64ri32 XOR64ri32_EVEX XOR64ri32_ND XOR64ri8 XOR64ri8_EVEX XOR64ri8_ND XOR64rm XOR64rm_EVEX XOR64rm_ND XOR64rr XOR64rr_EVEX XOR64rr_EVEX_REV XOR64rr_ND XOR64rr_ND_REV XOR64rr_REV -o ../PTW/a_zen4/winic_zen4.yaml 
+Frequency: 1.5 GHz
+Runs per kernel: 4
+Arch: znver4
+Using existing database: ../PTW/a_zen4/winic_zen4.yaml
+Mode: Latency
+Number of measurements: 1338
+
+
+Report on finding helpers for dependency types:
+-----Class<GR16> -> Class<GR64> and Class<GR64> -> Class<GR16>-----
+	2 measurements of first Type
+	no measurements of type Class<GR64> -> Class<GR16> so Class<GR16> -> Class<GR64> can also not be measured
+-----Mem -> Class<GR64> and Class<GR64> -> Mem-----
+	114 measurements of first Type
+	43 measurements of reversed Type
+	Measuring XOR64mi8_ND(1(Mem) -> 0(Class<GR64>))  and XOR64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming XOR64mi8_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring XOR64mi32_ND(1(Mem) -> 0(Class<GR64>))  and XOR64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming XOR64mi32_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Unusual 0.6395 from VAARG_64(1(Mem) -> 0(Class<GR64>))  and XOR64mr(1(Class<GR64>) -> 0(Mem)) latency would be lower but current candidate pair has clean latency, discarding this result
+	Measuring TZMSK64rm(1(Mem) -> 0(Class<GR64>))  and XOR64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming TZMSK64rm(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring TZCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  and XOR64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming TZCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring T1MSKC64rm(1(Mem) -> 0(Class<GR64>))  and XOR64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming T1MSKC64rm(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	New pair: SUB64rm(1(Mem) -> 0(Class<GR64>))  XOR64mr(1(Class<GR64>) -> 0(Mem)) with latency 7.966
+	Detected multiple dependencies between SUB64rm(1(Mem) -> 0(Class<GR64>))  and SBB64mr(1(Class<GR64>) -> 0(Mem)) so they are not useful as helper combination
+	Measuring SUB64rm(1(Mem) -> 0(Class<GR64>))  and CFCMOV64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming CFCMOV64mr(1(Class<GR64>) -> 0(Mem))  was the problem and skipping it
+	New pair: SUB64rm(1(Mem) -> 0(Class<GR64>))  AND64mr(1(Class<GR64>) -> 0(Mem)) with latency 7.93475
+	Measuring SUB64mi8_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SUB64mi8_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SUB64mi32_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SUB64mi32_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SHR64mi_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SHR64mi_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SHR64mCL_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SHR64mCL_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SHR64m1_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SHR64m1_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SHL64mi_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SHL64mi_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SHL64mCL_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SHL64mCL_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SHL64m1_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SHL64m1_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Detected multiple dependencies between SBB64rm(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem)) so they are not useful as helper combination
+	Measuring SBB64mi8_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SBB64mi8_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SBB64mi32_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SBB64mi32_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SAR64mi_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SAR64mi_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SAR64mCL_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SAR64mCL_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring SAR64m1_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming SAR64m1_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring POPCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming POPCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring OR64mi8_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming OR64mi8_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring OR64mi32_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming OR64mi32_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring NEG64m_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming NEG64m_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring LZCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming LZCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring INC64m_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming INC64m_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring IMULZU64rmi8(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming IMULZU64rmi8(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring IMULZU64rmi32(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming IMULZU64rmi32(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring IMUL64rmi8_EVEX(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming IMUL64rmi8_EVEX(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring IMUL64rmi32_EVEX(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming IMUL64rmi32_EVEX(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Measuring DEC64m_ND(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming DEC64m_ND(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	Detected multiple dependencies between CMOV64rm(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem)) so they are not useful as helper combination
+	Measuring CFCMOV64rm(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming CFCMOV64rm(1(Mem) -> 0(Class<GR64>))  was the problem and skipping it
+	New pair: BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>))  AND64mr(1(Class<GR64>) -> 0(Mem)) with latency 2.037
+	Found helper instructions BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>))  and AND64mr(1(Class<GR64>) -> 0(Mem))  with combined latency 2.037
+-----Reg<CL> -> Class<GR64> and Class<GR64> -> Reg<CL>-----
+	20 measurements of first Type
+	no measurements of type Class<GR64> -> Reg<CL> so Reg<CL> -> Class<GR64> can also not be measured
+-----Reg<EFLAGS> -> Class<GR64> and Class<GR64> -> Reg<EFLAGS>-----
+	57 measurements of first Type
+	392 measurements of reversed Type
+	New pair: SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>))  XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) with latency 2.04125
+	Found helper instructions SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>))  and XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  with combined latency 2.04125
+-----Reg<RAX> -> Class<GR64> and Class<GR64> -> Reg<RAX>-----
+	1 measurements of first Type
+	11 measurements of reversed Type
+	Detected multiple dependencies between CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>))  and IMUL64r(0(Class<GR64>) -> 1(Reg<RAX>)) so they are not useful as helper combination
+	Found helper instructions CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>))  and MUL64r(0(Class<GR64>) -> 1(Reg<RAX>))  with combined latency 5.42725
+-----Spec -> Class<GR64> and Class<GR64> -> Spec-----
+	11 measurements of first Type
+	no measurements of type Class<GR64> -> Spec so Spec -> Class<GR64> can also not be measured
+-----Reg<CL> -> Mem and Mem -> Reg<CL>-----
+	4 measurements of first Type
+	no measurements of type Mem -> Reg<CL> so Reg<CL> -> Mem can also not be measured
+-----Reg<EFLAGS> -> Mem and Mem -> Reg<EFLAGS>-----
+	5 measurements of first Type
+	153 measurements of reversed Type
+	Measuring CFCMOV64mr(3(Reg<EFLAGS>) -> 0(Mem))  and XOR64rm(1(Mem) -> 2(Reg<EFLAGS>))  was unsuccessful, EC: ERROR_ILLEGAL_INSTRUCTION
+	 assuming CFCMOV64mr(3(Reg<EFLAGS>) -> 0(Mem))  was the problem and skipping it
+	New pair: SBB64mr(2(Reg<EFLAGS>) -> 0(Mem))  XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) with latency 2.03925
+	Found helper instructions SBB64mr(2(Reg<EFLAGS>) -> 0(Mem))  and XOR64mr(0(Mem) -> 2(Reg<EFLAGS>))  with combined latency 2.03925
+-----Reg<RAX> -> Mem and Mem -> Reg<RAX>-----
+	2 measurements of first Type
+	2 measurements of reversed Type
+	did not find a pair that can be measured
+-----Spec -> Mem and Mem -> Spec-----
+	3 measurements of first Type
+	no measurements of type Mem -> Spec so Spec -> Mem can also not be measured
+-----Class<GR16> -> Reg<EFLAGS> and Reg<EFLAGS> -> Class<GR16>-----
+	2 measurements of first Type
+	no measurements of type Reg<EFLAGS> -> Class<GR16> so Class<GR16> -> Reg<EFLAGS> can also not be measured
+-----Class<GR32> -> Reg<EFLAGS> and Reg<EFLAGS> -> Class<GR32>-----
+	1 measurements of first Type
+	no measurements of type Reg<EFLAGS> -> Class<GR32> so Class<GR32> -> Reg<EFLAGS> can also not be measured
+-----Reg<CL> -> Reg<EFLAGS> and Reg<EFLAGS> -> Reg<CL>-----
+	24 measurements of first Type
+	no measurements of type Reg<EFLAGS> -> Reg<CL> so Reg<CL> -> Reg<EFLAGS> can also not be measured
+-----Reg<RAX> -> Reg<EFLAGS> and Reg<EFLAGS> -> Reg<RAX>-----
+	11 measurements of first Type
+	no measurements of type Reg<EFLAGS> -> Reg<RAX> so Reg<RAX> -> Reg<EFLAGS> can also not be measured
+-----Reg<RDX> -> Reg<EFLAGS> and Reg<EFLAGS> -> Reg<RDX>-----
+	4 measurements of first Type
+	no measurements of type Reg<EFLAGS> -> Reg<RDX> so Reg<RDX> -> Reg<EFLAGS> can also not be measured
+-----Spec -> Reg<EFLAGS> and Reg<EFLAGS> -> Spec-----
+	11 measurements of first Type
+	no measurements of type Reg<EFLAGS> -> Spec so Spec -> Reg<EFLAGS> can also not be measured
+-----Reg<RDX> -> Reg<RAX> and Reg<RAX> -> Reg<RDX>-----
+	4 measurements of first Type
+	8 measurements of reversed Type
+	did not find a pair that can be measured
+-----Class<GR64> -> Reg<RDX> and Reg<RDX> -> Class<GR64>-----
+	8 measurements of first Type
+	no measurements of type Reg<RDX> -> Class<GR64> so Class<GR64> -> Reg<RDX> can also not be measured
+
+
+Report on individual measurements:
+-----ADC64mi32_ND-----
+	ADC64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	ADC64mi32_ND(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	ADC64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ADC64mi8_ND-----
+	ADC64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	ADC64mi8_ND(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	ADC64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ADC64mr-----
+	ADC64mr(0(Mem) -> 0(Mem))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64mr(2(Reg<EFLAGS>) -> 2(Reg<EFLAGS>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64mr(1(Class<GR64>) -> 0(Mem))  [0.997;1.03]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	ADC64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADC64mr(2(Reg<EFLAGS>) -> 0(Mem))  [1.01;1.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADC64mr(0(Mem) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----ADC64mr_EVEX-----
+	ADC64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADC64mr_EVEX(2(Reg<EFLAGS>) -> 2(Reg<EFLAGS>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64mr_ND-----
+	ADC64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64ri32-----
+	ADC64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64ri32(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADC64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----ADC64ri32_EVEX-----
+	ADC64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64ri32_ND-----
+	ADC64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64ri8-----
+	ADC64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64ri8(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADC64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADC64ri8_EVEX-----
+	ADC64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64ri8_ND-----
+	ADC64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rm-----
+	ADC64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64rm(1(Mem) -> 0(Class<GR64>))  [7.51;7.55]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.55 cycles
+	ADC64rm(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADC64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.994;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADC64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.49;7.53]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.54 cycles
+
+-----ADC64rm_EVEX-----
+	ADC64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rm_ND-----
+	ADC64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rr-----
+	ADC64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADC64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.989;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADC64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADC64rr_EVEX-----
+	ADC64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADC64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rr_EVEX_REV-----
+	ADC64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADC64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rr_ND-----
+	ADC64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADC64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rr_ND_REV-----
+	ADC64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADC64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADC64rr_REV-----
+	ADC64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADC64rr_REV(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADC64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADC64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+
+-----ADCX64rm-----
+	ADCX64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADCX64rm(1(Mem) -> 0(Class<GR64>))  [7.52;7.56]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.56 cycles
+	ADCX64rm(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADCX64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.49;7.53]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.54 cycles
+
+-----ADCX64rm_EVEX-----
+	ADCX64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADCX64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [7.56;7.6]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.6 cycles
+	ADCX64rm_EVEX(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rm_EVEX(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.993;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [7.48;7.52]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.53 cycles
+
+-----ADCX64rm_ND-----
+	ADCX64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADCX64rr-----
+	ADCX64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADCX64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADCX64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.993;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADCX64rr_EVEX-----
+	ADCX64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADCX64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADCX64rr_EVEX(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rr_EVEX(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADCX64rr_EVEX(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADCX64rr_ND-----
+	ADCX64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADCX64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64mi32_ND-----
+	ADD64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	ADD64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ADD64mi8_ND-----
+	ADD64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	ADD64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ADD64mr-----
+	ADD64mr(0(Mem) -> 0(Mem))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ADD64mr(1(Class<GR64>) -> 0(Mem))  [1;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.05 cycles
+	ADD64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADD64mr(0(Mem) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADD64mr_EVEX-----
+	ADD64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64mr_ND-----
+	ADD64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64ri32-----
+	ADD64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	ADD64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADD64ri32_EVEX-----
+	ADD64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64ri32_ND-----
+	ADD64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64ri8-----
+	ADD64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	ADD64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADD64ri8_EVEX-----
+	ADD64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64ri8_ND-----
+	ADD64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rm-----
+	ADD64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	ADD64rm(1(Mem) -> 0(Class<GR64>))  [6.99;7.03]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.03 cycles
+	ADD64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADD64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.77;6.81]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.82 cycles
+
+-----ADD64rm_EVEX-----
+	ADD64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rm_ND-----
+	ADD64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rr-----
+	ADD64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ADD64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ADD64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADD64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----ADD64rr_EVEX-----
+	ADD64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADD64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rr_EVEX_REV-----
+	ADD64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADD64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rr_ND-----
+	ADD64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADD64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rr_ND_REV-----
+	ADD64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADD64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADD64rr_REV-----
+	ADD64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ADD64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ADD64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADD64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----ADOX64rm-----
+	ADOX64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADOX64rm(1(Mem) -> 0(Class<GR64>))  [7.48;7.51]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.51 cycles
+	ADOX64rm(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADOX64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.719 cycles
+	ADOX64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 1.43 cycles
+
+-----ADOX64rm_EVEX-----
+	ADOX64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADOX64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [7.47;7.51]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.51 cycles
+	ADOX64rm_EVEX(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ADOX64rm_EVEX(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.719 cycles
+	ADOX64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 1.41 cycles
+
+-----ADOX64rm_ND-----
+	ADOX64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ADOX64rr-----
+	ADOX64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADOX64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADOX64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [0.986;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.03 cycles
+	ADOX64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.687 cycles
+	ADOX64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.636 cycles
+
+-----ADOX64rr_EVEX-----
+	ADOX64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADOX64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	ADOX64rr_EVEX(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ADOX64rr_EVEX(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.684 cycles
+	ADOX64rr_EVEX(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.646 cycles
+
+-----ADOX64rr_ND-----
+	ADOX64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	ADOX64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64mi32_ND-----
+	AND64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	AND64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----AND64mi8_ND-----
+	AND64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	AND64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----AND64mr-----
+	AND64mr(0(Mem) -> 0(Mem))  [1.03;1.03]
+		 Successful, latency: 1.03
+	AND64mr(1(Class<GR64>) -> 0(Mem))  [1;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	AND64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	AND64mr(0(Mem) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----AND64mr_EVEX-----
+	AND64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64mr_ND-----
+	AND64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64ri32-----
+	AND64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	AND64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----AND64ri32_EVEX-----
+	AND64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64ri32_ND-----
+	AND64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64ri8-----
+	AND64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	AND64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----AND64ri8_EVEX-----
+	AND64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64ri8_ND-----
+	AND64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rm-----
+	AND64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	AND64rm(1(Mem) -> 0(Class<GR64>))  [7.02;7.05]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.05 cycles
+	AND64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	AND64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.72;6.76]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.76 cycles
+
+-----AND64rm_EVEX-----
+	AND64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rm_ND-----
+	AND64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rr-----
+	AND64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	AND64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	AND64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.996;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	AND64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----AND64rr_EVEX-----
+	AND64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	AND64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rr_EVEX_REV-----
+	AND64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	AND64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rr_ND-----
+	AND64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	AND64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rr_ND_REV-----
+	AND64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	AND64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----AND64rr_REV-----
+	AND64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	AND64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	AND64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+	AND64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+
+-----ANDN64rm-----
+	ANDN64rm(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	ANDN64rm(2(Mem) -> 0(Class<GR64>))  [7.04;7.07]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.07 cycles
+	ANDN64rm(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	ANDN64rm(2(Mem) -> 3(Reg<EFLAGS>))  [7;7.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.05 cycles
+
+-----ANDN64rm_EVEX-----
+	ANDN64rm_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	ANDN64rm_EVEX(2(Mem) -> 0(Class<GR64>))  [7.05;7.08]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.08 cycles
+	ANDN64rm_EVEX(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ANDN64rm_EVEX(2(Mem) -> 3(Reg<EFLAGS>))  [6.99;7.03]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.03 cycles
+
+-----ANDN64rr-----
+	ANDN64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ANDN64rr(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ANDN64rr(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ANDN64rr(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----ANDN64rr_EVEX-----
+	ANDN64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ANDN64rr_EVEX(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	ANDN64rr_EVEX(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.988;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	ANDN64rr_EVEX(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.988;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BEXTR64rm-----
+	BEXTR64rm(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BEXTR64rm(1(Mem) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	BEXTR64rm(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.988;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.03 cycles
+	BEXTR64rm(1(Mem) -> 3(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BEXTR64rm_EVEX-----
+	BEXTR64rm_EVEX(2(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	BEXTR64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [1.02;1.05]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.05 cycles
+	BEXTR64rm_EVEX(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	BEXTR64rm_EVEX(1(Mem) -> 3(Reg<EFLAGS>))  [0.996;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BEXTR64rr-----
+	BEXTR64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	BEXTR64rr(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BEXTR64rr(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	BEXTR64rr(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BEXTR64rr_EVEX-----
+	BEXTR64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BEXTR64rr_EVEX(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BEXTR64rr_EVEX(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.988;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.03 cycles
+	BEXTR64rr_EVEX(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BEXTRI64mi-----
+	BEXTRI64mi(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BEXTRI64mi(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BEXTRI64ri-----
+	BEXTRI64ri(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLCFILL64rm-----
+	BLCFILL64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLCFILL64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLCFILL64rr-----
+	BLCFILL64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLCI64rm-----
+	BLCI64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLCI64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLCI64rr-----
+	BLCI64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLCIC64rm-----
+	BLCIC64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLCIC64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLCIC64rr-----
+	BLCIC64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLCMSK64rm-----
+	BLCMSK64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLCMSK64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLCMSK64rr-----
+	BLCMSK64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLCS64rm-----
+	BLCS64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLCS64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLCS64rr-----
+	BLCS64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLSFILL64rm-----
+	BLSFILL64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLSFILL64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLSFILL64rr-----
+	BLSFILL64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLSI64rm-----
+	BLSI64rm(1(Mem) -> 0(Class<GR64>))  [7;7.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.04 cycles
+	BLSI64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.04;7.08]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.09 cycles
+
+-----BLSI64rm_EVEX-----
+	BLSI64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [7.01;7.05]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.05 cycles
+	BLSI64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [7.02;7.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.06 cycles
+
+-----BLSI64rr-----
+	BLSI64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	BLSI64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----BLSI64rr_EVEX-----
+	BLSI64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BLSI64rr_EVEX(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----BLSIC64rm-----
+	BLSIC64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	BLSIC64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BLSIC64rr-----
+	BLSIC64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----BLSMSK64rm-----
+	BLSMSK64rm(1(Mem) -> 0(Class<GR64>))  [7.02;7.06]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.06 cycles
+	BLSMSK64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.02;7.06]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.07 cycles
+
+-----BLSMSK64rm_EVEX-----
+	BLSMSK64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [7.01;7.05]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.05 cycles
+	BLSMSK64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [7.04;7.08]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.09 cycles
+
+-----BLSMSK64rr-----
+	BLSMSK64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BLSMSK64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BLSMSK64rr_EVEX-----
+	BLSMSK64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BLSMSK64rr_EVEX(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----BLSR64rm-----
+	BLSR64rm(1(Mem) -> 0(Class<GR64>))  [6.97;7.01]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.01 cycles
+	BLSR64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.02;7.06]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.06 cycles
+
+-----BLSR64rm_EVEX-----
+	BLSR64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [6.97;7.01]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.01 cycles
+	BLSR64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [7.05;7.09]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.1 cycles
+
+-----BLSR64rr-----
+	BLSR64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BLSR64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BLSR64rr_EVEX-----
+	BLSR64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BLSR64rr_EVEX(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BSF64rm-----
+	BSF64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BSF64rm(1(Mem) -> 0(Class<GR64>))  [6.89;6.92]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 7.92 cycles
+	BSF64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.994;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BSF64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.71;6.75]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.76 cycles
+
+-----BSF64rr-----
+	BSF64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BSF64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BSF64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	BSF64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----BSR64rm-----
+	BSR64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BSR64rm(1(Mem) -> 0(Class<GR64>))  [7.12;7.16]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.16 cycles
+	BSR64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BSR64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.8;6.83]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.84 cycles
+
+-----BSR64rr-----
+	BSR64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BSR64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	BSR64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	BSR64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BT64mr-----
+	BT64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	BT64mr(0(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----BT64ri8-----
+	BT64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----BT64rr-----
+	BT64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.996;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BT64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BTC64mr-----
+	BTC64mr(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----BTC64ri8-----
+	BTC64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	BTC64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BTC64rr-----
+	BTC64rr(0(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	BTC64rr(1(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	BTC64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BTC64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----BTR64mr-----
+	BTR64mr(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----BTR64ri8-----
+	BTR64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	BTR64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BTR64rr-----
+	BTR64rr(0(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	BTR64rr(1(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	BTR64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	BTR64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BTS64mr-----
+	BTS64mr(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----BTS64ri8-----
+	BTS64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	BTS64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BTS64rr-----
+	BTS64rr(0(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	BTS64rr(1(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	BTS64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BTS64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BZHI64rm-----
+	BZHI64rm(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BZHI64rm(1(Mem) -> 0(Class<GR64>))  [1.01;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	BZHI64rm(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.988;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BZHI64rm(1(Mem) -> 3(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----BZHI64rm_EVEX-----
+	BZHI64rm_EVEX(2(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [1.01;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	BZHI64rm_EVEX(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	BZHI64rm_EVEX(1(Mem) -> 3(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+
+-----BZHI64rr-----
+	BZHI64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BZHI64rr(2(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	BZHI64rr(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.989;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BZHI64rr(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.987;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.03 cycles
+
+-----BZHI64rr_EVEX-----
+	BZHI64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BZHI64rr_EVEX(2(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	BZHI64rr_EVEX(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	BZHI64rr_EVEX(2(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----CCMP64mr-----
+	CCMP64mr(1(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	CCMP64mr(0(Mem) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CCMP64ri32-----
+	CCMP64ri32(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CCMP64ri8-----
+	CCMP64ri8(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CCMP64rm-----
+	CCMP64rm(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	CCMP64rm(1(Mem) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CCMP64rr-----
+	CCMP64rr(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	CCMP64rr(1(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CCMP64rr_REV-----
+	CCMP64rr_REV(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	CCMP64rr_REV(1(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CFCMOV64mr-----
+	CFCMOV64mr(1(Class<GR64>) -> 0(Mem))  [ERROR_UNUSUAL_LATENCY]
+	CFCMOV64mr(3(Reg<EFLAGS>) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+
+-----CFCMOV64rm-----
+	CFCMOV64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	CFCMOV64rm(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+
+-----CFCMOV64rm_ND-----
+	CFCMOV64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CFCMOV64rr-----
+	CFCMOV64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CFCMOV64rr_ND-----
+	CFCMOV64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	CFCMOV64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CFCMOV64rr_REV-----
+	CFCMOV64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CMOV64rm-----
+	CMOV64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	CMOV64rm(1(Mem) -> 0(Class<GR64>))  [1.01;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	CMOV64rm(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [0.994;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----CMOV64rm_ND-----
+	CMOV64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CMOV64rr-----
+	CMOV64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	CMOV64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	CMOV64rr(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----CMOV64rr_ND-----
+	CMOV64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	CMOV64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CMP64mr-----
+	CMP64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	CMP64mr(0(Mem) -> 2(Reg<EFLAGS>))  [7.02;7.06]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.07 cycles
+
+-----CMP64ri32-----
+	CMP64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----CMP64ri8-----
+	CMP64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----CMP64rm-----
+	CMP64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	CMP64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.98;7.01]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.02 cycles
+
+-----CMP64rr-----
+	CMP64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.996;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	CMP64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----CMP64rr_REV-----
+	CMP64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	CMP64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----CMPCCXADDmr64-----
+	CMPCCXADDmr64(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	CMPCCXADDmr64(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	CMPCCXADDmr64(1(Mem) -> 1(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CMPCCXADDmr64_EVEX-----
+	CMPCCXADDmr64_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	CMPCCXADDmr64_EVEX(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	CMPCCXADDmr64_EVEX(1(Mem) -> 1(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----CMPXCHG64rm-----
+	CMPXCHG64rm(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+	CMPXCHG64rm(2(Reg<RAX>) -> 2(Reg<RAX>))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----CMPXCHG64rr-----
+	CMPXCHG64rr(1(Class<GR64>) -> 0(Class<GR64>))  [3.05;3.05]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	CMPXCHG64rr(2(Reg<RAX>) -> 2(Reg<RAX>))  [3.05;3.05]
+		 Successful, latency: 3.05
+	CMPXCHG64rr(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [2.01;2.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 3.05 cycles
+	CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>))  [1;4.43]
+		Dependencies:
+			CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>)) 
+			MUL64r(0(Class<GR64>) -> 1(Reg<RAX>)) 
+		Combined result: 5.43 cycles
+	CMPXCHG64rr(1(Class<GR64>) -> 2(Reg<RAX>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>)) 
+			MUL64r(0(Class<GR64>) -> 1(Reg<RAX>)) 
+		Combined result: 6.11 cycles
+
+-----CTEST64mr-----
+	CTEST64mr(1(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	CTEST64mr(0(Mem) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CTEST64ri32-----
+	CTEST64ri32(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----CTEST64rr-----
+	CTEST64rr(0(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+	CTEST64rr(1(Class<GR64>) -> 4(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----DEC64m_ND-----
+	DEC64m_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	DEC64m_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----DEC64r-----
+	DEC64r(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	DEC64r(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.682 cycles
+
+-----DEC64r_EVEX-----
+	DEC64r_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----DEC64r_ND-----
+	DEC64r_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----DIV64r-----
+	DIV64r(1(Reg<RAX>) -> 1(Reg<RAX>))  [ERROR_SIGNAL]
+		ERROR_SIGNAL, this instruction cannot be measured on this platform
+	DIV64r(2(Reg<RDX>) -> 2(Reg<RDX>))  [ERROR_SIGNAL]
+		ERROR_SIGNAL, this instruction cannot be measured on this platform
+
+-----DIV64r_EVEX-----
+	DIV64r_EVEX(1(Reg<RAX>) -> 1(Reg<RAX>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	DIV64r_EVEX(2(Reg<RDX>) -> 2(Reg<RDX>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----ENQCMD64-----
+	ENQCMD64(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ENQCMD64_EVEX-----
+	ENQCMD64_EVEX(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ENQCMDS64-----
+	ENQCMDS64(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----ENQCMDS64_EVEX-----
+	ENQCMDS64_EVEX(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----IDIV64r-----
+	IDIV64r(1(Reg<RAX>) -> 1(Reg<RAX>))  [ERROR_SIGNAL]
+		ERROR_SIGNAL, this instruction cannot be measured on this platform
+	IDIV64r(2(Reg<RDX>) -> 2(Reg<RDX>))  [ERROR_SIGNAL]
+		ERROR_SIGNAL, this instruction cannot be measured on this platform
+
+-----IDIV64r_EVEX-----
+	IDIV64r_EVEX(1(Reg<RAX>) -> 1(Reg<RAX>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	IDIV64r_EVEX(2(Reg<RDX>) -> 2(Reg<RDX>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64r-----
+	IMUL64r(1(Reg<RAX>) -> 1(Reg<RAX>))  [3.06;3.06]
+		 Successful, latency: 3.06
+	IMUL64r(0(Class<GR64>) -> 3(Reg<EFLAGS>))  [4.05;4.09]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 5.1 cycles
+	IMUL64r(0(Class<GR64>) -> 1(Reg<RAX>))  [1.85;5.28]
+		Dependencies:
+			CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>)) 
+			MUL64r(0(Class<GR64>) -> 1(Reg<RAX>)) 
+		Combined result: 6.28 cycles
+
+-----IMUL64r_EVEX-----
+	IMUL64r_EVEX(1(Reg<RAX>) -> 1(Reg<RAX>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64rm-----
+	IMUL64rm(0(Class<GR64>) -> 0(Class<GR64>))  [3.06;3.06]
+		 Successful, latency: 3.06
+	IMUL64rm(1(Mem) -> 0(Class<GR64>))  [8.17;8.2]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.2 cycles
+	IMUL64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [3.02;3.07]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 4.07 cycles
+	IMUL64rm(1(Mem) -> 2(Reg<EFLAGS>))  [8.12;8.16]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.17 cycles
+
+-----IMUL64rm_EVEX-----
+	IMUL64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64rm_ND-----
+	IMUL64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64rmi32-----
+	IMUL64rmi32(1(Mem) -> 0(Class<GR64>))  [8.13;8.16]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.16 cycles
+	IMUL64rmi32(1(Mem) -> 3(Reg<EFLAGS>))  [8.13;8.17]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.18 cycles
+
+-----IMUL64rmi32_EVEX-----
+	IMUL64rmi32_EVEX(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	IMUL64rmi32_EVEX(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----IMUL64rmi8-----
+	IMUL64rmi8(1(Mem) -> 0(Class<GR64>))  [8.12;8.16]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.16 cycles
+	IMUL64rmi8(1(Mem) -> 3(Reg<EFLAGS>))  [8.11;8.15]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.16 cycles
+
+-----IMUL64rmi8_EVEX-----
+	IMUL64rmi8_EVEX(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	IMUL64rmi8_EVEX(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----IMUL64rr-----
+	IMUL64rr(0(Class<GR64>) -> 0(Class<GR64>))  [3.05;3.05]
+		 Successful, latency: 3.05
+	IMUL64rr(1(Class<GR64>) -> 0(Class<GR64>))  [3.06;3.06]
+		 Successful, latency: 3.06
+	IMUL64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [3.03;3.07]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 4.07 cycles
+	IMUL64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [3.03;3.07]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 4.07 cycles
+
+-----IMUL64rr_EVEX-----
+	IMUL64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	IMUL64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64rr_ND-----
+	IMUL64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	IMUL64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64rri32-----
+	IMUL64rri32(1(Class<GR64>) -> 0(Class<GR64>))  [3.05;3.05]
+		 Successful, latency: 3.05
+	IMUL64rri32(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [3.03;3.07]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 4.07 cycles
+
+-----IMUL64rri32_EVEX-----
+	IMUL64rri32_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMUL64rri8-----
+	IMUL64rri8(1(Class<GR64>) -> 0(Class<GR64>))  [3.06;3.06]
+		 Successful, latency: 3.06
+	IMUL64rri8(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [3.02;3.06]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 4.07 cycles
+
+-----IMUL64rri8_EVEX-----
+	IMUL64rri8_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMULZU64rmi32-----
+	IMULZU64rmi32(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	IMULZU64rmi32(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----IMULZU64rmi8-----
+	IMULZU64rmi8(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	IMULZU64rmi8(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----IMULZU64rri32-----
+	IMULZU64rri32(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----IMULZU64rri8-----
+	IMULZU64rri8(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----INC64m_ND-----
+	INC64m_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	INC64m_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----INC64r-----
+	INC64r(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	INC64r(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.679 cycles
+
+-----INC64r_EVEX-----
+	INC64r_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----INC64r_ND-----
+	INC64r_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----LAR64rm-----
+	LAR64rm(1(Mem) -> 0(Class<GR64>))  [104;104]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 105 cycles
+	LAR64rm(1(Mem) -> 2(Reg<EFLAGS>))  [103;103]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 104 cycles
+
+-----LCMPXCHG64-----
+	LCMPXCHG64(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+	LCMPXCHG64(2(Reg<RAX>) -> 2(Reg<RAX>))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----LOCK_ADD64mr-----
+	LOCK_ADD64mr(0(Mem) -> 0(Mem))  [7.45;7.45]
+		 Successful, latency: 7.45
+	LOCK_ADD64mr(1(Class<GR64>) -> 0(Mem))  [7.17;7.21]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.21 cycles
+	LOCK_ADD64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [6.77;6.81]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.82 cycles
+	LOCK_ADD64mr(0(Mem) -> 2(Reg<EFLAGS>))  [8.29;8.33]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.33 cycles
+
+-----LOCK_AND64mr-----
+	LOCK_AND64mr(0(Mem) -> 0(Mem))  [7.38;7.38]
+		 Successful, latency: 7.38
+	LOCK_AND64mr(1(Class<GR64>) -> 0(Mem))  [7.19;7.23]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.23 cycles
+	LOCK_AND64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [6.81;6.85]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.85 cycles
+	LOCK_AND64mr(0(Mem) -> 2(Reg<EFLAGS>))  [8.28;8.32]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.33 cycles
+
+-----LOCK_BTC_RM64rm-----
+	LOCK_BTC_RM64rm(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----LOCK_BTR_RM64rm-----
+	LOCK_BTR_RM64rm(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----LOCK_BTS_RM64rm-----
+	LOCK_BTS_RM64rm(0(Mem) -> 0(Mem))  [ERROR_SIGSEGV]
+		ERROR_SIGSEGV, this instruction cannot be measured on this platform
+
+-----LOCK_OR64mr-----
+	LOCK_OR64mr(0(Mem) -> 0(Mem))  [7.36;7.36]
+		 Successful, latency: 7.36
+	LOCK_OR64mr(1(Class<GR64>) -> 0(Mem))  [7.19;7.22]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.23 cycles
+	LOCK_OR64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [6.82;6.86]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.87 cycles
+	LOCK_OR64mr(0(Mem) -> 2(Reg<EFLAGS>))  [8.28;8.32]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.33 cycles
+
+-----LOCK_SUB64mr-----
+	LOCK_SUB64mr(0(Mem) -> 0(Mem))  [7.22;7.22]
+		 Successful, latency: 7.22
+	LOCK_SUB64mr(1(Class<GR64>) -> 0(Mem))  [7.2;7.23]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.24 cycles
+	LOCK_SUB64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [6.79;6.84]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.84 cycles
+	LOCK_SUB64mr(0(Mem) -> 2(Reg<EFLAGS>))  [8.29;8.33]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.33 cycles
+
+-----LOCK_XOR64mr-----
+	LOCK_XOR64mr(0(Mem) -> 0(Mem))  [7.3;7.3]
+		 Successful, latency: 7.3
+	LOCK_XOR64mr(1(Class<GR64>) -> 0(Mem))  [7.17;7.21]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.21 cycles
+	LOCK_XOR64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [6.84;6.88]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.89 cycles
+	LOCK_XOR64mr(0(Mem) -> 2(Reg<EFLAGS>))  [8.28;8.32]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 9.33 cycles
+
+-----LSL64rm-----
+	LSL64rm(1(Mem) -> 0(Class<GR64>))  [103;103]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 104 cycles
+	LSL64rm(1(Mem) -> 2(Reg<EFLAGS>))  [102;102]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 104 cycles
+
+-----LWPINS64rmi-----
+	LWPINS64rmi(1(Mem) -> 1(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----LWPINS64rri-----
+	LWPINS64rri(0(Class<GR64>) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----LXADD64-----
+	LXADD64(0(Class<GR64>) -> 0(Class<GR64>))  [8.1;8.1]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	LXADD64(1(Mem) -> 1(Mem))  [7.77;7.77]
+		 Successful, latency: 7.77
+	LXADD64(1(Mem) -> 0(Class<GR64>))  [7.07;7.11]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.11 cycles
+	LXADD64(0(Class<GR64>) -> 1(Mem))  [7.51;7.55]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.55 cycles
+	LXADD64(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [7.65;7.69]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.7 cycles
+	LXADD64(1(Mem) -> 2(Reg<EFLAGS>))  [6.99;7.03]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.04 cycles
+
+-----LZCNT64rm-----
+	LZCNT64rm(1(Mem) -> 0(Class<GR64>))  [7.04;7.07]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.07 cycles
+	LZCNT64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.02;7.06]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.06 cycles
+
+-----LZCNT64rm_EVEX-----
+	LZCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	LZCNT64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----LZCNT64rr-----
+	LZCNT64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	LZCNT64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.993;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----LZCNT64rr_EVEX-----
+	LZCNT64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----MUL64r-----
+	MUL64r(1(Reg<RAX>) -> 1(Reg<RAX>))  [3.05;3.05]
+		 Successful, latency: 3.05
+	MUL64r(0(Class<GR64>) -> 3(Reg<EFLAGS>))  [4.07;4.11]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 5.12 cycles
+	MUL64r(0(Class<GR64>) -> 1(Reg<RAX>))  [1.86;5.29]
+		Dependencies:
+			CMPXCHG64rr(2(Reg<RAX>) -> 0(Class<GR64>)) 
+			MUL64r(0(Class<GR64>) -> 1(Reg<RAX>)) 
+		Combined result: 6.29 cycles
+
+-----MUL64r_EVEX-----
+	MUL64r_EVEX(1(Reg<RAX>) -> 1(Reg<RAX>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----NEG64m_ND-----
+	NEG64m_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	NEG64m_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----NEG64r-----
+	NEG64r(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	NEG64r(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----NEG64r_EVEX-----
+	NEG64r_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----NEG64r_ND-----
+	NEG64r_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64mi32_ND-----
+	OR64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	OR64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----OR64mi8_ND-----
+	OR64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	OR64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----OR64mr-----
+	OR64mr(0(Mem) -> 0(Mem))  [1.03;1.03]
+		 Successful, latency: 1.03
+	OR64mr(1(Class<GR64>) -> 0(Mem))  [1;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.05 cycles
+	OR64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.994;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	OR64mr(0(Mem) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----OR64mr_EVEX-----
+	OR64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64mr_ND-----
+	OR64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64ri32-----
+	OR64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	OR64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----OR64ri32_EVEX-----
+	OR64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64ri32_ND-----
+	OR64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64ri8-----
+	OR64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	OR64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.996;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----OR64ri8_EVEX-----
+	OR64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64ri8_ND-----
+	OR64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rm-----
+	OR64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	OR64rm(1(Mem) -> 0(Class<GR64>))  [6.93;6.96]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 7.96 cycles
+	OR64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	OR64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.94;6.98]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.99 cycles
+
+-----OR64rm_EVEX-----
+	OR64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rm_ND-----
+	OR64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rr-----
+	OR64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	OR64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	OR64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.993;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	OR64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----OR64rr_EVEX-----
+	OR64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	OR64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rr_EVEX_REV-----
+	OR64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	OR64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rr_ND-----
+	OR64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	OR64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rr_ND_REV-----
+	OR64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	OR64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----OR64rr_REV-----
+	OR64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	OR64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	OR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	OR64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----POPCNT64rm-----
+	POPCNT64rm(1(Mem) -> 0(Class<GR64>))  [7.01;7.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.04 cycles
+	POPCNT64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.01;7.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.05 cycles
+
+-----POPCNT64rm_EVEX-----
+	POPCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	POPCNT64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----POPCNT64rr-----
+	POPCNT64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	POPCNT64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----POPCNT64rr_EVEX-----
+	POPCNT64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SAR64m1_ND-----
+	SAR64m1_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SAR64m1_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SAR64mCL_ND-----
+	SAR64mCL_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SAR64mCL_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SAR64mi_ND-----
+	SAR64mi_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SAR64mi_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SAR64r1-----
+	SAR64r1(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	SAR64r1(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SAR64r1_EVEX-----
+	SAR64r1_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SAR64r1_ND-----
+	SAR64r1_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SAR64rCL-----
+	SAR64rCL(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SAR64rCL(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SAR64rCL_EVEX-----
+	SAR64rCL_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SAR64rCL_ND-----
+	SAR64rCL_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SAR64ri-----
+	SAR64ri(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SAR64ri(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----SAR64ri_EVEX-----
+	SAR64ri_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SAR64ri_ND-----
+	SAR64ri_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64mi32_ND-----
+	SBB64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SBB64mi32_ND(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SBB64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SBB64mi8_ND-----
+	SBB64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SBB64mi8_ND(3(Reg<EFLAGS>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SBB64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SBB64mr-----
+	SBB64mr(0(Mem) -> 0(Mem))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64mr(2(Reg<EFLAGS>) -> 2(Reg<EFLAGS>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64mr(1(Class<GR64>) -> 0(Mem))  [0.996;1.03]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	SBB64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64mr(2(Reg<EFLAGS>) -> 0(Mem))  [1.01;1.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64mr(0(Mem) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SBB64mr_EVEX-----
+	SBB64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SBB64mr_EVEX(2(Reg<EFLAGS>) -> 2(Reg<EFLAGS>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64mr_ND-----
+	SBB64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64ri32-----
+	SBB64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64ri32(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	SBB64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SBB64ri32_EVEX-----
+	SBB64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64ri32_ND-----
+	SBB64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64ri8-----
+	SBB64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64ri8(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----SBB64ri8_EVEX-----
+	SBB64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64ri8_ND-----
+	SBB64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rm-----
+	SBB64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64rm(1(Mem) -> 0(Class<GR64>))  [7.48;7.51]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.51 cycles
+	SBB64rm(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	SBB64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.5;7.54]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.55 cycles
+
+-----SBB64rm_EVEX-----
+	SBB64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rm_ND-----
+	SBB64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rr-----
+	SBB64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----SBB64rr_EVEX-----
+	SBB64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SBB64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rr_EVEX_REV-----
+	SBB64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SBB64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rr_ND-----
+	SBB64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SBB64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rr_ND_REV-----
+	SBB64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SBB64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SBB64rr_REV-----
+	SBB64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	SBB64rr_REV(2(Reg<EFLAGS>) -> 0(Class<GR64>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SBB64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.994;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	SBB64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----SHL64m1_ND-----
+	SHL64m1_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SHL64m1_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHL64mCL_ND-----
+	SHL64mCL_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SHL64mCL_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHL64mi_ND-----
+	SHL64mi_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SHL64mi_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHL64r1-----
+	SHL64r1(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SHL64r1(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SHL64r1_EVEX-----
+	SHL64r1_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHL64r1_ND-----
+	SHL64r1_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHL64rCL-----
+	SHL64rCL(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SHL64rCL(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [31.4;31.4]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 32.4 cycles
+
+-----SHL64rCL_EVEX-----
+	SHL64rCL_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHL64rCL_ND-----
+	SHL64rCL_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHL64ri-----
+	SHL64ri(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	SHL64ri(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+
+-----SHL64ri_EVEX-----
+	SHL64ri_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHL64ri_ND-----
+	SHL64ri_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64mrCL-----
+	SHLD64mrCL(0(Mem) -> 0(Mem))  [8.92;8.92]
+		 Successful, latency: 8.92
+	SHLD64mrCL(1(Class<GR64>) -> 0(Mem))  [8.12;8.16]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.17 cycles
+	SHLD64mrCL(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [7.86;7.9]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.91 cycles
+	SHLD64mrCL(0(Mem) -> 2(Reg<EFLAGS>))  [46.4;46.4]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 47.4 cycles
+
+-----SHLD64mrCL_EVEX-----
+	SHLD64mrCL_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64mrCL_ND-----
+	SHLD64mrCL_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64mri8-----
+	SHLD64mri8(0(Mem) -> 0(Mem))  [8.91;8.91]
+		 Successful, latency: 8.91
+	SHLD64mri8(1(Class<GR64>) -> 0(Mem))  [8.12;8.15]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.16 cycles
+	SHLD64mri8(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [7.86;7.9]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.91 cycles
+	SHLD64mri8(0(Mem) -> 3(Reg<EFLAGS>))  [6.94;6.97]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.98 cycles
+
+-----SHLD64mri8_EVEX-----
+	SHLD64mri8_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64mri8_ND-----
+	SHLD64mri8_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64rrCL-----
+	SHLD64rrCL(0(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	SHLD64rrCL(1(Class<GR64>) -> 0(Class<GR64>))  [2.05;2.05]
+		 Successful, latency: 2.05
+	SHLD64rrCL(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [35.2;35.2]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 36.2 cycles
+	SHLD64rrCL(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+
+-----SHLD64rrCL_EVEX-----
+	SHLD64rrCL_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHLD64rrCL_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64rrCL_ND-----
+	SHLD64rrCL_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHLD64rrCL_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64rri8-----
+	SHLD64rri8(0(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	SHLD64rri8(1(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	SHLD64rri8(0(Class<GR64>) -> 3(Reg<EFLAGS>))  [1.06;1.1]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.1 cycles
+	SHLD64rri8(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SHLD64rri8_EVEX-----
+	SHLD64rri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHLD64rri8_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHLD64rri8_ND-----
+	SHLD64rri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHLD64rri8_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHR64m1_ND-----
+	SHR64m1_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SHR64m1_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHR64mCL_ND-----
+	SHR64mCL_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SHR64mCL_ND(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHR64mi_ND-----
+	SHR64mi_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SHR64mi_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHR64r1-----
+	SHR64r1(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SHR64r1(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----SHR64r1_EVEX-----
+	SHR64r1_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHR64r1_ND-----
+	SHR64r1_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHR64rCL-----
+	SHR64rCL(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SHR64rCL(0(Class<GR64>) -> 1(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SHR64rCL_EVEX-----
+	SHR64rCL_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHR64rCL_ND-----
+	SHR64rCL_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHR64ri-----
+	SHR64ri(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SHR64ri(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SHR64ri_EVEX-----
+	SHR64ri_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHR64ri_ND-----
+	SHR64ri_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64mrCL-----
+	SHRD64mrCL(0(Mem) -> 0(Mem))  [8.77;8.77]
+		 Successful, latency: 8.77
+	SHRD64mrCL(1(Class<GR64>) -> 0(Mem))  [8.12;8.15]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.16 cycles
+	SHRD64mrCL(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [7.86;7.9]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.91 cycles
+	SHRD64mrCL(0(Mem) -> 2(Reg<EFLAGS>))  [46.4;46.4]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 47.4 cycles
+
+-----SHRD64mrCL_EVEX-----
+	SHRD64mrCL_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64mrCL_ND-----
+	SHRD64mrCL_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64mri8-----
+	SHRD64mri8(0(Mem) -> 0(Mem))  [8.91;8.91]
+		 Successful, latency: 8.91
+	SHRD64mri8(1(Class<GR64>) -> 0(Mem))  [8.12;8.15]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 9.16 cycles
+	SHRD64mri8(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [7.87;7.91]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.91 cycles
+	SHRD64mri8(0(Mem) -> 3(Reg<EFLAGS>))  [7;7.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.05 cycles
+
+-----SHRD64mri8_EVEX-----
+	SHRD64mri8_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64mri8_ND-----
+	SHRD64mri8_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64rrCL-----
+	SHRD64rrCL(0(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	SHRD64rrCL(1(Class<GR64>) -> 0(Class<GR64>))  [2.03;2.03]
+		 Successful, latency: 2.03
+	SHRD64rrCL(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [35.2;35.2]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 36.2 cycles
+	SHRD64rrCL(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.994;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SHRD64rrCL_EVEX-----
+	SHRD64rrCL_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHRD64rrCL_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64rrCL_ND-----
+	SHRD64rrCL_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHRD64rrCL_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64rri8-----
+	SHRD64rri8(0(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	SHRD64rri8(1(Class<GR64>) -> 0(Class<GR64>))  [2.04;2.04]
+		 Successful, latency: 2.04
+	SHRD64rri8(0(Class<GR64>) -> 3(Reg<EFLAGS>))  [1.06;1.11]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.11 cycles
+	SHRD64rri8(1(Class<GR64>) -> 3(Reg<EFLAGS>))  [0.994;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SHRD64rri8_EVEX-----
+	SHRD64rri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHRD64rri8_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SHRD64rri8_ND-----
+	SHRD64rri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SHRD64rri8_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64mi32_ND-----
+	SUB64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SUB64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SUB64mi8_ND-----
+	SUB64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	SUB64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----SUB64mr-----
+	SUB64mr(0(Mem) -> 0(Mem))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64mr(1(Class<GR64>) -> 0(Mem))  [1;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	SUB64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	SUB64mr(0(Mem) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SUB64mr_EVEX-----
+	SUB64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64mr_ND-----
+	SUB64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64ri32-----
+	SUB64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.991;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SUB64ri32_EVEX-----
+	SUB64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64ri32_ND-----
+	SUB64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64ri8-----
+	SUB64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----SUB64ri8_EVEX-----
+	SUB64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64ri8_ND-----
+	SUB64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rm-----
+	SUB64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	SUB64rm(1(Mem) -> 0(Class<GR64>))  [7.07;7.11]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.11 cycles
+	SUB64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SUB64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.81;6.85]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.85 cycles
+
+-----SUB64rm_EVEX-----
+	SUB64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rm_ND-----
+	SUB64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rr-----
+	SUB64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	SUB64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.994;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----SUB64rr_EVEX-----
+	SUB64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SUB64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rr_EVEX_REV-----
+	SUB64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SUB64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rr_ND-----
+	SUB64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SUB64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rr_ND_REV-----
+	SUB64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	SUB64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----SUB64rr_REV-----
+	SUB64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	SUB64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	SUB64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----T1MSKC64rm-----
+	T1MSKC64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	T1MSKC64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----T1MSKC64rr-----
+	T1MSKC64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----TEST64mr-----
+	TEST64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	TEST64mr(0(Mem) -> 2(Reg<EFLAGS>))  [6.99;7.03]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.04 cycles
+
+-----TEST64ri32-----
+	TEST64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----TEST64rr-----
+	TEST64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	TEST64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.99;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----TZCNT64rm-----
+	TZCNT64rm(1(Mem) -> 0(Class<GR64>))  [7;7.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.04 cycles
+	TZCNT64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.01;7.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.06 cycles
+
+-----TZCNT64rm_EVEX-----
+	TZCNT64rm_EVEX(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	TZCNT64rm_EVEX(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----TZCNT64rr-----
+	TZCNT64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	TZCNT64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----TZCNT64rr_EVEX-----
+	TZCNT64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----TZMSK64rm-----
+	TZMSK64rm(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	TZMSK64rm(1(Mem) -> 2(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----TZMSK64rr-----
+	TZMSK64rr(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----VAARG_64-----
+	VAARG_64(1(Mem) -> 1(Mem))  [0;0]
+		 Successful, latency: 0
+	VAARG_64(1(Mem) -> 0(Class<GR64>))  [-0.399;-0.362]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 0.638 cycles
+	VAARG_64(1(Mem) -> 5(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 0.693 cycles
+
+-----XADD64rm-----
+	XADD64rm(0(Class<GR64>) -> 0(Class<GR64>))  [8.02;8.02]
+		WARNING generated instructions have multiple dependencies. If they have different latencies the lower one will be shadowed
+	XADD64rm(1(Mem) -> 1(Mem))  [8.11;8.11]
+		 Successful, latency: 8.11
+	XADD64rm(1(Mem) -> 0(Class<GR64>))  [7.16;7.19]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.19 cycles
+	XADD64rm(0(Class<GR64>) -> 1(Mem))  [7.16;7.2]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 8.21 cycles
+	XADD64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [7.55;7.59]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.6 cycles
+	XADD64rm(1(Mem) -> 2(Reg<EFLAGS>))  [7.12;7.16]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 8.17 cycles
+
+-----XADD64rr-----
+	XADD64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	XADD64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	XADD64rr(0(Class<GR64>) -> 1(Class<GR64>))  [0.342;0.342]
+		 Successful, latency: 0.342
+	XADD64rr(1(Class<GR64>) -> 1(Class<GR64>))  [0.341;0.341]
+		 Successful, latency: 0.341
+	XADD64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	XADD64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----XOR64mi32_ND-----
+	XOR64mi32_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	XOR64mi32_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----XOR64mi8_ND-----
+	XOR64mi8_ND(1(Mem) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+	XOR64mi8_ND(1(Mem) -> 3(Reg<EFLAGS>))  [ERROR_UNUSUAL_LATENCY]
+
+-----XOR64mr-----
+	XOR64mr(0(Mem) -> 0(Mem))  [1.02;1.02]
+		 Successful, latency: 1.02
+	XOR64mr(1(Class<GR64>) -> 0(Mem))  [1;1.04]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 2.04 cycles
+	XOR64mr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.998;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	XOR64mr(0(Mem) -> 2(Reg<EFLAGS>))  [1.01;1.05]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.06 cycles
+
+-----XOR64mr_EVEX-----
+	XOR64mr_EVEX(0(Mem) -> 0(Mem))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64mr_ND-----
+	XOR64mr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64ri32-----
+	XOR64ri32(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	XOR64ri32(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----XOR64ri32_EVEX-----
+	XOR64ri32_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64ri32_ND-----
+	XOR64ri32_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64ri8-----
+	XOR64ri8(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	XOR64ri8(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.999;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+
+-----XOR64ri8_EVEX-----
+	XOR64ri8_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64ri8_ND-----
+	XOR64ri8_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rm-----
+	XOR64rm(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	XOR64rm(1(Mem) -> 0(Class<GR64>))  [6.87;6.91]
+		Dependencies:
+			BZHI64rm_EVEX(1(Mem) -> 0(Class<GR64>)) 
+			AND64mr(1(Class<GR64>) -> 0(Mem)) 
+		Combined result: 7.91 cycles
+	XOR64rm(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	XOR64rm(1(Mem) -> 2(Reg<EFLAGS>))  [6.89;6.93]
+		Dependencies:
+			SBB64mr(2(Reg<EFLAGS>) -> 0(Mem)) 
+			XOR64mr(0(Mem) -> 2(Reg<EFLAGS>)) 
+		Combined result: 7.94 cycles
+
+-----XOR64rm_EVEX-----
+	XOR64rm_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rm_ND-----
+	XOR64rm_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rr-----
+	XOR64rr(0(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	XOR64rr(1(Class<GR64>) -> 0(Class<GR64>))  [1.03;1.03]
+		 Successful, latency: 1.03
+	XOR64rr(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [1;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.05 cycles
+	XOR64rr(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.997;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+-----XOR64rr_EVEX-----
+	XOR64rr_EVEX(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	XOR64rr_EVEX(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rr_EVEX_REV-----
+	XOR64rr_EVEX_REV(0(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	XOR64rr_EVEX_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rr_ND-----
+	XOR64rr_ND(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	XOR64rr_ND(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rr_ND_REV-----
+	XOR64rr_ND_REV(1(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+	XOR64rr_ND_REV(2(Class<GR64>) -> 0(Class<GR64>))  [ERROR_ILLEGAL_INSTRUCTION]
+		ERROR_ILLEGAL_INSTRUCTION, this instruction cannot be measured on this platform
+
+-----XOR64rr_REV-----
+	XOR64rr_REV(0(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	XOR64rr_REV(1(Class<GR64>) -> 0(Class<GR64>))  [1.02;1.02]
+		 Successful, latency: 1.02
+	XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.995;1.04]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+	XOR64rr_REV(1(Class<GR64>) -> 2(Reg<EFLAGS>))  [0.992;1.03]
+		Dependencies:
+			SBB64rr(2(Reg<EFLAGS>) -> 0(Class<GR64>)) 
+			XOR64rr_REV(0(Class<GR64>) -> 2(Reg<EFLAGS>)) 
+		Combined result: 2.04 cycles
+
+Loading existing database: ../PTW/a_zen4/winic_zen4.yaml
+SUCCESS
+Saving database to: ../PTW/a_zen4/winic_zen4.yaml
+total runtime: 225.844 (s)
