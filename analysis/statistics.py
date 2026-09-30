@@ -42,7 +42,7 @@ def count_ranges(database, pr: bool = False):
     print(f"{lat_range_c} ({100-lat_exact_perc:.2f}%) LAT ranges")
 
 
-def count_instr_different_sublatencies(database, pr: bool = False):
+def count_instr_different_latencies(database, pr: bool = False):
 
     db = read_WINIC_db(database)
     one_latency = []
