@@ -1,6 +1,8 @@
 #include "Templates.h"
-#include "Globals.h"
 
+#include "AssemblyFile.h"
+#include "Globals.h"
+#include "LLVMEnvironment.h"
 #include "MCTargetDesc/AArch64MCTargetDesc.h"
 #include "MCTargetDesc/RISCVMCTargetDesc.h"
 #include "MCTargetDesc/X86MCTargetDesc.h"
@@ -12,6 +14,8 @@
 #include <set>
 #include <sstream>
 #include <stdlib.h>
+#include <type_traits>
+#include <variant>
 
 // AI
 static void replaceAll(std::string &Str, const std::string &From, const std::string &To) {
@@ -23,15 +27,16 @@ static void replaceAll(std::string &Str, const std::string &From, const std::str
         startPos += To.length(); // move past the replacement
     }
 }
+
 // AI
-static size_t countOccurrences(const std::string &str, const std::string &sub) {
-    if (sub.empty()) return 0; // avoid infinite loop
+static size_t countOccurrences(const std::string &Str, const std::string &Sub) {
+    if (Sub.empty()) return 0; // avoid infinite loop
 
     size_t count = 0;
     size_t pos = 0;
-    while ((pos = str.find(sub, pos)) != std::string::npos) {
+    while ((pos = Str.find(Sub, pos)) != std::string::npos) {
         ++count;
-        pos += sub.length(); // move past this occurrence
+        pos += Sub.length(); // move past this occurrence
     }
     return count;
 }
@@ -39,12 +44,14 @@ static size_t countOccurrences(const std::string &str, const std::string &sub) {
 namespace winic {
 
 Template::Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-                   string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
-                   std::list<RegInitTemplate> RegInitTemplates)
+                   string ResetLoop, string EndLoop, string PostLoop, string Suffix,
+                   std::set<string> UsedRegisters, std::list<RegInitTemplate> RegInitTemplates,
+                   llvm::MCRegister BufferEndReg, string LoadMemoryAddress)
     : prefix(std::move(Prefix)), preInit(std::move(PreInit)), postInit(std::move(PostInit)),
-      preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), endLoop(std::move(EndLoop)),
-      postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
-      usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)) {
+      preLoop(std::move(PreLoop)), beginLoop(std::move(BeginLoop)), resetLoop(std::move(ResetLoop)),
+      endLoop(std::move(EndLoop)), postLoop(std::move(PostLoop)), suffix(std::move(Suffix)),
+      usedRegisters(std::move(UsedRegisters)), regInitTemplates(std::move(RegInitTemplates)),
+      bufferEndReg(BufferEndReg), loadMemoryAddress(LoadMemoryAddress) {
     // for readability of this file, strings have a leading newline
     // this gets removed here
     trimLeadingNewline(this->prefix);
@@ -52,6 +59,7 @@ Template::Template(string Prefix, string PreInit, string PostInit, string PreLoo
     trimLeadingNewline(this->postInit);
     trimLeadingNewline(this->preLoop);
     trimLeadingNewline(this->beginLoop);
+    trimLeadingNewline(this->resetLoop);
     trimLeadingNewline(this->endLoop);
     trimLeadingNewline(this->postLoop);
     trimLeadingNewline(this->suffix);
@@ -65,23 +73,51 @@ void Template::trimLeadingNewline(string &Str) {
     }
 }
 
-string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, uint64_t Imm) {
+string Template::genResetMemInLoopCode(string ResetCode, string CompareReg) {
+    string loopMemReset = replaceAllInstances(resetLoop, "reset_code", ResetCode);
+    return replaceAllInstances(loopMemReset, "reg", CompareReg);
+}
+
+// AI
+template <typename To, typename From> static To bitCast(const From &Input) {
+    static_assert(sizeof(To) == sizeof(From));
+    static_assert(std::is_trivially_copyable_v<To>);
+    static_assert(std::is_trivially_copyable_v<From>);
+
+    To to;
+    std::memcpy(&to, &Input, sizeof(To));
+    return to;
+}
+
+string RegInitTemplate::fillRegInitTemplate(llvm::MCRegister Reg, initType Imm) {
+    if (std::holds_alternative<double>(Imm)) {
+        double imm = std::get<double>(Imm);
+        return fillRegInitTemplate(Reg, bitCast<uint64_t>(imm));
+    }
+    uint64_t imm = std::get<uint64_t>(Imm);
     std::string result = this->templateString;
-    // replace imm occurences. If multiple are found the immediate is split up into n segments it is
-    // assumed the lowest 64/n bits have to go first.
+    // insert register
+    replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
+    // replace imm occurences. If multiple are found the immediate is split up into n segments
     unsigned split = countOccurrences(this->templateString, "imm");
+    if (split == 0) return result;
+    unsigned totalBits = 64;
+    unsigned segmentBits = totalBits / split;
+
+    uint64_t mask;
+    if (segmentBits == totalBits)
+        mask = ~uint64_t(0);
+    else {
+        mask = (uint64_t(1) << segmentBits) - uint64_t(1);
+    }
     for (unsigned splitPart = 0; splitPart < split; splitPart++) {
         std::stringstream ss;
         // extract the current segment of the immediate and convert it to hex
-        unsigned segmentBits = 64 / split;
-        uint64_t mask = (segmentBits == 64) ? ~0ULL : (1ULL << (64 / split)) - 1;
-        ss << std::hex << ((Imm >> (splitPart * 64 / split)) & mask);
+
+        ss << std::hex << ((imm >> (splitPart * segmentBits)) & mask);
         std::string hexString = ss.str();
-        unsigned index = result.find("imm");
-        result.replace(index, 3, "0x" + hexString);
+        result.replace(result.find("imm"), 3, "0x" + hexString);
     }
-    // insert register
-    replaceAll(result, "reg", getEnv().getRegAsmName(Reg));
     return result;
 }
 
@@ -91,17 +127,21 @@ Template X86Template = {
 #define i r8d
 
 .intel_syntax noprefix
+.bss
+.p2align 12 
+buffer:
+    .skip 4096
 .text
 )",
     R"(
-.globl init
+.globl functionName
 .type init, @function
 .align 32
-init:
+functionName:
 )",
     R"(
     ret
-.size init, .-init
+.size functionName, .-functionName
 )",
     R"(
 
@@ -111,19 +151,22 @@ init:
 functionName:
 )",
     R"(
-        xor       i, i
-        test      N, N
-        jle       done_functionName
+    xor       i, i
+    test      N, N
+    jle       done_functionName
 loop_functionName:
-        inc       i
+    inc       i
 )",
     R"(
-        cmp       i, N
-        jl        loop_functionName
+    // x86 has base reg auto increment so this should never be generated
+)",
+    R"(
+    cmp       i, N
+    jl        loop_functionName
 done_functionName:
 )",
     R"(
-        ret
+    ret
 .size functionName, .-functionName
 )",
     R"(
@@ -131,6 +174,13 @@ done_functionName:
 )",
     {"edi", "r8d", "rbp", "rsp"},
     {{
+         R"(
+    mov	reg, imm
+    )",
+         llvm::X86::GR32RegClassID,
+         std::nullopt,
+     },
+     {
          R"(
     movabs	reg, imm
     )",
@@ -157,12 +207,26 @@ done_functionName:
     )",
          llvm::X86::VR512RegClassID,
          X86::XMM0,
-     }}};
+     },
+     {
+         R"(
+    kmovd	reg, eax
+    )",
+         llvm::X86::VK8WMRegClassID,
+         X86::EAX,
+     }},
+    X86::R9, // not used on this platform
+    "lea reg, [rip + buffer]"};
 
 Template AArch64Template = {
     R"(
 #define N x0
 
+.bss
+.p2align 12 
+buffer:
+    .skip 4096
+buffer_end:
 .text
 
 )",
@@ -171,6 +235,8 @@ Template AArch64Template = {
 .type functionName, @function
 .align 2
 functionName:
+    adr x9, buffer_end
+    ptrue p0.d
 )",
     R"(
     ret
@@ -182,59 +248,68 @@ functionName:
 .type functionName, @function
 .align 2
 functionName:
-        # push callee-save registers onto stack
-        sub     sp, sp, #64
-        st1     {v8.2d, v9.2d, v10.2d, v11.2d}, [sp]
-        sub     sp, sp, #64
-        st1     {v12.2d, v13.2d, v14.2d, v15.2d}, [sp]
-        sub     sp, sp, #64
-        st1     {v16.2d, v17.2d, v18.2d, v19.2d}, [sp]
-        sub     sp, sp, #64
-        st1     {v20.2d, v21.2d, v22.2d, v23.2d}, [sp]
-        sub     sp, sp, #64
-        st1     {v24.2d, v25.2d, v26.2d, v27.2d}, [sp]
-        sub     sp, sp, #64
-        st1     {v28.2d, v29.2d, v30.2d, v31.2d}, [sp]
-        stp     x19, x20, [sp, -96]!
-        stp     x21, x22, [sp, 16]
-        stp     x23, x24, [sp, 32]
-        stp     x25, x26, [sp, 48]
-        stp     x27, x28, [sp, 64]
-        stp     x29, x30, [sp, 80]
+    # push callee-save registers onto stack
+    sub     sp, sp, #64
+    st1     {v8.2d, v9.2d, v10.2d, v11.2d}, [sp]
+    sub     sp, sp, #64
+    st1     {v12.2d, v13.2d, v14.2d, v15.2d}, [sp]
+    sub     sp, sp, #64
+    st1     {v16.2d, v17.2d, v18.2d, v19.2d}, [sp]
+    sub     sp, sp, #64
+    st1     {v20.2d, v21.2d, v22.2d, v23.2d}, [sp]
+    sub     sp, sp, #64
+    st1     {v24.2d, v25.2d, v26.2d, v27.2d}, [sp]
+    sub     sp, sp, #64
+    st1     {v28.2d, v29.2d, v30.2d, v31.2d}, [sp]
+    stp     x19, x20, [sp, -96]!
+    stp     x21, x22, [sp, 16]
+    stp     x23, x24, [sp, 32]
+    stp     x25, x26, [sp, 48]
+    stp     x27, x28, [sp, 64]
+    stp     x29, x30, [sp, 80]
 
-        mov     x4, N
+    mov     x4, N
 )",
     R"(
+    adr x9, buffer_end
+    subs x9, x9, 256
+    ptrue p0.d
 loop_functionName:
 )",
     R"(
-        subs      x4, x4, #1
-        bne       loop_functionName
+    cmp x9, reg
+    b.hs instructions_functionName
+    reset_code
+    instructions_functionName:
+)",
+    R"(
+    subs      x4, x4, #1
+    bne       loop_functionName
 done_functionName:
 )",
     R"(
-        # pop callee-save registers from stack
-        ldp     x19, x20, [sp]
-        ldp     x21, x22, [sp, 16]
-        ldp     x23, x24, [sp, 32]
-        ldp     x25, x26, [sp, 48]
-        ldp     x27, x28, [sp, 64]
-        ldp     x29, x30, [sp, 80]
-        add     sp, sp, #96
-        ld1     {v28.2d, v29.2d, v30.2d, v31.2d}, [sp], #64
-        ld1     {v24.2d, v25.2d, v26.2d, v27.2d}, [sp], #64
-        ld1     {v20.2d, v21.2d, v22.2d, v23.2d}, [sp], #64
-        ld1     {v16.2d, v17.2d, v18.2d, v19.2d}, [sp], #64
-        ld1     {v12.2d, v13.2d, v14.2d, v15.2d}, [sp], #64
-        ld1     {v8.2d, v9.2d, v10.2d, v11.2d}, [sp], #64
+    # pop callee-save registers from stack
+    ldp     x19, x20, [sp]
+    ldp     x21, x22, [sp, 16]
+    ldp     x23, x24, [sp, 32]
+    ldp     x25, x26, [sp, 48]
+    ldp     x27, x28, [sp, 64]
+    ldp     x29, x30, [sp, 80]
+    add     sp, sp, #96
+    ld1     {v28.2d, v29.2d, v30.2d, v31.2d}, [sp], #64
+    ld1     {v24.2d, v25.2d, v26.2d, v27.2d}, [sp], #64
+    ld1     {v20.2d, v21.2d, v22.2d, v23.2d}, [sp], #64
+    ld1     {v16.2d, v17.2d, v18.2d, v19.2d}, [sp], #64
+    ld1     {v12.2d, v13.2d, v14.2d, v15.2d}, [sp], #64
+    ld1     {v8.2d, v9.2d, v10.2d, v11.2d}, [sp], #64
 
-        ret
+    ret
 
 .size functionName, .-functionName
 )",
     R"(
 )",
-    {"x4"},
+    {"x0", "x4", "x9"},
     {{
          R"(
     movk	reg, #imm, lsl #0
@@ -256,12 +331,18 @@ done_functionName:
          R"(
     dup	reg.d, x0
     )",
-         llvm::AArch64::ZPRRegClassID,
-         llvm::AArch64::X0,
-     }}};
+         AArch64::ZPRRegClassID,
+         AArch64::X0,
+     }},
+    AArch64::X9,
+    "adr reg, buffer"};
 
 Template RISCVTemplate = {
     R"(
+.bss
+.p2align 12 
+buffer:
+    .skip 4096
 .section .text
 
 )",
@@ -338,7 +419,10 @@ loop_functionName:
     addi    t0, t0, 1           # i++
 )",
     R"(
-        blt     t0, t1, loop_functionName
+    TODO
+)",
+    R"(
+    blt     t0, t1, loop_functionName
 done_functionName:
 )",
     R"(
@@ -383,25 +467,17 @@ done_functionName:
     )",
          llvm::RISCV::VRRegClassID,
          RISCV::X11,
-     }}};
+     }},
+    RISCV::X9, // not used on this platform
+    "la reg, buffer"};
 
-Template getTemplate(llvm::Triple::ArchType Arch) {
-    switch (Arch) {
-    case llvm::Triple::x86_64: {
-        return X86Template;
-    }
-    case llvm::Triple::aarch64: {
-        return AArch64Template;
-    }
-    case llvm::Triple::riscv64: {
-        return RISCVTemplate;
-    }
-    default:
-        std::cerr << "Tried to get a template for an unsupported arch: "
-                  << llvm::Triple::getArchTypeName(Arch).str() << " archNumber: " << Arch
-                  << " this should not happen" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+Template getTemplate() {
+    if (getEnv().isX86()) return X86Template;
+    if (getEnv().isAArch64()) return AArch64Template;
+    if (getEnv().isRISCV()) return RISCVTemplate;
+    std::cerr << "Tried to get a template for an unsupported arch, this should not happen"
+              << std::endl;
+    exit(EXIT_FAILURE);
 }
 
 } // namespace winic

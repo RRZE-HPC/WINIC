@@ -32,7 +32,7 @@ done
 if [ -d "llvm-project" ]; then
     echo "LLVM repo already cloned." 
 else
-    git clone --branch=llvmorg-20.1.5 --depth=1 https://github.com/llvm/llvm-project.git
+    git clone --branch=llvmorg-22.1.8 --depth=1 https://github.com/llvm/llvm-project.git
     cd llvm-project
     git sparse-checkout init --cone
     git sparse-checkout set llvm clang third-party cmake
@@ -79,7 +79,7 @@ else
         -DCMAKE_C_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
         -DCMAKE_CXX_FLAGS="-I$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/include" \
         -DCMAKE_LIBRARY_PATH="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib" \
-        -DCMAKE_EXE_LINKER_FLAGS="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib -lpfm" \
+        -DCMAKE_EXE_LINKER_FLAGS="-L$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib -Wl,-rpath,$SCRIPT_DIR/$LIBPFM_DIR/libpfm4/lib -lpfm" \
         -DCMAKE_BUILD_TYPE=Release
     else
         cmake -S ../llvm-project/llvm -B . \
@@ -93,11 +93,10 @@ fi
 
 # Build WINIC
 mkdir -p ../$BUILD_DIR && cd ../$BUILD_DIR
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release \
-  -DLLVM_SOURCE_DIR=../llvm-project/llvm \
-  -DLLVM_BINARY_DIR=../$LLVM_BUILD_DIR \
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug \
+  -DWINIC_LLVM_SOURCE_DIR=../llvm-project/llvm \
+  -DWINIC_LLVM_BUILD_DIR=../$LLVM_BUILD_DIR \
   -DLLVM_DIR=../$LLVM_BUILD_DIR/lib/cmake/llvm \
-  -DClang_DIR=../$LLVM_BUILD_DIR/lib/cmake/clang \
-  -DCLANG_PATH=../$LLVM_BUILD_DIR/bin/clang ..
+  -DWINIC_CLANG_PATH=../$LLVM_BUILD_DIR/bin/clang ..
   
 cmake --build . -- -j 6

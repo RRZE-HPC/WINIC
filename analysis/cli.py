@@ -1,5 +1,4 @@
 import os
-from analysis.plotting import *
 from analysis.setup import *
 from analysis.statistics import *
 import argparse
@@ -35,10 +34,7 @@ UOPS_ARCHES = [
     "ZEN4",
 ]
 
-DOCS_ARCHES = [
-    "V2",
-    "ZEN4"
-]
+DOCS_ARCHES = ["V2", "ZEN4"]
 
 ARCH_NAMES = {
     "CON": "Conroe",
@@ -92,7 +88,7 @@ def main():
     diff_parser = subparsers.add_parser("diff", help="Generate a diff between two databases")
     diff_parser.add_argument("db1", help="Path to first database YAML file")
     diff_parser.add_argument("db2", help="Path to second database YAML file")
-    diff_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    diff_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Value type")
     diff_parser.add_argument("--verbose", "-v", action="store_true", help="Report every individual change")
 
     arch_help = "Architecture name. Supported: " + ", ".join([f"{arch}: {ARCH_NAMES[arch]}" for arch in UOPS_ARCHES])
@@ -105,29 +101,33 @@ def main():
     uops_c_parser = sub_compare_parser.add_parser("uops", help="Compare to results from uops.info")
     uops_c_parser.add_argument("arch", choices=UOPS_ARCHES, help=arch_help)
     uops_c_parser.add_argument("db", help="Path to database YAML file")
-    uops_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    uops_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Value type")
     uops_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    uops_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # compare to docs
     docs_c_parser = sub_compare_parser.add_parser("docs", help="Compare to documentation")
     docs_c_parser.add_argument("arch", choices=DOCS_ARCHES, help=arch_help)
     docs_c_parser.add_argument("db", help="Path to database YAML file(s)")
-    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
+    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Value type")
     docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    docs_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # compare to exegesis
-    docs_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm-exegesis output")
-    docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
-    docs_c_parser.add_argument("db_exegesis", nargs="+",     help="Paths to exegesis YAML files")
-    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    exegesis_c_parser = sub_compare_parser.add_parser("exegesis", help="Compare to llvm-exegesis output")
+    exegesis_c_parser.add_argument("db_winic", help="Path to database YAML file")
+    exegesis_c_parser.add_argument("db_exegesis", nargs="+", help="Paths to exegesis YAML files")
+    exegesis_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Value type")
+    exegesis_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    exegesis_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # compare to osaca
-    docs_c_parser = sub_compare_parser.add_parser("osaca", help="Compare to osaca database")
-    docs_c_parser.add_argument("db_winic", help="Path to database YAML file")
-    docs_c_parser.add_argument("db_osaca", help="Path to exegesis YAML file")
-    docs_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Which values to compare")
-    docs_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    osaca_c_parser = sub_compare_parser.add_parser("osaca", help="Compare to osaca database")
+    osaca_c_parser.add_argument("db_winic", help="Path to database YAML file")
+    osaca_c_parser.add_argument("db_osaca", help="Path to exegesis YAML file")
+    osaca_c_parser.add_argument("--mode", choices=["TP", "LAT", "BOTH"], default="BOTH", help="Value type")
+    osaca_c_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+    osaca_c_parser.add_argument("--instruction", "-i", help="Debug the matching algorithm for one WINIC instruction")
 
     # plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots out of hardcoded data")
@@ -138,17 +138,22 @@ def main():
     stat_parser = subparsers.add_parser("stat", help="Show statistics for a WINIC database")
     sub_stat_parser = stat_parser.add_subparsers(dest="stat_type")
 
-    range_parser = sub_stat_parser.add_parser("ranges", help="Count how many instructions have ranges instead of exact values")
+    range_parser = sub_stat_parser.add_parser(
+        "ranges", help="Count how many instructions have ranges instead of exact values"
+    )
     range_parser.add_argument("db", help="Path to database YAML file")
-    range_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
+    range_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Print instruction names in addition to stats"
+    )
 
-    sublat_parser = sub_stat_parser.add_parser("sublatencies", help="Count how many instructions have distinct sublatency values")
-    sublat_parser.add_argument("db", help="Path to database YAML file")
-    sublat_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
+    lat_parser = sub_stat_parser.add_parser(
+        "latencies", help="Count how many instructions have distinct operand-based values"
+    )
+    lat_parser.add_argument("db", help="Path to database YAML file")
+    lat_parser.add_argument("--verbose", "-v", action="store_true", help="Print instruction names in addition to stats")
 
     plot_parser = sub_stat_parser.add_parser("distribution", help="Plot the distribution of TP/LAT values")
     plot_parser.add_argument("db", help="Path to database YAML file")
-    
 
     args = parser.parse_args()
 
@@ -169,37 +174,47 @@ def main():
                 gen_quick_reference_files(f"{ref_dir}/RISCV.json", f"analysis/reference-files/RISCV/", args.force)
         case "diff":
             from analysis.comparison.db_diff import db_diff
+
             db_diff(args.db1, args.db2, args.mode, args.verbose)
         case "compare":
+            import analysis.globals as globals
+
+            globals.dbg_llvm_name = args.instruction
             if args.compare_source == "docs":
                 if args.arch == "V2":
                     from analysis.comparison.compare_v2 import compare_winic_v2
+
                     compare_winic_v2(args.db, args.mode, args.verbose)
                 elif args.arch == "ZEN4":
                     from analysis.comparison.compare_zen4_sheet import compare_winic_zen4_sheet
+
                     compare_winic_zen4_sheet(args.db, args.mode, args.verbose)
             elif args.compare_source == "exegesis":
                 from analysis.comparison.compare_exegesis import compare_winic_exegesis
-                if  isinstance(args.db_exegesis, str):
+
+                if isinstance(args.db_exegesis, str):
                     args.db_exegesis = [args.exegesis]
                 compare_winic_exegesis(args.db_winic, args.db_exegesis, args.mode, args.verbose)
             elif args.compare_source == "osaca":
                 from analysis.comparison.compare_osaca import compare_winic_osaca
+
                 compare_winic_osaca(args.db_winic, args.db_osaca, args.mode, args.verbose)
             elif args.compare_source == "uops":
-                from analysis.comparison.compare_uops import compare
-                compare(args.db, args.mode, args.arch, args.verbose)
-                    # plot(lat_res, tp_res, args.output, args.mode)
+                from analysis.comparison.compare_uops import compare_winic_uops
+
+                compare_winic_uops(args.db, args.mode, args.arch, args.verbose)
+                # plot(lat_res, tp_res, args.output, args.mode)
         case "plot":
+            from analysis.plotting import plot
+
             plot(None, None, args.path, args.mode)
         case "stat":
             if args.stat_type == "ranges":
                 count_ranges(args.db, args.verbose)
-            elif args.stat_type == "sublatencies":
-                count_instr_different_sublatencies(args.db, args.verbose)
+            elif args.stat_type == "latencies":
+                count_instr_different_latencies(args.db, args.verbose)
             elif args.stat_type == "distribution":
                 plot_distribution(args.db)
-
 
 
 if __name__ == "__main__":

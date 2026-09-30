@@ -1,6 +1,8 @@
 #include "ErrorCode.h"
 
+#include <Globals.h>
 #include <string>
+#include <vector>
 
 namespace winic {
 
@@ -12,6 +14,8 @@ std::string ecToString(ErrorCode EC) {
         return "NO_ERROR_CODE";
     case W_MULTIPLE_DEPENDENCIES:
         return "WARNING_MULTIPLE_DEPENDENCIES";
+    case W_FLAGS_TO_FLAGS:
+        return "WARNING_FLAGS_TO_FLAGS";
     case S_MEMORY_OPERAND:
         return "SKIP_MEMORY_OPERAND";
     case S_PCREL_OPERAND:
@@ -26,6 +30,8 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_MAY_LOAD";
     case S_MAY_STORE:
         return "SKIP_MAY_STORE";
+    case S_NON_MEMORY:
+        return "SKIP_NON_MEMORY";
     case S_IS_CALL:
         return "SKIP_IS_CALL";
     case S_IS_META_INSTRUCTION:
@@ -38,12 +44,16 @@ std::string ecToString(ErrorCode EC) {
         return "SKIP_IS_CODE_GEN_ONLY";
     case S_IS_X87FP:
         return "SKIP_IS_X87FP";
+    case S_IS_NON_X87FP:
+        return "S_IS_NON_X87FP";
     case S_MANUALLY:
         return "SKIP_MANUALLY";
     case S_NO_MNEMONIC:
         return "SKIP_NO_MNEMONIC";
     case S_BLACKLISTED_REGISTER:
         return "SKIP_BLACKLISTED_REGISTER";
+    case S_RUNTIME_LIMIT:
+        return "S_RUNTIME_LIMIT";
     case E_TEMPLATE:
         return "ERROR_TEMPLATE";
     case E_NO_RUNS:
@@ -76,16 +86,37 @@ std::string ecToString(ErrorCode EC) {
         return "ERROR_EXEC";
     case E_UNROLL_ANOMALY:
         return "ERROR_UNROLL_ANOMALY";
+    case E_INVALID_REG_CLASS:
+        return "ERROR_INVALID_REG_CLASS";
     case E_UNUSUAL_LATENCY:
         return "ERROR_UNUSUAL_LATENCY";
     case E_GENERIC:
         return "ERROR_GENERIC";
     }
-    return "UNREACHABLE";
+    return "unknown error code";
 }
 
 bool isError(ErrorCode EC) {
-    return EC != SUCCESS && EC != W_MULTIPLE_DEPENDENCIES && EC != NO_ERROR_CODE;
+    std::vector<ErrorCode> codes = {SUCCESS, W_MULTIPLE_DEPENDENCIES, W_FLAGS_TO_FLAGS,
+                                    NO_ERROR_CODE, S_RUNTIME_LIMIT};
+    return !contains(codes, EC);
+}
+
+bool finishedExecution(ErrorCode EC) {
+    std::vector<ErrorCode> codes = {SUCCESS,           E_UNROLL_ANOMALY,
+                                    E_UNUSUAL_LATENCY, W_MULTIPLE_DEPENDENCIES,
+                                    W_FLAGS_TO_FLAGS,  NO_ERROR_CODE};
+    return contains(codes, EC);
+}
+
+bool invalidatesOpcode(ErrorCode EC) {
+    std::vector<ErrorCode> codes = {E_SIGNAL, E_EXEC, E_SIGSEGV, E_ILLEGAL_INSTRUCTION, E_ASSEMBLY};
+    return contains(codes, EC);
+}
+
+bool hasResultWith(ErrorCode EC) {
+    std::vector<ErrorCode> codes = {SUCCESS, W_MULTIPLE_DEPENDENCIES, NO_ERROR_CODE};
+    return contains(codes, EC);
 }
 
 } // namespace winic

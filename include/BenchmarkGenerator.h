@@ -12,7 +12,6 @@
 #include <set>
 #include <string>
 #include <tuple>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -24,14 +23,11 @@ class MCRegisterClass;
 namespace winic {
 
 /**
- * \brief Generates all possible latency measurements for all instructions.
- * \param MinOpcode Minimum opcode to consider.
- * \param MaxOpcode Maximum opcode to consider.
- * \param SkipOpcodes Set of opcodes to skip.
+ * \brief Generates all possible latency measurements for an instructions.
+ * \param Opcode Opcode of the instruction.
  * \return Vector of LatMeasurement objects.
  */
-std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxOpcode,
-                                               std::unordered_set<unsigned> SkipOpcodes);
+std::vector<LatMeasurement> genLatMeasurements(unsigned Opcode);
 
 /**
  * \brief Generates a benchmark based on the list of latency measurements.
@@ -41,10 +37,9 @@ std::vector<LatMeasurement> genLatMeasurements(unsigned MinOpcode, unsigned MaxO
  * \param UsedRegisters Set of registers to avoid using (optional).
  * \return Pair of ErrorCode and generated AssemblyFile.
  */
-std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasurement> &Measurements,
-                                                   unsigned *TargetInstrCount,
-                                                   std::set<MCRegister> UsedRegisters = {},
-                                                   long RegInitValue = 4, long Immediate = 7);
+std::pair<ErrorCode, AssemblyFile>
+genLatBenchmark(const std::vector<LatMeasurement> &Measurements, unsigned *TargetInstrCount,
+                std::set<MCRegister> UsedRegisters, initType RegInitValue, long Immediate = 7);
 
 /**
  * \brief Generates a throughput benchmark for a given opcode.
@@ -60,7 +55,7 @@ std::pair<ErrorCode, AssemblyFile> genLatBenchmark(const std::list<LatMeasuremen
 std::pair<ErrorCode, AssemblyFile>
 genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount,
                std::set<MCRegister> UsedRegisters, std::map<unsigned, MCRegister> HelperConstraints,
-               unsigned HelperOpcode, long RegInitValue, long Immediate);
+               unsigned HelperOpcode, initType RegInitValue, long Immediate);
 
 /**
  * \brief Generates the inner loop for a throughput measurement.
@@ -75,7 +70,7 @@ genTPBenchmark(unsigned Opcode, unsigned *TargetInstrCount, unsigned UnrollCount
  * \param UsedRegisters A register blacklist (will be updated).
  * \return Pair of ErrorCode and list of generated MCInst instructions.
  */
-std::pair<ErrorCode, std::list<MCInst>>
+std::pair<ErrorCode, std::vector<MCInst>>
 genTPLoop(std::vector<unsigned> Opcodes,
           std::vector<std::map<unsigned, MCRegister>> ConstraintsVector, unsigned TargetInstrCount,
           std::set<MCRegister> &UsedRegisters, long Immediate);
@@ -90,8 +85,8 @@ genTPLoop(std::vector<unsigned> Opcodes,
  * \return Tuple of ErrorCode and operand number. Returns SUCCESS and -1 if the instruction
  * defs/uses the register implicitly. Returns Error if no operand can use/def the register.
  */
-std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
-                                              MCRegister RequiredRegister);
+std::tuple<ErrorCode, int>
+whichOperandCanUse(unsigned Opcode, std::string Type, MCRegister RequiredRegister);
 
 /**
  * \brief Generates an instruction for a given opcode and constraints.
@@ -107,8 +102,9 @@ std::tuple<ErrorCode, int> whichOperandCanUse(unsigned Opcode, std::string Type,
  * demand for a register to be used this will be overridden.
  * \return Pair of ErrorCode and generated MCInst instruction.
  */
-std::pair<ErrorCode, MCInst> genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
-                                     std::set<MCRegister> &UsedRegisters, unsigned Immediate);
+std::pair<ErrorCode, MCInst>
+genInst(unsigned Opcode, std::map<unsigned, MCRegister> Constraints,
+        std::set<MCRegister> &UsedRegisters, unsigned Immediate, unsigned MemDisplacement);
 
 /**
  * \brief Finds the supermost register for a given register.
@@ -123,8 +119,8 @@ std::pair<ErrorCode, MCRegister> getSupermostRegister(MCRegister Reg);
  * \param UsedRegisters Set of registers to avoid using.
  * \return Pair of ErrorCode and a free MCRegister.
  */
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &RegClass,
-                                                        std::set<MCRegister> UsedRegisters);
+std::pair<ErrorCode, MCRegister>
+getFreeRegisterInClass(const MCRegisterClass &RegClass, std::set<MCRegister> UsedRegisters);
 
 /**
  * \brief Finds a free register in the register class with the given ID.
@@ -132,17 +128,26 @@ std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(const MCRegisterClass &R
  * \param UsedRegisters Set of registers to avoid using.
  * \return Pair of ErrorCode and a free MCRegister.
  */
-std::pair<ErrorCode, MCRegister> getFreeRegisterInClass(unsigned RegClassID,
-                                                        std::set<MCRegister> UsedRegisters);
+std::pair<ErrorCode, MCRegister>
+getFreeRegisterInClass(unsigned RegClassID, std::set<MCRegister> UsedRegisters);
 
 /**
  * \brief Returns a list of dependencies between two instructions, taking into account implicit and
- * explicit defs/uses.
+ * explicit defs/uses and memory locations. This does ONLY check if the memory offsets
+ * are identical, however it does not check if accessed memory overlaps or if the base registers,
+ * index registers etc. are really different.
  * \param Inst1 The first instruction.
  * \param Inst2 The second instruction.
  * \return List of DependencyType objects.
  */
 std::list<DependencyType> getDependencies(MCInst Inst1, MCInst Inst2);
+
+/**
+ * \brief Finds all memory access base register.
+ * \param Instructions Instructions to search for base registers in.
+ * \return Set with all memory base registers.
+ */
+std::set<MCRegister> getMemBaseRegs(std::vector<MCInst> Instructions);
 
 /**
  * \brief Generates code to save a register.
@@ -158,20 +163,22 @@ std::pair<ErrorCode, std::string> genSaveRegister(MCRegister Reg);
  */
 std::pair<ErrorCode, std::string> genRestoreRegister(MCRegister Reg);
 
+std::string genRegInitCode(std::vector<MCInst> Instructions, initType RegInitValue);
+
 /**
  * \brief Generates initialization code for a register.
  * \param Reg The register to initialize.
  * \param Value The value to initialize the register with, current maximum 15.
  * \return Assembly code string for register initialization or empty string on error.
  */
-std::string genSetRegister(MCRegister Reg, uint64_t Value);
+std::string genSetRegister(MCRegister Reg, initType Value);
 
 /**
  * \brief Checks if an instruction is valid for benchmarking.
- * \param Desc The instruction descriptor.
+ * \param Opcode The opcode of the instruction.
  * \return ErrorCode indicating validity.
  */
-ErrorCode isValid(const MCInstrDesc &Desc);
+ErrorCode isValid(unsigned Opcode);
 
 } // namespace winic
 

@@ -140,8 +140,8 @@ def parse_zen4_sheet() -> List[Instruction]:
                             opList = getOpList(optionalOp5)
                             assert len(opList) == 1  # This should only have one op now as we split manually
                             op5 = opList[0]
-                            if row[0] == "RCL":
-                                print(f"{row}, {op1=},{op2=},{op3=},{op4=}, {op5=}, {row[5].split("/")=}")
+                            # if row[0] == "RCL":
+                            #     print(f"{row}, {op1=},{op2=},{op3=},{op4=}, {op5=}, {row[5].split("/")=}")
                             inst: Instruction = Instruction()
                             inst.source = "docs"
                             inst.sourceName = row[0]
@@ -161,7 +161,7 @@ def parse_zen4_sheet() -> List[Instruction]:
                             inst.throughputs.extend(get_tp(row[11]))
                             # add metadata
                             inst.metadata["zeroing"] = optionalOp5 is not None and "{z}" in optionalOp5
-                            inst.metadata["AVX512"] = row[7] == "AVX512"
+                            inst.metadata["avx512"] = row[7] == "AVX512"
                             instructions.append(inst)
 
     return instructions

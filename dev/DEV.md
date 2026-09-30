@@ -1,5 +1,8 @@
 # Notes for Developers
 
+## ENC mode
+The encoding mode is used to update a database format to a new version. It currently only supports simple changes like metadata additions.
+
 ## LLVM Instruction Format
 
 LLVM instructions store a read from a register and a write to the same register as two distinct operands:
@@ -40,6 +43,27 @@ ASM:    [op0: reg(rw)]   [op1: imm(r)]
 
 - The constraint `op0 == op1` merges the two operands into a single read/write register in the assembly format.
 
+## Important LLVM source files
+`llvm-project/llvm/include/llvm/MC/MCInstrDesc.h`
+- `getNumOperands()`
+- `getNumDefs()`
+- `isReturn()`
+- `mayLoad()`
+- `mayStore()`
+- `hasImplicitUseOfPhysReg()`
+- `OperandType` (register/immediate/memory)
+- `MCOperandInfo->RegClass`
+
+`llvm-project/llvm/include/llvm/MC/MCRegisterInfo.h`
+- `MCRegisterClass`
+    - `getSizeInBits()`
+- `MCRegisterDesc`
+    - `Name`
+- MCRegisterInfo
+    - `subregs(MCRegister Reg)`
+    - `superregs(MCRegister Reg)`
+    - `regsOverlap(MCRegister RegA, MCRegister RegB)`
+
 ## LLVM Name Decoding Example
 
 ### Instruction: `VFMADD132PDZ256mbkz`
@@ -56,6 +80,8 @@ Broadcast       <-------------------------------------------------+       |
 Masking/Zeroing <---------------------------------------------------------+
 ```
 
+Note that LLVM instruction names as well as opcodes can change across different LLVM releases.
+
 ### Example Mapping
 - `VFMADD132PDZ256mbkz`
   - **132** → Operand order  
@@ -67,6 +93,83 @@ Masking/Zeroing <---------------------------------------------------------+
   - **b** → Broadcast  
   - **kz** → Masked destination with zeroing  
 
+## LLVM operand info
+`llvm-mc` can show the number and order of operands of a disassembled instruction, e.g.: 
+```bash
+echo "addq %rax, 8(%rbx)" | llvm-mc --show-inst
+```
+produces
+```
+<MCInst #631 ADD64mr
+ <MCOperand Reg:53> // base (%rbx)
+ <MCOperand Imm:1> // scale
+ <MCOperand Reg:0> // ind
+ <MCOperand Imm:8> // offset
+ <MCOperand Reg:0> // segment
+ <MCOperand Reg:51>> // %rax
+```
+Note that on x86 all of the operands that belong to the memory access are `MCOI::OPERAND_MEMORY` even though they are registers and immediates.
+
+On AArch64 memory operands are handled differently, e.g.:
+```
+ldr     d0, [x9, #4]!                   
+<MCInst #5044 LDRDpre
+ <MCOperand Reg:X9> // base write back
+ <MCOperand Reg:D0> // load destination
+ <MCOperand Reg:X9> // base
+ <MCOperand Imm:4>> // offset
+```
+
+However, there are multiple different addressing modes and not all are handled by WINIC (e.g. reg-reg addressing).
+
+On RISCV:
+```
+ld      t0, 8(t1)                       
+<MCInst #12666 LD
+ <MCOperand Reg:48> // destination
+ <MCOperand Reg:49> // base
+ <MCOperand Imm:8>> // offset
+```
+
+Generic operand info definitions come from `llvm-project/llvm/include/llvm/MC/MCInstrDesc.h`. \
+The `MCOI::OperandType` enum has `MCOI::OPERAND_FIRST_TARGET` as last entry, then 
+target specific operand info definitions start from there (they come from `llvm-project/llvm/lib/Target/RISCV/MCTargetDesc/RISCVBaseInfo.h` and equivalents)
+
+## Misc LLVM Info
+- isPseudo is only set to 1 for instructions that are LLVM pseudo instructions. CMOV_VR128 is not pseudo because its assembly string "#CMOV__VR128 PSEUDO!" can be emmitted and then processed by an assembler.
+- LLVMs mayLoad/mayStore information is not 100% reliable
+
+## Upgrading the LLVM version
+When upgrading to a newer release of LLVM one should:
+### Compare key files used by WINIC
+```bash 
+git fetch --tags
+git diff llvmorg-<old> llvmorg-<new> -- llvm/include/llvm/MC/MCInstrDesc.h
+```
+
+### Compare Instruction Info
+Use WINIC in `INFO` mode on both versions to get comparable overviews on instruction names with operands and flags.
+
+### Regression test
+Use the scripts in `dev/regression` to test if there are major changes in the results
+
+## LLVM Upgrade History
+### 20.1.5 -> 22.1.8:
+x86:
+- many AVX512 instruction variants with broadcasting were removed such as `VADDPDZ256rrb`, all i checked resulted in `ILLEGAL_INSTRUCTION` when measured with WINIC
+- some mayLoad flag fixes
+- VPDPBSSDSZ128m and similar instructions were renamed to VPDPBSSDSZ128**r**m
+- VSM3RNDS2rm and similar instructions were renamed to VSM3RNDS2rmi
+
+AArch64: \
+- added some instructions e.g. `ADDSUBP_ZZZ_B`
+- reduced number of `Unknown` operands (~2500 -> ~300) by converting them to `Immediate` or removing them
+    - the ones i tested that are left do not care if the immediate is present or not
+- fixed some mayLoad and mayStore flags
+- added a few instruction variants
+
+LLVM interface:
+- Target::createTargetMachine, Target::createMCAsmInfo etc now take a `Triple` instead of a `StringRef`
 
 
 ## Error Code reference
@@ -109,8 +212,13 @@ Masking/Zeroing <---------------------------------------------------------+
 | E_UNREACHABLE           | error   | no  | Unreachable code executed. This should never happen. Please file a bug report if you encounter this. |
 
 ## Safety
-
 MCInstPrinter->PrintInst can fail or even segfault if the operands are not set correctly. It is therefore only used in functions that are run in a subprocess.
+
+## Limitations
+WINIC has some non-obvious limitations:
+- The path over text representation -> assembler -> benchmark binary loses some information. There are instruction forms where there are different encodings for the same semantics, we do not have any control over which one the assembler chooses.
+- WINIC can not generate latency chains on base/index registers of memory operands
+- gather/scatter do not work as WINIC does not know register content are supposed to be addresses. 
 
 ## IWYU Makefile
 The MAKEFILE is a helper to run LLVMs include-what-you-use on all WINIC source files. It expects the LLVM repo in `llvm-project` and a x86 llvm build in `llvm-build-x86` (generate using `setup.sh --dir x86`)

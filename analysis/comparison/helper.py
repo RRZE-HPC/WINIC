@@ -1,6 +1,7 @@
 import copy
 import itertools
 from analysis.globals import *
+import analysis.globals as globals
 from dataclasses import dataclass
 
 
@@ -8,78 +9,90 @@ def _short_op(op: Operand) -> str:
     return f"({op.type} {op.width} {op.metadata})"
 
 
-# returns a similarity score for two operands.
-# the final metric is obtained by looking at operand width and metadata
-# if width = -1 this produces a weaker match metric
-# if metadata is * this produces a weaker match metric
-# score | type | width  | metadata
-# 0     | no   | any    | any
-# 0     | any  | no     | any
-# 0     | any  | any    | no
-# 1     | yes  | weak   | weak
-# 2     | yes  | strong | missing
-# 3     | yes  | strong | missing + weak
-# 4     | yes  | weak   | weak
-# 5     | yes  | strong | weak
-# 5     | yes  | weak   | strong
-# 6     | yes  | strong | strong
-# WARNING: O(n!) algorithm, don't use with large operand lists
-def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug=False):
+def is_better_match_string(first: str, second: str) -> bool:
+    if len(first) != len(second):
+        return len(first) > len(second)
+    if first.count("1") != second.count("1"):
+        return first.count("1") > second.count("1")
+    if first.find("0") != second.find("0"):
+        return first.find("0") > second.find("0")
+    return False
+
+
+def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug=False) -> str:
+    """
+    Returns a similarity score for two operands.
+    this function first checks necessary criteria such as matching
+    operand number, type, direct metadata, width (if explicit in both) , single register vs class:
+    If any of those checks fail, the operand list is considered to be not matching at all.
+    Depending on the source there may be various properties missing such as r/w information or metadata,
+    for such properties this function returns a "similarity string" that has
+    for each metric that can match between two operands the string has "0" (not matching) or a "1" (matching),
+    When comparing similarity strings, a higher number of 1s wins, when tied, the first index where the two differ decides
+    Metrics handled this way are:
+    [weak_width(e.g. by osaca wildcards), weak metadata, r/w mismatch, missing metadata].
+    WARNING: O(n!) algorithm, don't use with large operand lists
+    """
+
+    def _dbg(msg, level=0):
+        if debug:
+            print("\t" * level + msg)
+
     # remove implicit operands as they are not listed in the amd document
     operands1 = [o for o in operands1 if o.suppressed == False]
     operands2 = [o for o in operands2 if o.suppressed == False]
     if len(operands1) != len(operands2):
-        if debug:
-            print(f"different length: {operands1}, {operands2}")
-        return 0  # not even the same number of operands
-    # if debug:
-    #     print(f"comparing {operands1} to {operands2}")
+        _dbg(f"different length: {operands1}, {operands2}")
+        return "0"  # not even the same number of operands
 
-    # This is a very inefficient algorithm as im too stupid to write something faster but since operand lists are normally not longer than 3 its fine
+    # This is a very inefficient algorithm as im too stupid to write something faster but since operand lists are normally not longer than 4 its fine
     perm = itertools.permutations(operands1)
-    match_strength = 0
-    if debug:
-        print(f"order of op2: {operands2}")
+    best_match_string = "0"
+    _dbg(f"operand lists:\n\t{operands1}\n\t{operands2}")
 
     for p in list(perm):
-        p_strength = 6
-        if debug:
-            print(f"---permutation: {[_short_op(op) for op in p]}")
+        invalid = False
+        weak_width = False
+        weak_metadata = False
+        missing_metadata = False
+        rw_mismatch = False
+
+        _dbg(f"permutation: {[_short_op(op) for op in p]}", 1)
         # calculate match metric of permutation of op1 with op2
         for o1, o2 in zip(p, operands2):
-            if debug:
-                print(f"comparing {_short_op(o1)}, {_short_op(o2)}")
-            o_strength = 6
+            _dbg(f"comparing {_short_op(o1)}, {_short_op(o2)}", 2)
+
+            # check types
             if o1.type != o2.type:
-                p_strength = 0  # type mismatch, invalidate permutation
-                if debug:
-                    print(f"type mismatch")
+                invalid = True  # type mismatch, invalidate permutation
+                _dbg(f"type mismatch, exit", 3)
                 break
+
+            # check single register
+            if len(o1.regList) == 1 and len(o2.regList) > 1 or len(o2.regList) == 1 and len(o1.regList) > 1:
+                # one operand is fixed to a single register, the other is not, invalidate permutation
+                # this makes sure e.g. ADD al, <reg> is not confused with ADD <reg> <reg>
+                invalid = True
+                _dbg(f"single register mismatch, exit", 3)
+                break
+
+            # check width
             if o1.width != o2.width:
                 if -1 not in [o1.width, o2.width]:
                     # no width match, invalidate permutation
-                    p_strength = 0
-                    if debug:
-                        print(f"\twidth mismatch {o1.width} != {o2.width}, exit")
+                    invalid = True
+                    _dbg(f"width mismatch {o1.width} != {o2.width}, exit", 3)
                     break
-                # weak width match, reduces max strength by 1
-                o_strength -= 1
-                if debug:
-                    print(f"\twidth weak match {o1.width} != {o2.width}, subtract 1")
-            else:
-                if debug:
-                    print("\twidth match")
-            if debug:
-                print(f"operand score after width check: {o_strength}")
+                # weak width match
+                weak_width = True
+                _dbg(f"width weak match {o1.width} != {o2.width}, set weak_width", 3)
+
             # check metadata
-            weak_metadata = False
-            missing_metadata = False
             for m in o1.metadata.keys() | o2.metadata.keys():
                 if m not in o1.metadata.keys() or m not in o2.metadata.keys():
-                    # metadata missing -> strong penalty bu not invalidating match
+                    # metadata missing -> strong penalty but not invalidating match
                     missing_metadata = True
-                    if debug:
-                        print(f"\tmissing metadata: {m}, i will remember this!")
+                    _dbg(f"missing metadata: {m}", 3)
                     continue
                 val1 = o1.metadata[m]
                 val2 = o2.metadata[m]
@@ -87,29 +100,31 @@ def operand_similarity(operands1: List[Operand], operands2: List[Operand], debug
                     weak_metadata = True
                     if "*" not in [val1, val2]:
                         # direct metadata mismatch -> invalidate permutation
-                        if debug:
-                            print(f"\tmetadata mismatch: {val1} != {val2}, failing")
-                        p_strength = 0
+                        _dbg(f"metadata mismatch: {val1} != {val2}, exit", 3)
+                        invalid = True
                         break
-                    if debug:
-                        print(f"\t{val1=} != {val2=} , set {weak_metadata=}")
-            else:  # for ... else block is executed if the for loop finished *without* early exit
-                if debug:
-                    print(f"score before metadata: {o_strength}")
-                o_strength -= 1 if weak_metadata else 0
-                o_strength -= 3 if missing_metadata else 0
-                if debug:
-                    print(f"score after metadata: {o_strength}")
-                # permutation gets assigned the worst operand strength
-                p_strength = min(p_strength, o_strength)
-                continue
-            break  # only reached if metadata loop was exited early -> permutation invalid
+                    _dbg(f"{val1=} != {val2=} , set {weak_metadata=}", 3)
+
+            # check read/write
+            if o1.read != o2.read or o1.write != o2.write:
+                _dbg(f"r/w mismatch {o1.read}/{o1.write} != {o2.read}/{o2.write}", 3)
+                rw_mismatch = True
+
+        if invalid:
+            continue
+
+        match_string = ""
+        match_string += "0" if weak_width else "1"
+        match_string += "0" if weak_metadata else "1"
+        match_string += "0" if rw_mismatch else "1"
+        match_string += "0" if missing_metadata else "1"
 
         # get the maximum over all permutations
-        match_strength = max(p_strength, match_strength)
-        if debug:
-            print(f"\t total: {p_strength=} new {match_strength=}\n")
-    return match_strength
+        if is_better_match_string(match_string, best_match_string):
+            best_match_string = match_string
+
+        _dbg(f"new best: {best_match_string=}\n", 1)
+    return best_match_string
 
 
 @dataclass
@@ -117,64 +132,23 @@ class CompareCounters:
     c_lat_full: int = 0  # for how many instuctions do all latency values match with the other source
     c_lat_partial: int = 0  # for how many instuctions do some latency values match with the other source
     c_lat_no: int = 0  # for how many instuctions does none of the latency values match with the other source
+    c_lat_no_data: int = 0  # the other instruction does not have a result
     c_tp_full: int = 0
     c_tp_partial: int = 0
-    c_tp_no: int = 0
+    c_tp_no_match: int = 0
+    c_tp_no_data: int = 0
 
-
-# def get_stats(
-#     w_inst: Instruction,
-#     o_inst: Instruction,
-#     counters: CompareCounters,
-#     mode: Literal["TP", "LAT", "BOTH"] = "BOTH",
-#     pr: bool = False,
-# ):
-#     assert mode in ["TP", "LAT", "BOTH"]
-#     found_tp_match = False
-#     found_lat_match = False
-#     found_lat_no_match = False
-#     found_tp_no_match = False
-
-#     if mode in ["LAT", "BOTH"]:
-#         for lat in w_inst.latencies:
-#             if lat.cyclesMin is None:
-#                 continue
-
-#             if lat_possible_in(lat, o_inst):
-#                 found_lat_match = True
-#             else:
-#                 found_lat_no_match = True
-#                 if pr:
-#                     print(f"{'{'}inst: {w_inst}, impossible_value: {lat}, compared_to: {o_inst}{'}'}")
-#     # throughputs
-#     if mode in ["TP", "BOTH"]:
-#         for tp in w_inst.throughputs:
-#             if tp.cyclesMin is None:
-#                 continue
-#             if tp_possible_in(tp, o_inst):
-#                 found_tp_match = True
-#             else:
-#                 found_tp_no_match = True
-#                 if pr:
-#                     print(f"{'{'}inst: {w_inst}, impossible_value: {tp}, compared_to: {o_inst}{'}'}")
-
-#     if found_lat_match:
-#         if found_lat_no_match:
-#             counters.c_lat_partial += 1
-#         else:
-#             counters.c_lat_full += 1
-#     else:
-#         counters.c_lat_no += 1
-
-#     if found_tp_match:
-#         if found_tp_no_match:
-#             counters.c_tp_partial += 1
-#         else:
-#             counters.c_tp_full += 1
-#     else:
-#         counters.c_tp_no += 1
-
-#     return counters
+    def print_counters(self, mode: Literal["TP", "LAT"], total: int):
+        if mode == "LAT":
+            print(f"\tLatency Full match:        {self.c_lat_full}\t{self.c_lat_full*100/total:.2f}%")
+            print(f"\tLatency Partial match:     {self.c_lat_partial}\t{self.c_lat_partial*100/total:.2f}%")
+            print(f"\tLatency No match:          {self.c_lat_no}\t{self.c_lat_no*100/total:.2f}%")
+            print(f"\tLatency Other has no data: {self.c_lat_no_data}\n")
+        if mode == "TP":
+            print(f"\tThroughput Full match:        {self.c_tp_full}\t{self.c_tp_full*100/total:.2f}%")
+            print(f"\tThroughput Partial match:     {self.c_tp_partial}\t{self.c_tp_partial*100/total:.2f}%")
+            print(f"\tThroughput No match:          {self.c_tp_no_match}\t{self.c_tp_no_match*100/total:.2f}%")
+            print(f"\tThroughput Other has no data: {self.c_tp_no_data}\n")
 
 
 def get_stats(
@@ -190,29 +164,41 @@ def get_stats(
         if has_lat(w_inst):
             cl = classify_match(w_inst, o_inst, "LAT")
             if cl == "FULL":
+                if verbose:
+                    print(f"{'{'}full_lat_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_full += 1
             elif cl == "PARTIAL":
                 if verbose:
                     print(f"{'{'}partial_lat_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_partial += 1
-            else:
+            elif cl == "NO_DATA":
                 if verbose:
-                    print(f"{'{'}no_lat_match_at_all: {w_inst}, other: {o_inst}{'}'}")
+                    print(f"{'{'}no_data: {w_inst}, other: {o_inst}{'}'}")
+                counters.c_lat_no_data += 1
+            elif cl == "NO":
+                if verbose:
+                    print(f"{'{'}no_lat_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_lat_no += 1
 
     if mode in ["TP", "BOTH"]:
         if has_tp(w_inst):
             cl = classify_match(w_inst, o_inst, "TP")
             if cl == "FULL":
+                if verbose:
+                    print(f"{'{'}full_tp_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_tp_full += 1
             elif cl == "PARTIAL":
                 if verbose:
                     print(f"{'{'}partial_tp_match: {w_inst}, other: {o_inst}{'}'}")
                 counters.c_tp_partial += 1
-            else:
+            elif cl == "NO_DATA":
                 if verbose:
-                    print(f"{'{'}no_tp_match_at_all: {w_inst}, other: {o_inst}{'}'}")
-                counters.c_tp_no += 1
+                    print(f"{'{'}no_data: {w_inst}, other: {o_inst}{'}'}")
+                counters.c_tp_no_data += 1
+            elif cl == "NO":
+                if verbose:
+                    print(f"{'{'}no_tp_match: {w_inst}, other: {o_inst}{'}'}")
+                counters.c_tp_no_match += 1
 
     return counters
 
@@ -252,6 +238,17 @@ def _normalize_name(inst_name: str):
     return inst_name.upper().split(".")[0]
 
 
+@dataclass
+class Candidate:
+    inst: Instruction
+    sim_string: str
+
+    def __lt__(self, other):
+        if not isinstance(other, Candidate):
+            return NotImplemented
+        return is_better_match_string(other.sim_string, self.sim_string)
+
+
 # assumes o_instructions have the correct mnemonic
 # in conservative mode, if there are multiple matching instructions, the instruction will be treated as if it had no match
 # in loose mode, multiple matches are combined into one and then classified according to the usual rules
@@ -270,6 +267,7 @@ def compare_lists(
     #         o_match_map[o_str].append(w_str)
     #     else:
     #         o_match_map[o_str] = [w_str]
+    o_inst_unmatched = copy.deepcopy(o_instructions)
     o_inst_map: dict[str, List[Instruction]] = {}
     for o_inst in o_instructions:
         map_name = _normalize_name(o_inst.asmName)
@@ -283,44 +281,76 @@ def compare_lists(
     c_one_match = 0
     counters: CompareCounters = CompareCounters()
     debug = False
+
     for w_inst in w_instructions:
         foundCandidates = False
         name = _normalize_name(w_inst.asmName)
         if name not in o_inst_map.keys():
+            c_no_match += 1
+            if verbose:
+                print(f"{'{'}no_name_candidates_for: {w_inst}{'}'}")
             continue
 
         o_candidates: List[Instruction] = o_inst_map[name]
         foundCandidates = True
-        if w_inst.sourceName == "abc":
+        if w_inst.sourceName == globals.dbg_llvm_name:
             debug = True
             print("handling")
             print(_short(w_inst))
             print("candidates:")
             print([c for c in o_candidates])
-        # o_candidates = [c for c in o_candidates if same_metadata(w_inst, c)]
-        scored_candidates = [[], [], [], [], [], [], []]  # candidates scored by value 1-5 higher is better
+        scored_candidates: List[Candidate] = []  # candidates scored by value 1-5 higher is better
         for c in o_candidates:
-            sim_score = operand_similarity(w_inst.operands, c.operands, debug)
-            if sim_score != 0:
-                scored_candidates[sim_score].append(c)
+            # ignore candidate if instruction metadata does not match
+            metadata_mismatch = False
+            for key in w_inst.metadata.keys() | c.metadata.keys():
+                if key not in w_inst.metadata.keys() or key not in c.metadata.keys():
+                    # metadata missing -> do not invalidate match
+                    continue
+                val1 = w_inst.metadata[key]
+                val2 = c.metadata[key]
+                if val1 != val2:
+                    # direct metadata mismatch -> ignore candidate
+                    metadata_mismatch = True
+                    break
+            if metadata_mismatch:
+                continue
+
+            if debug:
+                print(f"comparing operands for {w_inst.sourceName=} and {c.sourceName=}")
+            sim_string = operand_similarity(w_inst.operands, c.operands, debug)
+            if sim_string != "0":
+                scored_candidates.append(Candidate(c, sim_string))
+
+        scored_candidates.sort(reverse=True)
         if debug:
             print(f"{scored_candidates=}")
-            exit(0)
-        debug = False
-        if sum(len(s) for s in scored_candidates) == 0:
+
+        if len(scored_candidates) == 0:
             c_no_match += 1
             # if foundCandidates:
             #     print("no matches:")
             #     print(_short(w_inst))
             #     pprint(f"candidates_by_name: {[_short(c) for c in o_candidates]}")
             #     print("\n")
+            if verbose or debug:
+                print(f"{'{'}no_candidates_for: {w_inst}{'}'}")
+            debug = False
             continue
 
-        highest_score_bin: List[Instruction] = []
-        for s in scored_candidates:
-            if len(s) != 0:
-                highest_score_bin = s
-        if len(highest_score_bin) == 0:
+        # extract all instructions with the highest score
+        highest_score_bin: List[Instruction] = [scored_candidates[0].inst]
+        best_sim_string = scored_candidates[0].sim_string
+        for candidate in scored_candidates[1:]:
+            if candidate.sim_string == best_sim_string:
+                highest_score_bin.append(candidate.inst)
+
+        for candidate in highest_score_bin:
+            if candidate in o_inst_unmatched:
+                o_inst_unmatched.remove(candidate)
+        if debug:
+            print(f"highest_score_bin={highest_score_bin}")
+        if len(highest_score_bin) == 1:
             c_one_match += 1
         elif len(highest_score_bin) > 1:
             c_multiple_matches += 1
@@ -334,6 +364,7 @@ def compare_lists(
                 continue
             # loose mode: create one instruction containing all unique values of all matches
             n_inst = copy.deepcopy(highest_score_bin[0])
+            n_inst.sourceName = " | ".join([x.sourceName for x in highest_score_bin])
             n_inst.throughputs.clear()
             n_inst.latencies.clear()
             lat_seen = []
@@ -353,6 +384,9 @@ def compare_lists(
 
         # bin with highest score has only one element, this is our match
         o_inst = highest_score_bin[0]
+        if debug:
+            print(f"selected_or_composit_candidate={o_inst}")
+            exit(0)
         # track_match(w_inst, o_inst)
         # if o_inst in o_unmatched:
         #     o_unmatched.remove(o_inst)
@@ -361,6 +395,8 @@ def compare_lists(
 
         counters = get_stats(w_inst, o_inst, counters, mode, verbose)
 
+    if verbose:
+        print("unmatched: ", [x.sourceName for x in o_inst_unmatched])
     # check total number of instruction with value
     c_lat_obtained = 0  # how many instructions have a latency value
     c_tp_obtained = 0
@@ -378,15 +414,11 @@ def compare_lists(
 
     # print results
     c_total_lat = counters.c_lat_full + counters.c_lat_partial + counters.c_lat_no
-    c_total_tp = counters.c_tp_full + counters.c_tp_partial + counters.c_tp_no
+    c_total_tp = counters.c_tp_full + counters.c_tp_partial + counters.c_tp_no_match
     if c_total_lat != 0:
-        print(f"\t{counters.c_lat_full=}, {counters.c_lat_full*100/c_total_lat:.2f}%")
-        print(f"\t{counters.c_lat_partial=}, {counters.c_lat_partial*100/c_total_lat:.2f}%")
-        print(f"\t{counters.c_lat_no=}, {counters.c_lat_no*100/c_total_lat:.2f}%\n")
+        counters.print_counters("LAT", c_total_lat)
     if c_total_tp != 0:
-        print(f"\t{counters.c_tp_full=}, {counters.c_tp_full*100/c_total_tp:.2f}%")
-        print(f"\t{counters.c_tp_partial=}, {counters.c_tp_partial*100/c_total_tp:.2f}%")
-        print(f"\t{counters.c_tp_no=}, {counters.c_tp_no*100/c_total_tp:.2f}%")
+        counters.print_counters("TP", c_total_tp)
     return counters
 
 
@@ -405,29 +437,8 @@ def count_instrs_with_values(w_instructions: List[Instruction]):
 # full match: each value in o_inst is also in w_inst or: o_inst has a range and w_inst has values at both ends of the range
 # partial match: at least one value in o_inst is also in w_inst or: o_inst has a range and w_inst has a value within that range
 # no match: no values in o_inst are also in w_inst
+# TODO this compares all operand latencies to every other one and does not try to match the operands
 def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP", "LAT"]):
-    def is_range(val):
-        return val.cyclesMin != val.cyclesMax
-
-    # set tolerance here
-    tolerance = 0.1
-
-    def eq(v1: float, v2: float):
-        v_tolerance = max(v1, v2) * tolerance
-        return abs(v1 - v2) < v_tolerance
-
-    def geq(v1: float, v2: float):
-        return v1 > v2 or eq(v1, v2)
-
-    def leq(v1: float, v2: float):
-        return v1 < v2 or eq(v1, v2)
-
-    def values_overlap(val1, val2):
-        return not leq(val1.cyclesMax, val2.cyclesMin) or geq(val1.cyclesMin, val2.cyclesMax)
-        # return not val1.cyclesMax < val2.cyclesMin * (1 - tolerance) or val1.cyclesMin > val2.cyclesMax * (
-        #     1 + tolerance
-        # )
-
     if mode == "LAT":
         values_to_check_w = w_inst.latencies
         values_to_check_o = o_inst.latencies
@@ -437,83 +448,26 @@ def classify_match(w_inst: Instruction, o_inst: Instruction, mode: Literal["TP",
     # assure there are no None values anywhere
     values_to_check_w = [v for v in values_to_check_w if v.cyclesMax is not None and v.cyclesMin is not None]
     values_to_check_o = [v for v in values_to_check_o if v.cyclesMax is not None and v.cyclesMin is not None]
+    if len(values_to_check_o) == 0:
+        return "NO_DATA"
 
-    found_matching_val = False
-    found_non_matching_val = False
-    # check special case o has range and WINIC covers start and end point
-    # normally a range will count as partial match but if WINIC covers each end of the range we consider this as full match
-    # this makes sense as WINIC measures single values and documentation might provide ranges
-    to_replace = []
-    for o_value in values_to_check_o:
-        if not is_range(o_value):
-            continue
-        max_covered = False
-        min_covered = False
-        for w_value in values_to_check_w:
-            # check max is covered and winic range does not exceed other range
-            if eq(w_value.cyclesMax, o_value.cyclesMax) and geq(w_value.cyclesMin, o_value.cyclesMin):
-                max_covered = True
-            if eq(w_value.cyclesMin, o_value.cyclesMin) and geq(o_value.cyclesMax, w_value.cyclesMax):
-                min_covered = True
-        if not min_covered and max_covered:
-            # check if this range has any matches
-            for w_value in values_to_check_w:
-                if values_overlap(w_value, o_value):
-                    found_matching_val = True
-                    break
-            else:  # executed if loop did not break
-                found_non_matching_val = True
-        # this range should not cause a partial match so we replace it with its start and end point
-        to_replace.append(o_value)
-        # for rem_val in range(o_value.cyclesMin, o_value.cyclesMax):
-        # if equal_tolerance(rem_val, o_value.cyclesMin) or equal_tolerance(rem_val, o_value.cyclesMax):
-        #     continue  # don't remove start and end points
-        # values_o.remove(rem_val)
-        # values_w.remove(rem_val)
-    for v in to_replace:
-        values_to_check_o.remove(v)
-        # we just use TPs here as it doesn't matter in later code (which yes, is ugly)
-        values_to_check_o.append(Throughput(v.cyclesMin, v.cyclesMin))
-        values_to_check_o.append(Throughput(v.cyclesMax, v.cyclesMax))
-
-    assert not any(is_range(v) for v in values_to_check_o)
-
-    # now the other way round, but for WINIC, ranges are uncertainties - not facts, so they always cause partial matches
-    temp = []
-    for w_value in values_to_check_w:
-        if not is_range(w_value):
-            temp.append(w_value)
-            continue
-        for o_value in values_to_check_o:
-            # if values_overlap(o_value, w_value):
-            if geq(o_value.cyclesMax, w_value.cyclesMin) and leq(o_value.cyclesMax, w_value.cyclesMax):
-                return "PARTIAL"
-        found_non_matching_val = True
-    values_to_check_w = temp
-
-    assert not any(is_range(v) for v in values_to_check_w)
-
-    # from now on there are no ranges left
-    values_o = set([v.cyclesMin for v in values_to_check_o])
-    values_w = set([v.cyclesMin for v in values_to_check_w])
-
-    for o_value in values_o:
-        if any(eq(w_value, o_value) for w_value in values_w):
-            found_matching_val = True
-        else:
-            found_non_matching_val = True
-    for w_value in values_w:
-        if any(eq(w_value, o_value) for o_value in values_o):
-            found_matching_val = True
-        else:
-            found_non_matching_val = True
-
-    if found_matching_val and not found_non_matching_val:
+    # check if all values from the other source are covered by some WINIC value
+    if all(any(covers(w, o) for w in values_to_check_w) for o in values_to_check_o):
         return "FULL"
-    elif found_matching_val:
+
+    # check if all WINIC values are covered by some value form the other source
+    if all(any(covers(o, w) for o in values_to_check_o) for w in values_to_check_w):
+        return "FULL"
+
+    # check if any values from the other source is covered by some WINIC value
+    if any(any(covers(w, o) for w in values_to_check_w) for o in values_to_check_o):
         return "PARTIAL"
-    else:
-        return "NO"
+
+    # check if any WINIC value is covered by some value form the other source
+    if any(any(covers(o, w) for o in values_to_check_o) for w in values_to_check_w):
+        return "PARTIAL"
+
+    return "NO"
 
 
 def equal_tolerance(val1: float, val2: float, tolerance: float):
@@ -522,27 +476,3 @@ def equal_tolerance(val1: float, val2: float, tolerance: float):
     if val1 == None or val2 == None:
         return False
     return val1 * (1 - tolerance) < val2 < val1 * (1 + tolerance)
-
-
-# if the latency is a range, check that there is at least one value or range in ref_inst that allows any value in that range. (with a tolerance of 10%)
-# this is the weakest condition possible to classify a value as "correct" assuming the reg_inst represents the truth
-# def lat_possible_in(lat: Latency, ref_inst: Instruction):
-#     if any(x is None for x in [lat, lat.cyclesMin, lat.cyclesMax]):
-#         return True
-#     for ref_lat in ref_inst.latencies:
-#         if any(x is None for x in [ref_lat, ref_lat.cyclesMin, ref_lat.cyclesMax]):
-#             continue
-#         if not lat.cyclesMax < ref_lat.cyclesMin * 0.9 or lat.cyclesMin > ref_lat.cyclesMax * 1.1:
-#             return True
-#     return False
-
-
-# def tp_possible_in(tp: Throughput, ref_inst: Instruction):
-#     if any(x is None for x in [tp, tp.cyclesMin, tp.cyclesMax]):
-#         return True
-#     for ref_tp in ref_inst.throughputs:
-#         if any(x is None for x in [ref_tp, ref_tp.cyclesMin, ref_tp.cyclesMax]):
-#             continue
-#         if not tp.cyclesMax < ref_tp.cyclesMin * 0.9 or tp.cyclesMin > ref_tp.cyclesMax * 1.1:
-#             return True
-#     return False

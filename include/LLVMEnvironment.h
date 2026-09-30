@@ -17,7 +17,8 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <utility>
+#include <vector>
+
 namespace llvm {
 class TargetRegisterInfo;
 } // namespace llvm
@@ -44,7 +45,6 @@ class LLVMEnvironment {
     std::unique_ptr<MCInstPrinter> MIP;
 
     unsigned MaxReg;
-    Triple::ArchType Arch;
 
     /**
      * \brief Constructs a new LLVMEnvironment and initializes the LLVM context and module.
@@ -63,6 +63,32 @@ class LLVMEnvironment {
     ErrorCode setUp(std::string March = "", std::string Cpu = "");
 
     /**
+     * \brief Checks the current architecture is x86
+     */
+    bool isX86();
+
+    /**
+     * \brief Checks the current architecture is AArch64
+     */
+    bool isAArch64();
+
+    /**
+     * \brief Checks the current architecture is RISCV
+     */
+    bool isRISCV();
+
+    unsigned getMemoryOperandWidthUpperBound(unsigned Opcode);
+
+    /**
+     * \brief Converts the desired offset value to the immediate needed to generate that value.
+     * \param Opcode The opcode of the instruction to generate for.
+     * \param Offset The target offset.
+     * \return An immediate, that when plugged into the memory operand of an MCInst of the Opcode,
+     * produces the target Offset.
+     */
+    unsigned memoryOperandOffsetToImmediate(unsigned Opcode, unsigned Offset);
+
+    /**
      * \brief Checks if a register belongs to a given register class.
      * \param Reg The register to check.
      * \param RegClass The register class.
@@ -79,11 +105,11 @@ class LLVMEnvironment {
     bool regInRegClass(MCRegister Reg, unsigned RegClassID);
 
     /**
-     * \brief Get any register class the register belongs to.
+     * \brief Get all register classes the register belongs to.
      * \param Reg The register to check.
-     * \return {SUCCESS, Register class} if a class was found, {E_GENERIC} otherwise.
+     * \return vector of all register classes this register belongs to.
      */
-    std::pair<ErrorCode, MCRegisterClass> getRegClass(MCRegister Reg);
+    std::vector<MCRegisterClass> getRegClasses(MCRegister Reg);
 
     /**
      * \brief Converts a register to its asm string representation.
@@ -118,6 +144,43 @@ class LLVMEnvironment {
      * \return Set of MCRegister objects that can be written.
      */
     std::set<MCRegister> getPossibleDefs(unsigned Opcode);
+
+    /**
+     * \brief Checks if an operand is tied to another operand.
+     * \param OpInfo The MCOperandInfo to check.
+     * \return The index of the tied to operand or NO_OP_INDEX if there is none;
+     */
+    unsigned getTiedToOperand(MCOperandInfo OpInfo);
+
+    /**
+     * \brief Returns the index of the memory access offset immediate on AArch64.
+     * \param Opcode The opcode of the load/store instruction.
+     * \return The index of the memory access immediate (displacement) or NO_OP_INDEX if there is
+     * none.
+     */
+    unsigned getAArch64OffsetOperandIndex(unsigned Opcode);
+
+    /**
+     * \brief Checks if this instruction writes to it's base/index register while accessing memory.
+     * This happens e.g. for pre/post incrementing instructions on AArch64.
+     * \param Opcode The opcode of the instruction.
+     * \return True, if the instruction has a memory operand and writes to part of it.
+     */
+    bool hasWriteOnMemRegister(unsigned Opcode);
+
+    /**
+     * \brief Returns the index of the memory access base register on AArch64.
+     * \param Opcode The opcode of the load/store instruction.
+     * \return The index of the base register or NO_OP_INDEX if there is none.
+     */
+    unsigned getAArch64BaseOperandIndex(unsigned Opcode);
+
+    /**
+     * \brief Check if an instruction might access memory.
+     * \param Opcode The opcode of the instruction.
+     * \return True if the instruction may load or store, false otherwise.
+     */
+    bool mayAccessMemory(unsigned Opcode);
 
     /**
      * \brief Computes the intersection of two sets of registers.

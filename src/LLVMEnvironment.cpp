@@ -1,11 +1,12 @@
 #include "LLVMEnvironment.h"
 
+#include "AArch64InstrInfo.h"
 #include "CustomDebug.h"
 #include "ErrorCode.h"
+#include "Globals.h"
 #include "LLVMDebug.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -15,6 +16,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCTargetOptions.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -24,6 +26,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
@@ -33,6 +36,7 @@
 #include <vector>
 
 using namespace llvm;
+
 namespace winic {
 
 LLVMEnvironment::LLVMEnvironment() : Ctx(), Mod(std::make_unique<Module>("my_module", Ctx)) {}
@@ -48,7 +52,6 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
 
     if (Cpu.empty()) Cpu = llvm::sys::getHostCPUName().str();
     if (Cpu.empty()) return E_CPU_DETECT;
-    std::cout << "detected " << targetTripleStr << ", CPU: " << Cpu << std::endl;
     if (Cpu.find("generic") != std::string::npos)
         std::cout << "Generic CPU detected, this may lead suboptimal results. Use --cpu to "
                      "specify a CPU."
@@ -70,11 +73,11 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
         LLVMInitializeRISCVTargetMC();
         LLVMInitializeRISCVAsmPrinter();
     } else {
-        if (TargetTriple.getArch() != llvm::Triple::UnknownArch)
-            std::cerr << "unsupported architecture: " << TargetTriple.getArchName().str()
-                      << std::endl;
+        out(std::cerr, "unsupported architecture: ", TargetTriple.getArchName().str(),
+            " choose from: x86_64, aarch64, riscv64");
         return E_UNSUPPORTED_ARCH;
     }
+    out(std::cout, "detected ", targetTripleStr, ", CPU: ", Cpu);
     // partially copied from InstrRefLDVTest.cpp InstrRefLDVTest.cpp
     // Mod->setDataLayout("e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-"
     //                    "f80:128-n8:16:32:64-S128");
@@ -82,24 +85,22 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     std::string error;
     const Target *theTarget = TargetRegistry::lookupTarget("", TargetTriple, error);
 
-    MRI.reset(theTarget->createMCRegInfo(targetTripleStr));
+    MRI.reset(theTarget->createMCRegInfo(TargetTriple));
     assert(MRI && "Unable to create register info!");
     MCTargetOptions mcOptions;
-    MAI.reset(theTarget->createMCAsmInfo(*MRI, targetTripleStr, mcOptions));
+    MAI.reset(theTarget->createMCAsmInfo(*MRI, TargetTriple, mcOptions));
     assert(MAI && "Unable to create asm info!");
     MCII.reset(theTarget->createMCInstrInfo());
     assert(MCII && "Unable to create MCInnstr info!");
-    MSTI.reset(theTarget->createMCSubtargetInfo(targetTripleStr, Cpu, ""));
+    MSTI.reset(theTarget->createMCSubtargetInfo(TargetTriple, Cpu, ""));
     assert(MSTI && "Unable to create MCSubtargetInfo!");
     // set syntaxVariant here
     MIP.reset(theTarget->createMCInstPrinter(Triple(targetTripleStr), 1, *MAI, *MCII, *MRI));
     assert(MIP && "Unable to create MCInstPrinter!");
     TargetOptions options;
-    Machine.reset(theTarget->createTargetMachine(Triple::normalize(targetTripleStr), Cpu, "",
-                                                 options, std::nullopt, std::nullopt,
-                                                 CodeGenOptLevel::Aggressive));
+    Machine.reset(theTarget->createTargetMachine(TargetTriple, Cpu, "", options, std::nullopt,
+                                                 std::nullopt, CodeGenOptLevel::Aggressive));
     assert(Machine && "Unable to create Machine");
-
     FunctionType *type = FunctionType::get(Type::getVoidTy(Ctx), false);
     assert(type && "Unable to create Type");
     Function *f = Function::Create(type, GlobalValue::ExternalLinkage, "Test", &*Mod);
@@ -120,8 +121,88 @@ ErrorCode LLVMEnvironment::setUp(std::string March, std::string Cpu) {
     //                                        *>(Machine.get()), stimpl, functionNum, *MMI.get());
     TRI = MF->getSubtarget().getRegisterInfo();
     MaxReg = TRI->getNumSupportedRegs(*MF);
-    Arch = MSTI->getTargetTriple().getArch(); // for convenience
     return SUCCESS;
+}
+
+bool LLVMEnvironment::isX86() {
+    return MSTI->getTargetTriple().getArch() == Triple::ArchType::x86_64;
+}
+
+bool LLVMEnvironment::isAArch64() {
+    return MSTI->getTargetTriple().getArch() == Triple::ArchType::aarch64;
+}
+
+bool LLVMEnvironment::isRISCV() {
+    return MSTI->getTargetTriple().getArch() == Triple::ArchType::riscv64;
+}
+
+unsigned LLVMEnvironment::memoryOperandOffsetToImmediate(unsigned Opcode, unsigned Offset) {
+    if (getEnv().isAArch64()) {
+        // check if the target specific helpers can provide an exact width
+        TypeSize scale(0U, false), width(0U, false);
+        int64_t minOffset, maxOffset;
+        if (AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
+            // when width=8 and scale=4 this returns 2. LLVM later scales the immediate up by the
+            // factor of 4 while printing the instruction
+            if (width.isFixed()) return Offset / scale;
+        }
+    }
+    // all other architectures don't do fancy stuff i think
+    return Offset;
+}
+
+unsigned LLVMEnvironment::getMemoryOperandWidthUpperBound(unsigned Opcode) {
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+
+    if (getEnv().isAArch64()) {
+        // check if the target specific helpers can provide an exact width
+        TypeSize scale(0U, false), width(0U, false);
+        int64_t minOffset, maxOffset;
+        if (AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
+            // when width=8 and scale=4 this returns 2. LLVM later scales the immediate up by the
+            // factor of 4 while printing the instruction
+            if (width.isFixed()) return width;
+        }
+    }
+
+    // apply an ugly workaround: assume the memory accessed is smaller than the widest register of
+    // the instruction. If you know better how llvm works, please replace this with a proper lookup
+    unsigned maxRegWidth = 0;
+
+    for (int i = 0; i < desc.getNumOperands(); i++) {
+        const MCOperandInfo &opInfo = desc.operands()[i];
+        if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
+            maxRegWidth = std::max(maxRegWidth, MRI->getRegClass(opInfo.RegClass).getSizeInBits());
+        }
+    }
+    // there are instructions that work on memory only e.g. NEG16r. Just take some default value
+    if (maxRegWidth == 0) return 64;
+    return maxRegWidth / 8;
+
+    // failed try to do this properly
+    // #include "llvm/CodeGen/MachineBasicBlock.h"
+    // #include "llvm/CodeGen/MachineInstrBuilder.h"
+    // #include "llvm/CodeGen/TargetInstrInfo.h"
+
+    // TII = MF->getSubtarget().getInstrInfo();
+    // DebugLoc DL;
+    // MachineInstr *MI = BuildMI(*MF, DL, TII->get(Desc.getOpcode()));
+    // auto *MBB = MF->CreateMachineBasicBlock();
+    // MBB->insert(MBB->end(), MI);
+    // MF->push_back(MBB);
+    // SmallVector<const MachineOperand *, 2> baseOps;
+    // int64_t offset;
+    // bool offsetIsScalable;
+    // LocationSize size = LocationSize::mapEmpty();
+
+    // bool ok = TII->getMemOperandsWithOffsetWidth(*MI, baseOps, offset, offsetIsScalable,
+    // size, TRI); if (ok) {
+    //     dbg(__func__, "getValue");
+    //     return size.getValue().getFixedValue();
+    // } else {
+    //     dbg(__func__, "not ok ");
+    //     return -1;
+    // }
 }
 
 bool LLVMEnvironment::regInRegClass(MCRegister Reg, MCRegisterClass RegClass) {
@@ -135,11 +216,12 @@ bool LLVMEnvironment::regInRegClass(MCRegister Reg, unsigned RegClassID) {
     return regInRegClass(Reg, regClass);
 }
 
-std::pair<ErrorCode, MCRegisterClass> LLVMEnvironment::getRegClass(MCRegister Reg) {
+std::vector<MCRegisterClass> LLVMEnvironment::getRegClasses(MCRegister Reg) {
+    std::vector<MCRegisterClass> result = {};
     for (unsigned i = 0; i < MRI->getNumRegClasses(); i++)
-        if (regInRegClass(Reg, i)) return {SUCCESS, MRI->getRegClass(i)};
+        if (regInRegClass(Reg, i)) result.emplace_back(MRI->getRegClass(i));
 
-    return {E_GENERIC, {}};
+    return result;
 }
 
 std::string LLVMEnvironment::getRegAsmName(MCRegister Reg) {
@@ -200,6 +282,47 @@ std::set<MCRegister> LLVMEnvironment::getPossibleDefs(unsigned Opcode) {
     return writes;
 }
 
+unsigned LLVMEnvironment::getTiedToOperand(MCOperandInfo OpInfo) {
+    if (OpInfo.Constraints & (1 << MCOI::TIED_TO))
+        return (OpInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
+    return NO_OP_INDEX;
+}
+
+unsigned LLVMEnvironment::getAArch64OffsetOperandIndex(unsigned Opcode) {
+    if (!getEnv().isAArch64()) return NO_OP_INDEX;
+    // verify this is a memory instruction as llvm does in AArch64InstrInfo::verifyInstruction
+    TypeSize scale(0U, false), width(0U, false);
+    int64_t minOffset, maxOffset;
+    if (!AArch64InstrInfo::getMemOpInfo(Opcode, scale, width, minOffset, maxOffset)) {
+        return NO_OP_INDEX;
+    }
+
+    return AArch64InstrInfo::getLoadStoreImmIdx(Opcode);
+}
+
+unsigned LLVMEnvironment::getAArch64BaseOperandIndex(unsigned Opcode) {
+    unsigned index = getAArch64OffsetOperandIndex(Opcode);
+    return index == NO_OP_INDEX ? NO_OP_INDEX : index - 1;
+}
+
+bool LLVMEnvironment::hasWriteOnMemRegister(unsigned Opcode) {
+    InstructionForm instructionForm = instructionForms.get(Opcode);
+    const MCInstrDesc &desc = MCII->get(Opcode);
+    for (OperandForm op : instructionForm.getOperands()) {
+        if (!op.isMemory()) continue;
+
+        for (unsigned index : op.getMCIndices()) {
+            if (index < desc.getNumDefs()) return true;
+        }
+    }
+    return false;
+}
+
+bool LLVMEnvironment::mayAccessMemory(unsigned Opcode) {
+    const MCInstrDesc &desc = MCII->get(Opcode);
+    return desc.mayLoad() || desc.mayStore();
+}
+
 std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::set<MCRegister> B) {
     std::set<MCRegister> result;
     std::set_intersection(A.begin(), A.end(), B.begin(), B.end(),
@@ -207,8 +330,8 @@ std::set<MCRegister> LLVMEnvironment::regIntersect(std::set<MCRegister> A, std::
     return result;
 }
 
-std::set<MCRegister> LLVMEnvironment::regDifference(std::set<MCRegister> A,
-                                                    std::set<MCRegister> B) {
+std::set<MCRegister>
+LLVMEnvironment::regDifference(std::set<MCRegister> A, std::set<MCRegister> B) {
     std::set<MCRegister> result;
     std::set_difference(A.begin(), A.end(), B.begin(), B.end(),
                         std::inserter(result, result.begin()));

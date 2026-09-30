@@ -2,6 +2,7 @@
 
 #include "AssemblyFile.h"
 #include "BenchmarkGenerator.h"
+#include "BenchmarkRunner.h"
 #include "CLI11.hpp"
 #include "CustomDebug.h"
 #include "ErrorCode.h"
@@ -13,29 +14,24 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
-#include <cctype>
 #include <chrono>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <dlfcn.h>
-#include <fcntl.h>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <memory>
-#include <optional>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -51,17 +47,22 @@
 
 namespace llvm {
 class MCInstrDesc;
-}
+} // namespace llvm
 
-#ifndef CLANG_PATH
-#define CLANG_PATH "usr/bin/clang"
+#ifndef WINIC_CLANG_PATH
+#define WINIC_CLANG_PATH "usr/bin/clang"
 #endif
 
 namespace {
 double clockFrequency;
-unsigned nRuns; // number of repititions for each benchmark
+unsigned nRuns;          // number of repititions for each benchmark
+unsigned loopIterations; // number of iterations of the benchmarking kernel loop
+unsigned targetLoopBodySize;
 bool showProgress;
 bool outputASM;
+bool runInSubprocess;
+double maxCyclesPerInstruction;
+std::unique_ptr<winic::BenchmarkRunner> benchmarkRunner;
 
 static std::string generateTimestamp() {
     // Get current time
@@ -74,26 +75,45 @@ static std::string generateTimestamp() {
     return ss.str();
 }
 
-void displayProgress(size_t Progress, size_t Total, std::optional<unsigned> Opcode) {
-    if (!showProgress) return;
-    int barWidth = 50;
-    float ratio = (float)Progress / (float)Total;
-    int pos = barWidth * ratio;
+unsigned lastLineLength = 0;
 
-    std::cout << "\r[";
+// supply tuples of (name, current, total), first one is used for progress bar
+void displayProgress(std::vector<std::tuple<std::string, size_t, size_t>> Progresses,
+                     std::string Message) {
+    if (!showProgress) return;
+    if (Progresses.size() == 0) return;
+
+    // print bar
+    int barWidth = 30;
+    auto [firstProgressName, firstProgress, firstTotal] = Progresses.at(0);
+    float ratio = (float)firstProgress / (float)firstTotal;
+    int pos = barWidth * ratio;
+    std::ostringstream line;
+    line << "\r[";
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos)
-            std::cout << "#";
+            line << "#";
         else if (i == pos)
-            std::cout << ">";
+            line << ">";
         else
-            std::cout << " ";
+            line << " ";
     }
-    if (Opcode.has_value())
-        std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total
-                  << " Opcode: " << Opcode.value() << std::flush;
-    else
-        std::cout << "] " << int(ratio * 100.0) << "% " << Progress << "/" << Total << std::flush;
+    line << "] " << int(ratio * 100.0) << "% ";
+
+    // print progresses with names
+    for (unsigned i = 0; i < Progresses.size(); i++) {
+        auto [progressName, progress, total] = Progresses.at(i);
+        line << progressName << ": " << progress << "/" << total << " ";
+    }
+    line << Message;
+
+    // clear line
+    std::cout << "\r";
+    for (int i = 0; i < lastLineLength; i++)
+        std::cout << " ";
+    lastLineLength = line.str().size();
+
+    std::cout << line.str() << std::flush;
 }
 
 // create ./asm and clear all existing files
@@ -111,213 +131,40 @@ void prepAsmDir() {
         fs::remove_all(entry.path());
     }
 }
+
+std::string soPath = "/dev/shm/winic.so";
 } // namespace
 
 namespace winic {
 
-std::pair<ErrorCode, std::unordered_map<std::string, std::list<double>>>
-runBenchmark(AssemblyFile Assembly, unsigned N, unsigned Runs) {
-    if (Runs == 0) return {E_NO_RUNS, {}};
-    dbg(__func__, "N: ", N, " Runs: ", Runs);
-    std::string clangPath = CLANG_PATH;
-    if (clangPath == "usr/bin/clang") {
-        std::cerr << "CLANG_PATH not set, using default" << std::endl;
-    }
-    std::string sPath = "/dev/shm/temp.s";
-    std::string oPath = "/dev/shm/temp.so";
-    std::ofstream asmFile(sPath);
-    if (!asmFile) {
-        std::cerr << "Failed to create file in /dev/shm/" << std::endl;
-        return {E_FILE, {}};
-    }
-    asmFile << Assembly.generateAssembly();
-    asmFile.close();
-    if (outputASM) {
-        std::string debugPath =
-            std::filesystem::current_path().string() + "/asm/" + Assembly.getName() + ".s";
-        std::ofstream debugFile(debugPath);
-        if (!debugFile) {
-            std::cerr << "Failed to create debug file at " << debugPath.data() << std::endl;
-        } else {
-            debugFile << Assembly.generateAssembly();
-            debugFile.close();
-        }
-    }
-
-    // slightly worse performance than fork
-    //  std::string compiler = CLANG_PATH;
-    //  std::string command = compiler + " -x assembler-with-cpp -shared " + sPath + " -o " +
-    // oPath;
-    //  if (outputASM)
-    //      command += " 2> assembler_out.log";
-    //  else
-    //      command += " 2> /dev/null";
-    //  if (system(command.data()) != 0) return {ERROR_ASSEMBLY, {-1}};
-
-    // slightly better performance
-    pid_t pid = fork();
-    if (pid == 0) { // Child
-        int fd;
-        if (outputASM) {
-            fd = open("assembler_out.log", O_WRONLY | O_TRUNC | O_CREAT, 0644);
-            if (fd == -1) {
-                perror("open assembler_out.log failed");
-                _exit(127);
-            }
-        } else {
-            fd = open("/dev/null", O_WRONLY);
-            if (fd == -1) {
-                perror("open /dev/null failed");
-                _exit(127);
-            }
-        }
-        dup2(fd, STDOUT_FILENO);
-        dup2(fd, STDERR_FILENO);
-        std::string cpu = getEnv().Machine->getTargetCPU().data();
-        std::string archOption;
-        if (getEnv().Arch == llvm::Triple::riscv64 && cpu.find("generic") != std::string::npos) {
-            // generic riscv64 will fail to assemble benchmarks, use very
-            // permissive -march flag as workaround
-            cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
-            archOption = str("-march=", cpu);
-        } else {
-            archOption = str("-mcpu=", cpu);
-        }
-
-        execl(CLANG_PATH, "clang", archOption.data(), "-nostdlib", "-x", "assembler-with-cpp",
-              "-shared", sPath.data(), "-o", oPath.data(), nullptr);
-        _exit(127);       // execl failed
-    } else if (pid > 0) { // Parent
-        int status;
-        waitpid(pid, &status, 0);
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            if (WEXITSTATUS(status) == 127) return {E_EXEC, {}};
-            return {E_ASSEMBLY, {}};
-        }
-    }
-
-    // from ibench
-    void *handle = nullptr;
-    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        std::cerr << "dlopen: failed to open .so file" << std::endl;
-        return {E_FILE, {}};
-    }
-    // get handles to function in the assembly file
-    std::unordered_map<std::string, double (*)(int)> benchFunctionMap;
-    std::unordered_map<std::string, double (*)()> initFunctionMap;
-    for (std::string functionName : Assembly.getInitFunctionNames()) {
-        auto functionPtr = (double (*)())dlsym(handle, functionName.data());
-        if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
-            return {E_GENERIC, {}};
-        }
-        initFunctionMap[functionName] = functionPtr;
-    }
-    for (std::string functionName : Assembly.getBenchFunctionNames()) {
-        auto functionPtr = (double (*)(int))dlsym(handle, functionName.data());
-        if (functionPtr == NULL) {
-            std::cerr << "dlsym: couldn't find function " << functionName.data() << std::endl;
-            return {E_GENERIC, {}};
-        }
-        benchFunctionMap[functionName] = functionPtr;
-    }
-    // may have results from prior runs
-    struct timeval start, end;
-    std::unordered_map<std::string, std::list<double>> benchtimes;
-
-    for (auto [benchFunctionName, benchFunctionPointer] : benchFunctionMap) {
-        auto benchFunction = benchFunctionPointer;
-        auto initFunction = initFunctionMap[Assembly.getInitNameFor(benchFunctionName)];
-        dbg(__func__, "running ", benchFunctionName);
-        for (unsigned i = 0; i < Runs; i++) {
-            if (initFunction) (*initFunction)();
-
-            gettimeofday(&start, NULL);
-            (*benchFunction)(N);
-            gettimeofday(&end, NULL);
-
-            auto &list = benchtimes[benchFunctionName];
-            list.insert(list.end(),
-                        (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
-        }
-    }
-
-    dlclose(handle);
-    for (auto [name, times] : benchtimes) {
-        dbg(__func__, "benchtimes for ", name, ": ", times);
-    }
-
-    return {SUCCESS, benchtimes};
-}
-
-std::pair<ErrorCode, std::vector<double>> runManual(std::string SPath, unsigned Runs,
-                                                    unsigned NumInst, int LoopCount,
-                                                    std::string FunctionName,
-                                                    std::string InitName) {
+std::pair<ErrorCode, std::vector<double>>
+measureManualInProcess(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
+                       std::string FunctionName, std::string InitName) {
     dbg(__func__, "SPath: ", SPath, " Runs: ", Runs, " NumInst: ", NumInst,
-        " LoopCount: ", LoopCount, " FunctionName: ", FunctionName, " InitName: ", InitName);
-    std::string clangPath = CLANG_PATH;
-    std::string oPath = "/dev/shm/temp.so";
-    std::string cpu = getEnv().Machine->getTargetCPU().data();
-    std::string archOption;
-    if (getEnv().Arch == llvm::Triple::riscv64 && cpu.find("generic") != std::string::npos) {
-        // generic riscv64 will fail to assemble benchmarks, use very
-        // permissive -march flag as workaround
-        cpu = "rv64gcv_zba_zbb_zbc_zbs_zicbom_zicbop_zicboz_zfh_zfhmin_zvl128b_zvl256b";
-        archOption = str("-march=", cpu);
-    } else {
-        archOption = str("-mcpu=", cpu);
-    }
-    std::string command = clangPath + " " + archOption.data() +
-                          " -nostdlib -x assembler-with-cpp -shared " + SPath + " -o " + oPath +
-                          " 2> assembler_out.log";
-    if (system(command.data()) != 0) return {E_ASSEMBLY, {}};
+        " LoopIterations: ", LoopIterations, " FunctionName: ", FunctionName,
+        " InitName: ", InitName);
+    std::unordered_map<std::string, std::vector<double>> benchResults;
+    AssemblyFile assembly;
+    assembly.addBenchFunction(FunctionName, "", "", "", InitName, NumInst);
 
-    // from ibench
-    void *handle;
-    double (*function)(int);
-    double (*init)() = nullptr;
-    if ((handle = dlopen(oPath.data(), RTLD_LAZY)) == NULL) {
-        std::cerr << "dlopen: failed to open .so file" << std::endl;
-        return {E_ASSEMBLY, {}};
-    }
-    if (!InitName.empty()) {
-        if ((init = (double (*)())dlsym(handle, InitName.data())) == NULL) {
-            std::cerr << "dlsym: couldn't find function " << InitName << std::endl;
-            return {E_GENERIC, {}};
-        }
-    }
-    if ((function = (double (*)(int))dlsym(handle, FunctionName.data())) == NULL) {
-        std::cerr << "dlsym: couldn't find function " << FunctionName << std::endl;
-        return {E_GENERIC, {}};
-    }
-    struct timeval start, end;
-    std::vector<double> benchtimes;
-    for (unsigned i = 0; i < Runs; i++) {
-        if (init) (*init)();
-        gettimeofday(&start, NULL);
-        // actual call to benchmarked function
-        (*function)(LoopCount);
-        gettimeofday(&end, NULL);
-        benchtimes.insert(benchtimes.end(),
-                          (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec));
-    }
+    ErrorCode ec = benchmarkRunner->assembleBenchmark(SPath);
+    if (ec != SUCCESS) return {ec, {}};
 
-    dlclose(handle);
-    return {SUCCESS, benchtimes};
+    std::tie(ec, benchResults) = benchmarkRunner->runBenchmark(assembly, LoopIterations, Runs);
+    return {SUCCESS, benchResults[FunctionName]};
 }
 
-std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRuntime,
-                                             unsigned NumInst, unsigned LoopCount,
-                                             bool Throughput) {
+std::pair<ErrorCode, double>
+calculateCycles(double Runtime, double UnrolledRuntime, unsigned NumInst, unsigned LoopIterations,
+                bool Throughput) {
     dbg(__func__, "Runtime: ", Runtime, " UnrolledRuntime: ", UnrolledRuntime,
-        " NumInst: ", NumInst, " LoopCount: ", LoopCount);
+        " NumInst: ", NumInst, " LoopIterations: ", LoopIterations);
     // correct the result using one measurement with NumInst and one with 2*NumInst. This
     // removes overhead of e.g. the loop instructions themselves see README for explanation TODO
     double instRuntime = UnrolledRuntime - Runtime;
     // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
     double cyclesPerInstruction =
-        (instRuntime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopCount);
+        (instRuntime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopIterations);
     if (instRuntime * 2 > UnrolledRuntime * 1.1) {
         // Execution time increases overproportional when unrolling, which should not happen.
         // This is unlikely to be a good measurement, report an error and let the user measure it
@@ -335,19 +182,20 @@ std::pair<ErrorCode, double> calculateCycles(double Runtime, double UnrolledRunt
     // with helper TEST64rr In those cases the unrolled time should not be used for correction.
     // This is why the following check is only enabled for throughput
     if (Throughput && instRuntime * 2 > UnrolledRuntime) {
-        cyclesPerInstruction = (Runtime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopCount);
+        cyclesPerInstruction =
+            (Runtime / 1e6) * (clockFrequency * 1e9) / (NumInst * LoopIterations);
     }
     return {SUCCESS, cyclesPerInstruction};
 }
 
 std::tuple<ErrorCode, unsigned, std::map<unsigned, MCRegister>>
-getTPHelperInstruction(unsigned Opcode, long Immediate) {
+findTPHelperInstruction(unsigned Opcode, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode, " priorityTPHelper.size(): ", priorityTPHelper.size());
     // first check if this instruction needs a helper
-    // generate two instructions and check for dependencys
+    // generate two instructions and check for dependencies
     std::set<MCRegister> usedRegs;
-    auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate);
-    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate);
+    auto [ec1, inst1] = genInst(Opcode, {}, usedRegs, Immediate, 0);
+    auto [ec2, inst2] = genInst(Opcode, {}, usedRegs, Immediate, 512);
     std::list<DependencyType> dependencies = getDependencies(inst1, inst2);
     if (dependencies.empty()) return {SUCCESS, MAX_UNSIGNED, {}}; // no helper needed
     if (dependencies.size() > 1) {
@@ -356,13 +204,16 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
         // is currently not supported
         return {E_NO_HELPER, MAX_UNSIGNED, {}};
     }
+
+    auto depType = dependencies.front();
+    // getDependencies returns only register dependencies
+    MCRegister useReg = std::get_if<RegisterOperand>(&depType.useOp)->getRegister();
+
     // this instruction will always have one dependency on itself. We have to break this by
     // interleaving another instruction. The other instruction has to:
     // 1. be measured already
     // 2. define the used register of the dependency
     // 3. not be dependent on the current instruction
-    auto dep = dependencies.front();
-    auto useReg = dep.useOp.getRegister();
 
     unsigned helperOpcode = MAX_UNSIGNED;
     std::map<unsigned, MCRegister> helperConstraints;
@@ -392,9 +243,9 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
                 // explicit dependencies e.g. ADD16ri can define ax but if it does it also uses
                 // ax so it can't be used as helper
                 std::set<MCRegister> tmpUsedRegs;
-                auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate);
+                auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate, 0);
                 auto [ec2, helperInst] =
-                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
+                    genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate, 512);
                 if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
                 if (!getDependencies(inst, helperInst).empty()) continue;
                 helperOpcode = possibleHelper;
@@ -414,9 +265,9 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
             if (EC != SUCCESS) return {E_UNREACHABLE, MAX_UNSIGNED, {}};
             if (opIndex != -1) helperConstraints.insert({(unsigned)opIndex, useReg});
             std::set<MCRegister> tmpUsedRegs;
-            auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate);
+            auto [ec1, inst] = genInst(Opcode, {}, tmpUsedRegs, Immediate, 0);
             auto [ec2, helperInst] =
-                genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate);
+                genInst(possibleHelper, helperConstraints, tmpUsedRegs, Immediate, 32);
             if (ec1 != SUCCESS || ec2 != SUCCESS) continue;
             if (!getDependencies(inst, helperInst).empty()) continue;
             helperOpcode = possibleHelper;
@@ -427,19 +278,41 @@ getTPHelperInstruction(unsigned Opcode, long Immediate) {
     return {SUCCESS, helperOpcode, helperConstraints};
 }
 
-std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long RegInitValue,
-                                                        long Immediate) {
+std::tuple<ErrorCode, double, double>
+measureThroughput(unsigned Opcode, initType RegInitValue, long Immediate) {
+    return runInSubprocess ? measureThroughputInSubprocess(Opcode, RegInitValue, Immediate)
+                           : measureThroughputInProcess(Opcode, RegInitValue, Immediate);
+}
+
+std::pair<ErrorCode, double>
+measureLatency(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
+               initType RegInitValue, long Immediate) {
+    return runInSubprocess
+               ? measureLatencyInSubprocess(Measurements, LoopIterations, RegInitValue, Immediate)
+               : measureLatencyInProcess(Measurements, LoopIterations, RegInitValue, Immediate);
+}
+
+std::pair<ErrorCode, std::vector<double>>
+measureManual(std::string SPath, unsigned Runs, unsigned NumInst, unsigned LoopIterations,
+              std::string FunctionName, std::string InitName) {
+    return runInSubprocess ? measureManualInSubprocess(SPath, Runs, NumInst, LoopIterations,
+                                                       FunctionName, InitName)
+                           : measureManualInProcess(SPath, Runs, NumInst, LoopIterations,
+                                                    FunctionName, InitName);
+}
+
+std::tuple<ErrorCode, double, double>
+measureThroughputInProcess(unsigned Opcode, initType RegInitValue, long Immediate) {
     dbg(__func__, "Opcode: ", Opcode);
-    // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
-    // instructions like random value generation or CPUID
-    unsigned numInst = 12;
-    unsigned n = 1e6; // loop count, 1e5 seems to be unreliable for TP
+    // make the generator generate up to targetLoopBodySize instructions, this ensures reasonable
+    // runtimes on slow instructions like random value generation or CPUID
+    unsigned numInst = targetLoopBodySize;
     AssemblyFile assembly;
     ErrorCode ec;
     std::set<MCRegister> usedRegs;
-    std::unordered_map<std::string, std::list<double>> benchResults;
+    std::unordered_map<std::string, std::vector<double>> benchResults;
 
-    auto [ec1, helperOpcode, helperConstraints] = getTPHelperInstruction(Opcode, Immediate);
+    auto [ec1, helperOpcode, helperConstraints] = findTPHelperInstruction(Opcode, Immediate);
     if (ec1 != SUCCESS) return {ec1, -1, -1};
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
@@ -447,15 +320,19 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long Re
     std::tie(ec, assembly) = genTPBenchmark(Opcode, &numInst, 1, usedRegs, helperConstraints,
                                             helperOpcode, RegInitValue, Immediate);
     if (ec != SUCCESS) return {ec, -1, -1};
+
     assembly.setName(getEnv().MCII->getName(Opcode).str());
-    std::tie(ec, benchResults) = runBenchmark(assembly, n, nRuns);
+    ec = benchmarkRunner->assembleBenchmark(assembly);
+    if (ec != SUCCESS) return {ec, -1, -1};
+
+    std::tie(ec, benchResults) = benchmarkRunner->runBenchmark(assembly, loopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1, -1};
 
     // take minimum of runs (naming convention of funcitons in genTPBenchmark)
     double time1 = *std::min_element(benchResults["tp"].begin(), benchResults["tp"].end());
     double time2 = *std::min_element(benchResults["tp2"].begin(), benchResults["tp2"].end());
 
-    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, n, true);
+    auto [EC, correctedTP] = calculateCycles(time1, time2, numInst, loopIterations, true);
     if (EC != SUCCESS) {
         std::string msg =
             str("Anomaly detected when unrolling: time: ", time1, " timeUnrolled: ", time2);
@@ -485,26 +362,35 @@ std::tuple<ErrorCode, double, double> measureThroughput(unsigned Opcode, long Re
     return {SUCCESS, correctedTP, correctedTP};
 }
 
-std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Measurements,
-                                            unsigned LoopCount, long RegInitValue, long Immediate) {
-    dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopCount: ", LoopCount,
+std::pair<ErrorCode, double>
+measureLatencyInProcess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
+                        initType RegInitValue, long Immediate) {
+    dbg(__func__, "Measurements.size(): ", Measurements.size(), " LoopIterations: ", LoopIterations,
         " Immediate: ", Immediate);
 
-    // make the generator generate up to 12 instructions, this ensures reasonable runtimes on slow
-    // instructions like random value generation or CPUID
-    unsigned numInst1 = 12;
-    unsigned n = LoopCount;
+    // make the generator generate up to targetLoopBodySize instructions, this ensures reasonable
+    // runtimes on slow instructions like random value generation or CPUID
+    unsigned instructionCount = targetLoopBodySize;
     ErrorCode ec;
     ErrorCode warning = NO_ERROR_CODE;
     AssemblyFile assembly;
-    std::unordered_map<std::string, std::list<double>> benchResults;
+    std::unordered_map<std::string, std::vector<double>> benchResults;
 
     // numInst gets updated to the actual number of instructions generated by genTPBenchmark
-    std::tie(ec, assembly) = genLatBenchmark(Measurements, &numInst1, {}, RegInitValue, Immediate);
+    std::tie(ec, assembly) =
+        genLatBenchmark(Measurements, &instructionCount, {}, RegInitValue, Immediate);
     if (ec != SUCCESS && ec != W_MULTIPLE_DEPENDENCIES) return {ec, -1};
     if (ec == W_MULTIPLE_DEPENDENCIES) warning = W_MULTIPLE_DEPENDENCIES;
-    assembly.setName(Measurements.front().toCompactString());
-    std::tie(ec, benchResults) = runBenchmark(assembly, n, nRuns);
+
+    std::string filenameString = Measurements.front().toFilenameString();
+    for (int i = 1; i < Measurements.size(); i++) {
+        filenameString = str(filenameString, "_", Measurements.at(i).toFilenameString());
+    }
+    assembly.setName(filenameString);
+    ec = benchmarkRunner->assembleBenchmark(assembly);
+    if (ec != SUCCESS) return {ec, -1};
+
+    std::tie(ec, benchResults) = benchmarkRunner->runBenchmark(assembly, LoopIterations, nRuns);
     if (ec != SUCCESS) return {ec, -1};
 
     // take minimum of runs. "lat" and "lat2" is naming convention defined in
@@ -512,13 +398,18 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     double time1 = *std::min_element(benchResults["lat"].begin(), benchResults["lat"].end());
     double time2 = *std::min_element(benchResults["lat2"].begin(), benchResults["lat2"].end());
     double cycles;
-    std::tie(ec, cycles) = calculateCycles(time1, time2, numInst1, n, false);
+    std::tie(ec, cycles) = calculateCycles(time1, time2, instructionCount, LoopIterations, false);
+    cycles *= Measurements.size(); // report a combined result, not per instruction
     if (ec != SUCCESS) {
         std::string chainString = "";
         for (auto m : Measurements) {
             chainString += getEnv().MCII->getName(m.opcode).data();
             chainString += " -> ";
         }
+        for (auto time : benchResults["lat"]) {
+            chainString += std::to_string(time) + " ";
+        }
+        chainString += "unrolled: ";
         for (auto time : benchResults["lat2"]) {
             chainString += std::to_string(time) + " ";
         }
@@ -529,8 +420,8 @@ std::pair<ErrorCode, double> measureLatency(const std::list<LatMeasurement> &Mea
     return {SUCCESS, cycles};
 }
 
-std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long RegInitValue,
-                                                          long Immediate) {
+std::tuple<ErrorCode, double, double>
+measureThroughputInSubprocess(unsigned Opcode, initType RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedLowerBound = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -554,7 +445,7 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long 
         ErrorCode ec;
         double lower;
         double upper;
-        std::tie(ec, lower, upper) = measureThroughput(Opcode, RegInitValue, Immediate);
+        std::tie(ec, lower, upper) = measureThroughputInProcess(Opcode, RegInitValue, Immediate);
 
         *sharedLowerBound = lower;
         *sharedUpperBound = upper;
@@ -590,9 +481,9 @@ std::tuple<ErrorCode, double, double> measureInSubprocess(unsigned Opcode, long 
     }
 }
 
-std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement> &Measurements,
-                                                 unsigned LoopCount, long RegInitValue,
-                                                 long Immediate) {
+std::pair<ErrorCode, double>
+measureLatencyInSubprocess(const std::vector<LatMeasurement> &Measurements, unsigned LoopIterations,
+                           initType RegInitValue, long Immediate) {
     // allocate memory to communicate result
     double *sharedResult = static_cast<double *>(
         mmap(NULL, sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -610,7 +501,8 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     if (pid == 0) { // Child process
         ErrorCode ec;
         double res;
-        std::tie(ec, res) = measureLatency(Measurements, LoopCount, RegInitValue, Immediate);
+        std::tie(ec, res) =
+            measureLatencyInProcess(Measurements, LoopIterations, RegInitValue, Immediate);
 
         *sharedResult = res;
         *sharedEC = ec;
@@ -636,10 +528,9 @@ std::pair<ErrorCode, double> measureInSubprocess(const std::list<LatMeasurement>
     }
 }
 
-std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath, unsigned Runs,
-                                                              unsigned NumInst, unsigned LoopCount,
-                                                              std::string FunctionName,
-                                                              std::string InitName) {
+std::pair<ErrorCode, std::vector<double>>
+measureManualInSubprocess(std::string SPath, unsigned Runs, unsigned NumInst,
+                          unsigned LoopIterations, std::string FunctionName, std::string InitName) {
     // allocate memory to communicate result
     double *sharedResults = static_cast<double *>(mmap(
         NULL, Runs * sizeof(double), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
@@ -655,9 +546,8 @@ std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath,
     if (pid == -1) return {E_FORK, {}};
 
     if (pid == 0) { // Child process
-        ErrorCode EC;
-        std::vector<double> res;
-        std::tie(EC, res) = runManual(SPath, Runs, NumInst, LoopCount, FunctionName, InitName);
+        auto [EC, res] =
+            measureManualInProcess(SPath, Runs, NumInst, LoopIterations, FunctionName, InitName);
         *sharedEC = EC;
         for (unsigned i = 0; i < res.size() && i < Runs; i++)
             sharedResults[i] = res[i];
@@ -676,7 +566,7 @@ std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath,
         }
         if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return {E_UNREACHABLE, {}};
 
-        ErrorCode EC = *sharedEC;
+        const ErrorCode EC = *sharedEC;
         std::vector<double> res;
         for (unsigned i = 0; i < Runs; i++)
             res.push_back(sharedResults[i]);
@@ -687,39 +577,14 @@ std::pair<ErrorCode, std::vector<double>> measureInSubprocess(std::string SPath,
     }
 }
 
-bool isVariant(unsigned A, unsigned B) {
-    std::string nameA = getEnv().MCII->getName(A).data();
-    std::string nameB = getEnv().MCII->getName(B).data();
-    if (nameA == nameB) return true;
-    // llvm names for the same instruction normally match until the first occurrence of a number
-    // e.g. ADD8ri_EVEX ADD8ri_ND ADD8ri_NF ADD8ri_NF_ND
-    auto getPrefixWithFirstNumber = [](const std::string &Name) -> std::string {
-        size_t i = 0;
-        // Find the start of the first number
-        while (i < Name.size() && !std::isdigit(Name[i]))
-            ++i;
-
-        // include the whole number
-        size_t j = i;
-        while (j < Name.size() && std::isdigit(Name[j]))
-            ++j;
-
-        return Name.substr(0, j);
-    };
-
-    std::string namePrefixA = getPrefixWithFirstNumber(nameA);
-    std::string namePrefixB = getPrefixWithFirstNumber(nameB);
-    return namePrefixA == namePrefixB;
-}
-
 // run small test to check if execution results in ILLEGAL_INSTRUCTION or fails in any other way
-ErrorCode canMeasure(LatMeasurement Measurement, long RegInit, long Immediate) {
-    auto [EC, lat] = measureInSubprocess({Measurement}, 2, RegInit, Immediate);
-    if (!isError(EC)) return SUCCESS;
+ErrorCode canMeasure(LatMeasurement Measurement, initType RegInit, long Immediate) {
+    auto [EC, lat] = measureLatency({Measurement}, 2, RegInit, Immediate);
+    if (finishedExecution(EC)) return SUCCESS;
     return EC;
 }
 
-void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Immediate) {
+void buildTPDatabase(std::vector<unsigned> Opcodes, initType RegInitValue, long Immediate) {
     dbg(__func__, "Opcodes.size(): ", Opcodes.size());
     // mark instructions to be measured
     for (unsigned opcode : Opcodes)
@@ -730,22 +595,22 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
         gotNewMeasurement = false;
         size_t progress = 0;
         for (unsigned opcode : Opcodes) {
-            displayProgress(progress++, Opcodes.size(), opcode);
+            displayProgress({{"Measurement", progress++, Opcodes.size()}},
+                            str(getEnv().MCII->getName(opcode), "(", opcode, ")"));
             // check if this was already measured
             if (throughputDatabase.find(opcode) != throughputDatabase.end())
                 if (throughputDatabase[opcode].ec != E_NO_HELPER &&
                     throughputDatabase[opcode].ec != NO_ERROR_CODE)
                     continue;
             // check if this opcode can be measured
-            const MCInstrDesc &desc = getEnv().MCII->get(opcode);
-            ErrorCode ec = isValid(desc);
+            ErrorCode ec = isValid(opcode);
             if (ec != SUCCESS) {
                 dbg(__func__, "Opcode ", opcode, " is not valid: ", ecToString(ec));
                 throughputDatabase[opcode] = {opcode, ec, -1, -1};
                 throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
                 continue;
             }
-            auto [EC, lowerTP, upperTP] = measureInSubprocess(opcode, RegInitValue, Immediate);
+            auto [EC, lowerTP, upperTP] = measureThroughput(opcode, RegInitValue, Immediate);
             throughputDatabase[opcode] = {opcode, EC, lowerTP, upperTP};
             throughputOutputMessage[opcode] += str("\t", throughputDatabase[opcode], "\n");
 
@@ -759,23 +624,23 @@ void buildTPDatabase(std::vector<unsigned> Opcodes, long RegInitValue, long Imme
     }
 }
 
-void buildLatDatabase(long RegInitValue, long Immediate) {
+void buildLatDatabase(initType RegInitValue, long Immediate) {
     out(*ios, "Number of measurements: ", latencyDatabase.size());
     // opcodes which cannot be measured as (e.g. because they are not supported on the platform)
     std::set<unsigned> opcodeBlacklist;
     std::set<DependencyType> completedTypes;
-    unsigned loopCount = 1e6; // loop count, 1e5 seems to be unreliable for LAT
 
     // classify measurements by operand combination, measure if trivial
-    if (showProgress) std::cout << "phase1: trivial measurements" << std::endl;
-    size_t progress = 0;
+    if (showProgress) std::cout << "\nphase1: trivial measurements" << std::endl;
+    size_t progressPhaseOne = 0;
     std::map<DependencyType, std::vector<LatMeasurement *>> classifiedMeasurements;
     for (auto &measurement : latencyDatabase) {
-        displayProgress(progress++, latencyDatabase.size(), measurement.opcode);
+        displayProgress({{"Measurement", ++progressPhaseOne, latencyDatabase.size()}},
+                        str("Opcode: ", measurement.opcode));
         if (measurement.type.isSymmetric()) {
             // symmetric means the operand read and written to are of the same type.
             // e.g. GR16 -> GR16. Those can build a latency chain on their own
-            auto [EC, lat] = measureInSubprocess({measurement}, loopCount, RegInitValue, Immediate);
+            auto [EC, lat] = measureLatency({measurement}, loopIterations, RegInitValue, Immediate);
             measurement.ec = EC;
             measurement.lowerBound = lat;
             measurement.upperBound = lat;
@@ -790,7 +655,7 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                     str("\t", measurement.toStringWithBounds(),
                         "\n\t\tWARNING generated instructions have multiple dependencies. "
                         "If they have different latencies the lower one will be shadowed\n");
-            else if (isError(EC)) {
+            else if (invalidatesOpcode(EC)) {
                 latencyOutputMessage[measurement.opcode] +=
                     str("\t", measurement.toStringWithBounds(), "\n\t\t", ecToString(EC),
                         ", this instruction cannot be measured on this platform\n");
@@ -810,9 +675,11 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     // instructions in A and B
     if (showProgress) std::cout << "\nphase2: measurements with helpers" << std::endl;
     out(*ios, "\n\nReport on finding helpers for dependency types:");
-    progress = 0;
+    unsigned progressPhaseTwo = 0;
     for (auto &[dTypeA, measurementsA] : classifiedMeasurements) {
-        displayProgress(progress++, classifiedMeasurements.size(), std::nullopt);
+        displayProgress(
+            {{str("Latency Type: ", dTypeA), ++progressPhaseTwo, classifiedMeasurements.size()}},
+            "determining helpers");
         if (completedTypes.find(dTypeA) != completedTypes.end()) continue;
 
         DependencyType dTypeB = dTypeA.reversed();
@@ -848,42 +715,47 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
         double minCombinedLat = 1000;
         // first make sure we have a starting point for each type
         while (itA != measurementsA.end()) {
-            LatMeasurement *m = *(itA++);
-            if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
-            if (EC == SUCCESS) {
-                smallestA = m;
+            LatMeasurement *mA = *(itA++);
+            if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
+            const ErrorCode EC = canMeasure(*mA, RegInitValue, Immediate);
+            if (EC != SUCCESS) {
+                out(*ios, "\tcannot measure ", mA->toString(), " ", ecToString(EC));
+                opcodeBlacklist.emplace(mA->opcode);
+                continue;
+            }
+            while (itB != measurementsB.end()) {
+                LatMeasurement *mB = *(itB++);
+                if (mB->opcode == mA->opcode) continue;
+                if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
+                const ErrorCode EC = canMeasure(*mB, RegInitValue, Immediate);
+                if (EC != SUCCESS) {
+                    out(*ios, "\tcannot measure ", mB->toString(), " ", ecToString(EC));
+                    opcodeBlacklist.emplace(mB->opcode);
+                    continue;
+                }
+                auto [EC1, lat] =
+                    measureLatency({*mA, *mB}, loopIterations, RegInitValue, Immediate);
+                if (isError(EC1)) {
+                    out(*ios,
+                        "\tVery unusual: both instructions can be executed "
+                        "individually but fail when interleaved: \n\t\t",
+                        *mA, "\t", *mB);
+
+                    continue;
+                }
+                smallestA = mA;
+                smallestB = mB;
                 break;
             }
-            latencyOutputMessage[m->opcode] +=
-                str("\t", m, "\n\t\t", ecToString(EC),
-                    ", this instruction cannot be measured on this platform\n");
-            opcodeBlacklist.emplace(m->opcode);
+            if (smallestB != nullptr) break;
         }
         if (smallestA == nullptr) {
-            out(*ios, "\tno measurement of type ", dTypeA, " can be executed successfully");
-            continue;
-        }
-        while (itB != measurementsB.end()) {
-            LatMeasurement *m = *(itB++);
-            if (opcodeBlacklist.find(m->opcode) != opcodeBlacklist.end()) continue;
-            ErrorCode EC = canMeasure(*m, RegInitValue, Immediate);
-            if (EC == SUCCESS) {
-                smallestB = m;
-                break;
-            }
-            latencyOutputMessage[m->opcode] +=
-                str("\t", m, "\n\t\t", ecToString(EC),
-                    ", this instruction cannot be measured on this platform\n");
-            opcodeBlacklist.emplace(m->opcode);
-        }
-        if (smallestB == nullptr) {
-            out(*ios, "\tno measurement of type ", dTypeB, " can be executed successfully");
+            out(*ios, "\tdid not find a pair that can be measured");
             continue;
         }
         // measure the combined latency of the two instructions as a baseline
         auto [EC, lat] =
-            measureInSubprocess({*smallestA, *smallestB}, loopCount, RegInitValue, Immediate);
+            measureLatency({*smallestA, *smallestB}, loopIterations, RegInitValue, Immediate);
         if (isError(EC)) {
             out(*ios,
                 "\tcannot measure type. very unusual: both instructions can be executed "
@@ -920,29 +792,28 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
                 opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end() ||
                 mA->opcode == mB->opcode)
                 continue;
-            auto [EC, lat] = measureInSubprocess({*mA, *mB}, loopCount, RegInitValue, Immediate);
+
+            auto [EC, lat] = measureLatency({*mA, *mB}, loopIterations, RegInitValue, Immediate);
             if (isError(EC)) {
                 out(*ios, "\tMeasuring ", *mA, " and ", *mB,
                     " was unsuccessful, EC: ", ecToString(EC));
                 if (currentIterator == "A") {
-                    out(*ios, "\t assuming ", *mA, " was the problem and blacklisting it");
-                    opcodeBlacklist.emplace(mA->opcode);
+                    out(*ios, "\t assuming ", *mA, " was the problem and skipping it");
                     mA->ec = EC;
                 } else {
-                    out(*ios, "\t assuming ", *mB, " was the problem and blacklisting it");
-                    opcodeBlacklist.emplace(mB->opcode);
+                    out(*ios, "\t assuming ", *mB, " was the problem and skipping it");
                     mB->ec = EC;
                 }
                 continue;
             }
-            // TODO this check technically should invalidate the combination of instructions not
-            // current one
             if (EC == W_MULTIPLE_DEPENDENCIES) {
-                out(*ios, "\tDetected multiple dependencys between ", *mA, " and ", *mB,
-                    "so result of their combination will not be considered for finding "
-                    "helpers");
+                // TODO this check technically should invalidate the combination of instructions not
+                // current one
+                out(*ios, "\tDetected multiple dependencies between ", *mA, " and ", *mB,
+                    "so they are not useful as helper combination");
                 continue;
             }
+
             if (lat < minCombinedLat) {
                 if (isUnusualLat(lat) && !isUnusualLat(minCombinedLat)) {
                     out(*ios, "\tUnusual ", lat, " from ", *mA, " and ", *mB,
@@ -977,10 +848,16 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             " with combined latency ", minCombinedLat);
         // smallestA and smallestB now are the measurements with the lowest combined latency
         // Use them to measure everything else
+        unsigned totalMeasurements = measurementsA.size() + measurementsB.size();
+        unsigned progressMeasurements = 0;
         for (LatMeasurement *mA : measurementsA) {
+            displayProgress(
+                {{str("Latency Type: ", dTypeA), progressPhaseTwo, classifiedMeasurements.size()},
+                 {"Measurement", ++progressMeasurements, totalMeasurements}},
+                "");
             if (opcodeBlacklist.find(mA->opcode) != opcodeBlacklist.end()) continue;
             auto [EC, lat] =
-                measureInSubprocess({*mA, *smallestB}, loopCount, RegInitValue, Immediate);
+                measureLatency({*mA, *smallestB}, loopIterations, RegInitValue, Immediate);
             mA->ec = EC;
             mA->lowerBound = lat - smallestB->upperBound;
             mA->upperBound = lat - smallestB->lowerBound;
@@ -992,11 +869,15 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
             }
         }
         for (LatMeasurement *mB : measurementsB) {
+            displayProgress(
+                {{str("Latency Type: ", dTypeA), progressPhaseTwo, classifiedMeasurements.size()},
+                 {"Measurement", ++progressMeasurements, totalMeasurements}},
+                "");
             if (opcodeBlacklist.find(mB->opcode) != opcodeBlacklist.end()) continue;
             // mB has to come first as the first instruction in the benchmark determines the name of
             // the debug .s file
             auto [EC, lat] =
-                measureInSubprocess({*mB, *smallestA}, loopCount, RegInitValue, Immediate);
+                measureLatency({*mB, *smallestA}, loopIterations, RegInitValue, Immediate);
             mB->ec = EC;
             mB->lowerBound = lat - smallestA->upperBound;
             mB->upperBound = lat - smallestA->lowerBound;
@@ -1019,12 +900,86 @@ void buildLatDatabase(long RegInitValue, long Immediate) {
     }
 }
 
-int run(int argc, char **argv) {
-    double frequency;
+void printInstructionInfo(unsigned Opcode, bool Internal) {
+    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
+    if (desc.isPseudo()) {
+        out(std::cout, getEnv().MCII->getName(Opcode), ": pseudo instruction {opcode: ", Opcode,
+            "}");
+        return;
+    }
+    if (Internal) {
+        std::string res;
+        std::map<unsigned, std::string> opTypeMap = {
+            {MCOI::OPERAND_UNKNOWN, "OPERAND_UNKNOWN"},
+            {MCOI::OPERAND_IMMEDIATE, "OPERAND_IMMEDIATE"},
+            {MCOI::OPERAND_REGISTER, "OPERAND_REGISTER"},
+            {MCOI::OPERAND_MEMORY, "OPERAND_MEMORY"},
+            {MCOI::OPERAND_PCREL, "OPERAND_PCREL"},
+            {MCOI::OPERAND_FIRST_GENERIC, "OPERAND_FIRST_GENERIC"},
+            {MCOI::OPERAND_GENERIC_0, "OPERAND_GENERIC_0"},
+            {MCOI::OPERAND_GENERIC_1, "OPERAND_GENERIC_1"},
+            {MCOI::OPERAND_GENERIC_2, "OPERAND_GENERIC_2"},
+            {MCOI::OPERAND_GENERIC_3, "OPERAND_GENERIC_3"},
+            {MCOI::OPERAND_GENERIC_4, "OPERAND_GENERIC_4"},
+            {MCOI::OPERAND_GENERIC_5, "OPERAND_GENERIC_5"},
+            {MCOI::OPERAND_LAST_GENERIC, "OPERAND_LAST_GENERIC"},
+            {MCOI::OPERAND_FIRST_GENERIC_IMM, "OPERAND_FIRST_GENERIC_IMM"},
+            {MCOI::OPERAND_GENERIC_IMM_0, "OPERAND_GENERIC_IMM_0"},
+            {MCOI::OPERAND_LAST_GENERIC_IMM, "OPERAND_LAST_GENERIC_IMM"},
+            {MCOI::OPERAND_FIRST_TARGET, "OPERAND_FIRST_TARGET"},
+        };
+        res = str(getEnv().MCII->getName(Opcode), " [ ");
+        for (auto opInfo : desc.operands()) {
+            if (opTypeMap.find(opInfo.OperandType) == opTypeMap.end())
+                res = str(res, int(opInfo.OperandType), " ");
+            else
+                res = str(res, opTypeMap[opInfo.OperandType], " ");
+        }
+        out(std::cout, res, "] {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
+            ", mayStore:", desc.mayStore(), "}");
+    } else {
+        const InstructionForm &instructionForm = instructionForms.get(Opcode);
+        out(std::cout, instructionForm, " {opcode: ", Opcode, ", mayLoad:", desc.mayLoad(),
+            ", mayStore:", desc.mayStore(), "}");
+    }
+}
+
+bool testAssemblyLocation(std::string SPath, std::string SOPath) {
+    pid_t pid = fork();
+    if (pid == -1) return false;
+
+    if (pid == 0) { // Child process
+        benchmarkRunner = std::make_unique<BenchmarkRunner>(SPath, SOPath, clockFrequency,
+                                                            maxCyclesPerInstruction, false);
+        AssemblyFile assembly;
+        assembly.addBenchFunction("test", "", "", "", "", 1);
+        ErrorCode ec = benchmarkRunner->assembleBenchmark(assembly);
+        if (isError(ec)) {
+            out(std::cout, "Cannot assemble benchmarks with paths ", SPath, " ", SOPath,
+                " trying to use a different location.");
+            exit(EXIT_FAILURE);
+        }
+        std::tie(ec, std::ignore) = benchmarkRunner->runBenchmark(assembly, 1, 1);
+        if (isError(ec)) {
+            out(std::cout, "Cannot run benchmarks at path ", SOPath,
+                " trying to use a different location.");
+            exit(EXIT_FAILURE);
+        }
+
+        exit(EXIT_SUCCESS);
+    } else { // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS) return false;
+
+        return true;
+    }
+}
+
+int run(int Argc, char **Argv) {
     std::string cpu = "";
     std::string march = "";
     CLI::App app{"winic"};
-    app.add_option("-f,--frequency", frequency, "Frequency in GHz")->required();
     app.add_flag("-d,--debug", debug, "Enable debug output")->default_val(false);
     // not tested, used in case llvm cant detect platform
     app.add_option("-c,--cpu", cpu, "CPU model");
@@ -1036,18 +991,26 @@ int run(int argc, char **argv) {
     unsigned maxOpcode = 0;
     bool noReport = false;
     std::string databasePath = "";
-    std::string regInitValueString = "";
+    std::string regInitValueString = "7.0";
     std::string immValueString = "";
+    std::string memory;
+    std::string x87fp;
+    includeMemory = true;
+    includeNonMemory = true;
+    maxCyclesPerInstruction = 300;
+    loopIterations = 1e6;
+    targetLoopBodySize = 12;
     auto *tp = app.add_subcommand("TP", "Throughput");
     auto *tpInstOpt = tp->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    tp->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
     tp->add_option("-o,--output", databasePath,
                    "Path to the .yaml file to save the results to. If the file already exists new "
                    "values will be overwritten. If no file is specified, a timestamped one will "
                    "be generated. If set to /dev/null no file will be generated");
     tp->add_option("--register-init-value", regInitValueString,
                    "Value to set registers to before benchmark. Accepts decimal, octal with "
-                   "prefix 0 or hexadecimal with prefix 0x")
-        ->default_val("4");
+                   "prefix 0, hexadecimal with prefix 0x, or floating point e.g. 7.0")
+        ->default_val("7.0");
     tp->add_option("--immediate-value", immValueString,
                    "Value to use for immediates. Accepts decimal, octal with "
                    "prefix 0 or hexadecimal with prefix 0x")
@@ -1055,11 +1018,31 @@ int run(int argc, char **argv) {
     tp->add_option("--runs", nRuns,
                    "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(4);
+    tp->add_option("--loop-iterations", loopIterations,
+                   "Number of loop iterations of the kernel. Higher values increase precision but "
+                   "also increase runtime.")
+        ->default_val(1000000);
+    tp->add_option("--loop-size", targetLoopBodySize,
+                   "Target Number of instructions in the Loop body. Shorter bodies might be "
+                   "generated if there are not enough registers.")
+        ->default_val(12);
     tp->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     tp->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
-    tp->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
-        ->default_val(false);
+    tp->add_option("--memory", memory, "Include instructions accessing memory")
+        ->default_val("all")
+        ->check(CLI::IsMember({"all", "only", "none"}));
+    tp->add_option("--x87-fp", x87fp, "Include x87 floating point instructions")
+        ->default_val("none")
+        ->check(CLI::IsMember({"all", "only", "none"}));
+    tp->add_option("--runtime-limit", maxCyclesPerInstruction,
+                   "Set a limit for the time spent on an instruction in cycles. If a run takes "
+                   "longer than the limit it gets aborted")
+        ->default_val("300");
+    tp->add_option("--run-in-subprocess", runInSubprocess,
+                   "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                   "off for debugging purposes")
+        ->default_val(true);
     tp->add_flag("--keep-empty-entries", keepEmptyEntries,
                  "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
@@ -1068,14 +1051,15 @@ int run(int argc, char **argv) {
 
     auto *lat = app.add_subcommand("LAT", "Latency");
     auto *latInstOpt = lat->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    lat->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
     lat->add_option("-o,--output", databasePath,
                     "Path to the .yaml file to save the results to. If the file already exists new "
                     "values will be overwritten. If no file is specified, a timestamped one will "
                     "be generated. If set to /dev/null no file will be generated");
     lat->add_option("--register-init-value", regInitValueString,
                     "Value to set registers to before benchmark. Accepts decimal, octal with "
-                    "prefix 0 or hexadecimal with prefix 0x")
-        ->default_val("4");
+                    "prefix 0, hexadecimal with prefix 0x, or floating point e.g. 7.0")
+        ->default_val("7.0");
     lat->add_option("--immediate-value", immValueString,
                     "Value to use for immediates. Accepts decimal, octal with "
                     "prefix 0 or hexadecimal with prefix 0x")
@@ -1083,20 +1067,49 @@ int run(int argc, char **argv) {
     lat->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(4);
+    lat->add_option("--loop-iterations", loopIterations,
+                    "Number of loop iterations of the kernel. Higher values increase precision but "
+                    "also increase runtime.")
+        ->default_val(1000000);
+    lat->add_option("--loop-size", targetLoopBodySize,
+                    "Target Number of instructions in the Loop body. Shorter bodies might be "
+                    "generated if there are not enough registers.")
+        ->default_val(12);
     lat->add_flag("--no-report", noReport, "Don't generate report file")->default_val(false);
     lat->add_flag("--output-asm", outputASM, "Write generated benchmarks to asm/")
         ->default_val(false);
-    lat->add_flag("--include-x87-fp", includeX87FP, "Include x87 floating point instructions")
-        ->default_val(false);
+    lat->add_option("--memory", memory, "Include instructions accessing memory")
+        ->default_val("all")
+        ->check(CLI::IsMember({"all", "only", "none"}));
+    lat->add_option("--x87-fp", x87fp, "Include x87 floating point instructions")
+        ->default_val("none")
+        ->check(CLI::IsMember({"all", "only", "none"}));
+    lat->add_option("--runtime-limit", maxCyclesPerInstruction,
+                    "Set a limit for the time spent on an instruction in cycles. If a run takes "
+                    "longer than the limit it gets aborted")
+        ->default_val("300");
+    lat->add_option("--run-in-subprocess", runInSubprocess,
+                    "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                    "off for debugging purposes")
+        ->default_val(true);
     lat->add_flag("--keep-empty-entries", keepEmptyEntries,
                   "Include instructions in the output even if they do not have any values.")
         ->default_val(false);
     lat->add_option("--min-opcode", minOpcode, "Minimum opcode to measure")->excludes(latInstOpt);
     lat->add_option("--max-opcode", maxOpcode, "Maximum opcode to measure")->excludes(latInstOpt);
 
+    bool internal = false;
+    auto *info = app.add_subcommand("INFO", "Latency");
+    info->add_option("-i,--instruction", instrNames, "LLVM Instruction names");
+    info->add_flag("--internal", internal, "Print LLVM internal info without WINIC abstraction");
+
+    auto *enc = app.add_subcommand("ENC", "re-encode database");
+    enc->add_option("FILE", databasePath, "Path to WINIC database");
+
     std::string sPath, funcName, initName = "";
     unsigned numInst;
     auto *man = app.add_subcommand("MAN", "Manual");
+    man->add_option("-f,--frequency", clockFrequency, "Frequency in GHz")->required();
     man->add_option("-p,--path", sPath, "Assembly file path")->required()->check(CLI::ExistingPath);
     man->add_option("--func-name", funcName, "Function to benchmark")->required();
     man->add_option("-n,--num-instructions", numInst, "Number of instructions in loop")->required();
@@ -1104,74 +1117,165 @@ int run(int argc, char **argv) {
     man->add_option("--runs", nRuns,
                     "Repeat each measurement multiple times and take the minimum runtime.")
         ->default_val(4);
+    man->add_option("--loop-iterations", loopIterations,
+                    "Number of loop iterations of the kernel. Higher values increase precision but "
+                    "also increase runtime.")
+        ->default_val(1000000);
+    man->add_option("--run-in-subprocess", runInSubprocess,
+                    "Execute each benchmark in a subprocess. It is recommended to only turn this "
+                    "off for debugging purposes")
+        ->default_val(true);
 
     app.require_subcommand(1, 1);
-    CLI11_PARSE(app, argc, argv)
+    CLI11_PARSE(app, Argc, Argv)
 
-    // process regInitValue
-    long regInitValue = std::stol(regInitValueString, nullptr, 0);
-    long immValue = std::stol(immValueString, nullptr, 0);
+    // check if WINIC_CLANG_PATH is set
+    std::string clangPath = WINIC_CLANG_PATH;
+    if (clangPath == "usr/bin/clang") {
+        out(std::cerr, "WINIC_CLANG_PATH not set, trying default usr/bin/clang");
+    }
+
+    // process regInitValue and immValue
+
+    initType regInitValue;
+    if (contains(regInitValueString, '.')) {
+        regInitValue = std::stod(regInitValueString);
+    } else {
+        regInitValue = static_cast<uint64_t>(std::stoll(regInitValueString, nullptr, 0));
+    }
+    long immValue = std::stoll(immValueString, nullptr, 0);
 
     // configure output
     std::cout.precision(3);
     ios->precision(3);
     std::string timestamp = generateTimestamp();
 
-    if (noReport || *man)
+    if (noReport || *man || *info || *enc)
         setOutputToFile("/dev/null");
     else if (*tp)
         setOutputToFile("report_TP_" + timestamp);
     else if (*lat)
         setOutputToFile("report_LAT_" + timestamp);
 
-    out(*ios, "WINIC version ", WINIC_VERSION);
-
-    if (databasePath != "/dev/null") {
-        if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
-        if (std::filesystem::exists(databasePath)) {
-            out(*ios, "Using existing database: ", databasePath);
-            // loading the database is delayed as doing it before the measurements has a
-            // negative performance impact, probably due to the frequent forking
-        } else
-            out(*ios, "Creating new database: ", databasePath);
+    if (*enc) {
+        if (!std::filesystem::exists(databasePath)) {
+            out(std::cerr, "ERROR: database path does not exist");
+            return 1;
+        }
+        if (loadYaml(databasePath) != SUCCESS) {
+            out(std::cerr, "ERROR: re-encode failed. The database is corrupted or not compatible "
+                           "with the current WINIC "
+                           "version.");
+            return 1;
+        }
+        // ENC mode does not need to run natively, try to set up for the architecture specified in
+        // the database
+        ErrorCode ec = getEnv().setUp(getIOArchitecture(), getIOCpu());
+        if (ec != SUCCESS) {
+            std::cerr << "failed to set up environment for non-native arch: " << ecToString(ec)
+                      << std::endl;
+            return 1;
+        }
+        if (reEncodeDatabase() != SUCCESS) {
+            out(std::cerr, "ERROR: re-encoding failed.");
+            return 1;
+        }
+        if (saveYaml(databasePath) != SUCCESS) {
+            out(std::cerr, "ERROR: saving the database failed.");
+            return 1;
+        }
+        out(std::cout, "Re-encoding successful");
+        return 0;
     }
 
-    std::ostringstream ss;
-    for (int i = 0; i < argc; ++i)
-        ss << argv[i] << " ";
-
-    out(*ios, "Timestamp: ", timestamp);
-    out(*ios, "Command: ", ss.str());
-    out(*ios, "Frequency: ", frequency, " GHz");
-    out(*ios, "Runs per kernel: ", nRuns);
-
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-
-    clockFrequency = frequency;
+    // environment setup
     ErrorCode ec = getEnv().setUp(march, cpu);
     if (ec != SUCCESS) {
         std::cerr << "failed to set up environment: " << ecToString(ec) << std::endl;
         return 1;
     }
+
+    // log configuration
+    std::ostringstream command;
+    for (int i = 0; i < Argc; ++i)
+        command << Argv[i] << " ";
+    out(*ios, "WINIC version ", WINIC_VERSION);
+    out(*ios, "Timestamp: ", timestamp);
+    out(*ios, "Command: ", command.str());
+    out(*ios, "Frequency: ", clockFrequency, " GHz");
+    out(*ios, "Runs per kernel: ", nRuns);
     out(*ios, "Arch: ", getEnv().MSTI->getCPU().str());
-    if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
 
-    // skip instructions which take long and are irrelevant
-    std::set<std::string> skipInstructions;
-    std::unordered_set<unsigned> opcodeBlacklist;
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+    if (*man) outputASM = true;
+    if (*tp || *lat || *man) {
+        // Determine where benchmarks will be assembled and executed. Default is /dev/shm but some
+        // systems may have it mounted with noexec.
+        std::vector<std::string> pathOptions = {"/dev/shm"};
+        if (const char *tmp = std::getenv("TMPDIR")) pathOptions.emplace_back(std::string(tmp));
+        pathOptions.emplace_back("/tmp");
+        pathOptions.emplace_back(".");
 
-    if (getEnv().Arch == Triple::ArchType::x86_64) {
-        // those each take > 300 cycles on Zen4, together doubling the runtime
-        skipInstructions = {"SYSCALL", "CPUID",   "RDSEED16r", "RDSEED32r", "RDSEED64r",
-                            "RDTSC",   "SLDT16r", "SLDT32r",   "SLDT64r",   "SMSW16r",
-                            "SMSW32r", "SMSW64r", "STR16r",    "STR32r",    "STR64r"};
+        // Try to do as much as possible on /dev/shm
+        std::string sPath = "";
+        std::string soPath = "";
+        for (auto sPathOption : pathOptions) {
+            for (auto soPathOption : pathOptions) {
+                if (testAssemblyLocation(sPathOption + "/winic.s", soPathOption + "/winic.so")) {
+                    sPath = sPathOption;
+                    soPath = soPathOption;
+                    break;
+                }
+            }
+            if (!sPath.empty()) break;
+        }
+        if (sPath.empty()) {
+            out(std::cout, "Did not find a location to assemble and run benchmarks, exiting.");
+            exit(1);
+        } else {
+            if (sPath != "/dev/shm" || soPath != "/dev/shm")
+                out(std::cout, "Using ", sPath, "/winic.s to assemble and ", soPath,
+                    "/winic.so to run benchmarks.");
+            benchmarkRunner = std::make_unique<BenchmarkRunner>(
+                sPath + "/winic.s", soPath + "/winic.so", clockFrequency, maxCyclesPerInstruction,
+                outputASM);
+        }
     }
-    for (auto name : skipInstructions)
-        opcodeBlacklist.insert(getEnv().getOpcode(name));
+    if (*tp || *lat || *info) {
+        // set database path if not supplied
+        if (*info) databasePath = "/dev/null";
+        if (databasePath != "/dev/null") {
+            if (databasePath.empty()) databasePath = str("db_", timestamp, ".yaml");
+            if (std::filesystem::exists(databasePath)) {
+                out(*ios, "Using existing database: ", databasePath);
+                // loading the database is delayed as doing it before the measurements has a
+                // negative performance impact, probably due to the frequent forking
+            } else
+                out(*ios, "Will create new database: ", databasePath);
+        }
 
-    std::vector<unsigned> opcodes;
-    if (*tp || *lat) {
+        // process filters
+        if (maxOpcode == 0) maxOpcode = getEnv().MCII->getNumOpcodes();
+        includeNonMemory = memory == "all" || memory == "none";
+        includeMemory = memory == "all" || memory == "only";
+        includeNonX87FP = x87fp == "all" || x87fp == "none";
+        includeX87FP = x87fp == "all" || x87fp == "only";
+
+        // skip instructions which take long and are irrelevant
+        std::set<std::string> skipInstructions;
+        std::unordered_set<unsigned> opcodeBlacklist;
+
+        if (getEnv().isX86()) {
+            // those each take > 300 cycles on Zen4, together doubling the runtime
+            skipInstructions = {"SYSCALL", "CPUID",   "RDSEED16r", "RDSEED32r", "RDSEED64r",
+                                "RDTSC",   "SLDT16r", "SLDT32r",   "SLDT64r",   "SMSW16r",
+                                "SMSW32r", "SMSW64r", "STR16r",    "STR32r",    "STR64r"};
+        }
+        for (auto name : skipInstructions)
+            opcodeBlacklist.insert(getEnv().getOpcode(name));
+
+        std::vector<unsigned> opcodes;
         // process instruction names or regexes
         for (auto instrName : instrNames) {
             if (instrName.find_first_of(".*+?[]()|") != std::string::npos) {
@@ -1237,30 +1341,38 @@ int run(int argc, char **argv) {
 
         if (*tp) {
             out(*ios, "Mode: Throughput");
-            if (getEnv().Arch == Triple::ArchType::x86_64) {
+            if (getEnv().isX86()) {
                 // measure TEST64rr and MOV64ri32 beforehand, because their tps are needed for
                 // interleaving with other instructions
                 unsigned opcodeTest = getEnv().getOpcode("TEST64rr");
                 auto [EC, lowerTP1, upperTP1] =
-                    measureInSubprocess(opcodeTest, regInitValue, immValue);
+                    measureThroughput(opcodeTest, regInitValue, immValue);
                 throughputDatabase[opcodeTest] = {opcodeTest, EC, lowerTP1, upperTP1};
                 priorityTPHelper.emplace_back(opcodeTest);
 
                 unsigned opcodeMov = getEnv().getOpcode("MOV64ri32");
                 auto [EC2, lowerTP2, upperTP2] =
-                    measureInSubprocess(opcodeMov, regInitValue, immValue);
+                    measureThroughput(opcodeMov, regInitValue, immValue);
                 throughputDatabase[opcodeMov] = {opcodeMov, EC2, lowerTP2, upperTP2};
                 priorityTPHelper.emplace_back(opcodeMov);
             }
             buildTPDatabase(opcodes, regInitValue, immValue);
         } else if (*lat) {
             out(*ios, "Mode: Latency");
+            if (showProgress) out(std::cout, "building instruction representations");
+            int i = 0;
             for (auto opcode : opcodes) {
-                auto measurements = genLatMeasurements(opcode, opcode + 1, {});
+                displayProgress({{"opcode", i++, opcodes.size()}}, "");
+                if (opcodeBlacklist.find(opcode) != opcodeBlacklist.end()) continue;
+
+                auto measurements = genLatMeasurements(opcode);
                 latencyDatabase.insert(latencyDatabase.begin(), measurements.begin(),
                                        measurements.end());
             }
             buildLatDatabase(regInitValue, immValue);
+        } else if (*info) {
+            for (unsigned opcode : opcodes)
+                printInstructionInfo(opcode, internal);
         }
 
         // write results to console
@@ -1270,8 +1382,8 @@ int run(int argc, char **argv) {
                     continue; // skip prio helpers
                 std::cout << m.toStringWithBounds() << std::endl;
             }
-            for (auto [opcode, measurement] : throughputDatabase)
-                std::cout << str(measurement) << std::endl;
+            for (auto [opcode, m] : throughputDatabase)
+                std::cout << m.toStringWithBounds() << std::endl;
         }
 
         // save database
@@ -1279,7 +1391,7 @@ int run(int argc, char **argv) {
             // load database if it exists or create new one
             if (std::filesystem::exists(databasePath)) {
                 out(*ios, "Loading existing database: ", databasePath);
-                ErrorCode EC = loadYaml(databasePath);
+                const ErrorCode EC = loadYaml(databasePath);
                 out(*ios, ecToString(EC));
                 if (EC != SUCCESS) {
                     std::string err = str("The database at: ", databasePath,
@@ -1294,7 +1406,7 @@ int run(int argc, char **argv) {
             // update output database with new TP values
             for (auto &[opcode, result] : throughputDatabase) {
                 if (result.ec != SUCCESS) continue;
-                ErrorCode EC = updateDatabaseEntryTP(result);
+                const ErrorCode EC = updateDatabaseEntryTP(result);
                 if (EC != SUCCESS) {
                     std::string msg =
                         str("failed to update database entry for ", result, ": ", ecToString(EC));
@@ -1305,7 +1417,7 @@ int run(int argc, char **argv) {
 
             // update database with new LAT values
             for (LatMeasurement result : latencyDatabase) {
-                ErrorCode EC = updateDatabaseEntryLAT(result);
+                const ErrorCode EC = updateDatabaseEntryLAT(result);
                 if (EC != SUCCESS) {
                     std::string msg =
                         str("failed to update database entry for ", result, ": ", ecToString(EC));
@@ -1314,13 +1426,13 @@ int run(int argc, char **argv) {
                 }
             }
             out(*ios, "Saving database to: ", databasePath);
-            ErrorCode EC = saveYaml(databasePath);
+            const ErrorCode EC = saveYaml(databasePath);
             if (EC != SUCCESS) return 1;
         }
     }
 
     if (*man) {
-        auto [EC, times] = measureInSubprocess(sPath, nRuns, numInst, 1e6, funcName, initName);
+        auto [EC, times] = measureManual(sPath, nRuns, numInst, loopIterations, funcName, initName);
         if (EC != SUCCESS) {
             std::cout << "failed for reason: " << ecToString(EC) << std::endl;
             return 1;
@@ -1332,7 +1444,9 @@ int run(int argc, char **argv) {
         std::cout << " min: " << minTime << std::endl;
 
         // runtime[usec -> sec] * Frequency[GHz -> Hz] / number of instructions executed
-        double cyclesPerInstruction = (minTime / 1e6) * (frequency * 1e9) / (numInst * 1e6);
+        auto [ec, cyclesPerInstruction] =
+            calculateCycles(minTime, minTime * 2, numInst, loopIterations, false);
+        if (ec != SUCCESS) std::cout << "unreachable" << std::endl;
         std::cout << cyclesPerInstruction << " (clock cycles)" << std::endl;
     }
 

@@ -9,22 +9,26 @@ enum ErrorCode {
     SUCCESS,
     NO_ERROR_CODE,
     W_MULTIPLE_DEPENDENCIES, // warnings
-    S_MEMORY_OPERAND,        // skip reasons
+    W_FLAGS_TO_FLAGS,
+    S_MEMORY_OPERAND, // skip reasons
     S_PCREL_OPERAND,
     S_UNKNOWN_OPERAND,
     S_PSEUDO_INSTRUCTION,
     S_INSTRUCION_PREFIX,
     S_MAY_LOAD,
     S_MAY_STORE,
+    S_NON_MEMORY,
     S_IS_CALL,
     S_IS_META_INSTRUCTION,
     S_IS_RETURN,
     S_IS_BRANCH,
     S_IS_CODE_GEN_ONLY,
     S_IS_X87FP,
+    S_IS_NON_X87FP,
     S_MANUALLY,
     S_NO_MNEMONIC,
     S_BLACKLISTED_REGISTER,
+    S_RUNTIME_LIMIT,
     E_TEMPLATE, // errors
     E_NO_RUNS,
     E_NO_HELPER,
@@ -42,6 +46,7 @@ enum ErrorCode {
     E_EXEC,
     E_UNROLL_ANOMALY,
     E_UNUSUAL_LATENCY,
+    E_INVALID_REG_CLASS,
     E_GENERIC,
 };
 
@@ -49,6 +54,15 @@ std::string ecToString(ErrorCode EC);
 
 // returns true if EC is SUCCESS, a warning or the default EC
 bool isError(ErrorCode EC);
+
+// returns true if the benchmark was generated and executed without failing
+bool finishedExecution(ErrorCode EC);
+
+// returns true if it is not expected any measurement of this opcode is possible
+bool invalidatesOpcode(ErrorCode EC);
+
+// returns true a measurement with this EC has a value
+bool hasResultWith(ErrorCode EC);
 
 } // namespace winic
 

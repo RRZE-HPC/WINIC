@@ -13,6 +13,7 @@
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -26,54 +27,45 @@
 #include <iostream>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <system_error>
 
 namespace winic {
 
 std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
-    // create yaml output
+    InstructionForm instructionForm = instructionForms.get(Opcode);
     std::vector<IOOperand> operands;
-    const MCInstrDesc &desc = getEnv().MCII->get(Opcode);
-    // stores def operands which are also used (to set the flag)
-    std::set<unsigned> tiedToOps;
-    // for (auto opInfo : desc.operands()) {
-    for (unsigned i = desc.getNumOperands(); i-- > 0;) {
-        const MCOperandInfo &opInfo = desc.operands()[i];
-        if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-            // this operand must be identical to another operand
-            unsigned tiedToOp = (opInfo.Constraints >> (4 + MCOI::TIED_TO * 4)) & 0xF;
-            // we are going backwards, so uses come first. If the use operand is tied to a def, this
-            // def has to be marked. marked defs get the "read" flag when they are being processed
-            // later
-            tiedToOps.insert(tiedToOp);
-            continue;
-        }
-        IOOperand opOp;
-        if (opInfo.OperandType == MCOI::OPERAND_REGISTER) {
-            opOp.opClass = "register";
-            opOp.name = std::make_optional(str(getEnv().MRI->getRegClass(opInfo.RegClass)));
-            opOp.write = i < desc.getNumDefs();
-            opOp.read = !opOp.write;
-            // check if this is a use or a def marked as being used
-            if (i >= desc.getNumDefs() || tiedToOps.find(i) != tiedToOps.end()) {
-                opOp.read = true;
-            }
 
-        } else if (opInfo.OperandType == MCOI::OPERAND_IMMEDIATE) {
+    // make sure operands are sorted
+    instructionForm.sortOperands();
+    for (OperandForm operandForm : instructionForm.getOperands()) {
+        IOOperand opOp;
+        if (operandForm.isRegClass()) {
+            opOp.opClass = "register";
+            auto regClass = getEnv().MRI->getRegClass(operandForm.getRegClassID());
+            opOp.name = opOp.name = std::make_optional(str(regClass));
+            opOp.width = regClass.getSizeInBits();
+            // Get the architectural width of registers in this class
+            // Assume this is the maximum size among classes this register belongs to
+            auto reg = regClass.getRegister(0);
+            for (auto otherClass : getEnv().getRegClasses(reg)) {
+                unsigned size = otherClass.getSizeInBits();
+                opOp.width = size > opOp.width ? size : opOp.width;
+            }
+        } else if (operandForm.isImmediate()) {
             opOp.opClass = "immediate";
-            opOp.read = true;
-            opOp.write = false;
-        } else if (opInfo.OperandType == MCOI::OPERAND_MEMORY)
-            continue; // TODO memory
-        else
+        } else if (operandForm.isMemory()) {
+            opOp.opClass = "memory";
+        } else
             continue;
-        operands.insert(operands.begin(), opOp);
+        opOp.write = operandForm.isDef();
+        opOp.read = operandForm.isUse();
+        operands.emplace_back(opOp);
     }
     IOInstruction opInst;
-    opInst.llvmName = getEnv().MCII->getName(Opcode).str();
+    opInst.llvmName = instructionForm.getName();
 
+    // get mnemonic
     MCInst inst;
     inst.setOpcode(Opcode);
     auto [iName, _] = getEnv().MIP->getMnemonic(inst);
@@ -81,7 +73,7 @@ std::pair<ErrorCode, IOInstruction> createOpInstruction(unsigned Opcode) {
 
     std::string s = iName;
     // remove trailing spaces
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); })
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char Ch) { return !std::isspace(Ch); })
                 .base(),
             s.end());
     opInst.name = s;
@@ -127,54 +119,41 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement M) {
     return SUCCESS;
 }
 
-unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const MCInstrDesc &Desc) {
-    unsigned correctedOpNum = OpNum;
-    if (OpNum >= Desc.getNumDefs()) {
-        // this is a use operand, may have to shift it
-        unsigned shiftAmount = 0;
-        for (unsigned i = Desc.getNumDefs(); i <= OpNum && i < Desc.getNumOperands(); i++) {
-            const MCOperandInfo &opInfo = Desc.operands()[i];
-            if (opInfo.Constraints & (1 << MCOI::TIED_TO)) {
-                // this operand is tied to another operand, therefore a duplicate
-                shiftAmount++;
-            }
-        }
-        correctedOpNum -= shiftAmount;
-    }
-    return correctedOpNum;
-}
+std::string getIOCpu() { return ioFile.microArchitecture; };
+
+std::string getIOArchitecture() { return ioFile.isa; };
 
 ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
-    std::string name = getEnv().MCII->getName(M.opcode).str();
-    const MCInstrDesc &desc = getEnv().MCII->get(M.opcode);
-    unsigned correctedUseIndex = llvmOpNumToNormalOpNum(M.useIndex, desc);
+    InstructionForm instructionForm = instructionForms.get(M.opcode);
 
-    std::string useIndexString = std::to_string(correctedUseIndex);
+    std::string useIndexString = std::to_string(M.useIndex);
     std::string defIndexString = std::to_string(M.defIndex);
-    if (M.type.useOp.isRegister())
-        useIndexString = getEnv().MRI->getName(M.type.useOp.getRegister());
-    if (M.type.defOp.isRegister())
-        defIndexString = getEnv().MRI->getName(M.type.defOp.getRegister());
-    auto instruction =
-        std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
-                     [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    if (instruction == ioFile.instructions.end()) {
+    if (auto *regOp = std::get_if<RegisterOperand>(&M.type.useOp))
+        useIndexString = getEnv().MRI->getName(regOp->getRegister());
+    if (auto *regOp = std::get_if<RegisterOperand>(&M.type.defOp))
+        defIndexString = getEnv().MRI->getName(regOp->getRegister());
+    auto ioInstr = std::find_if(
+        ioFile.instructions.begin(), ioFile.instructions.end(),
+        [&](const IOInstruction &Inst) { return Inst.llvmName == instructionForm.getName(); });
+    if (ioInstr == ioFile.instructions.end()) {
         // Not found, create first
         auto [EC, opInst] = createOpInstruction(M.opcode);
         if (EC != SUCCESS) return EC;
         ioFile.instructions.push_back(opInst);
     }
-    instruction = std::find_if(ioFile.instructions.begin(), ioFile.instructions.end(),
-                               [&](const IOInstruction &Inst) { return Inst.llvmName == name; });
-    auto latencyEntry = std::find_if(
-        instruction->latencies.begin(), instruction->latencies.end(), [&](const IOLatency &Lat) {
-            return Lat.sourceOperand == useIndexString && Lat.targetOperand == defIndexString;
-        });
+    ioInstr = std::find_if(
+        ioFile.instructions.begin(), ioFile.instructions.end(),
+        [&](const IOInstruction &Inst) { return Inst.llvmName == instructionForm.getName(); });
+
     std::optional<double> min =
         isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.lowerBound * 10) / 10);
     std::optional<double> max =
         isError(M.ec) ? std::nullopt : std::optional<double>(std::round(M.upperBound * 10) / 10);
-    if (latencyEntry != instruction->latencies.end()) {
+    auto latencyEntry = std::find_if(
+        ioInstr->latencies.begin(), ioInstr->latencies.end(), [&](const IOLatency &Lat) {
+            return Lat.sourceOperand == useIndexString && Lat.targetOperand == defIndexString;
+        });
+    if (latencyEntry != ioInstr->latencies.end()) {
         // Found entry, update it if the new measurement did not have an error
         if (!isError(M.ec)) {
             latencyEntry->min = min;
@@ -187,12 +166,11 @@ ErrorCode updateDatabaseEntryLAT(LatMeasurement M) {
         lat.targetOperand = defIndexString;
         lat.min = min;
         lat.max = max;
-        instruction->latencies.insert(instruction->latencies.end(), lat);
+        ioInstr->latencies.insert(ioInstr->latencies.end(), lat);
     }
     // take maximum latency value as instruction latency
-    instruction->latency = 0;
-    for (IOLatency lat : instruction->latencies)
-        instruction->latency = std::max(instruction->latency, lat.max);
+    for (IOLatency lat : ioInstr->latencies)
+        ioInstr->latency = std::max(ioInstr->latency, lat.max);
 
     return SUCCESS;
 }
@@ -224,6 +202,51 @@ ErrorCode loadYaml(std::string Path) {
     return SUCCESS;
 }
 
+ErrorCode reEncodeDatabase() {
+    std::vector<IOInstruction> newIoInstructions;
+    std::vector<std::string> notReEncoded;
+    for (auto ioInst : ioFile.instructions) {
+        auto tp = ioInst.throughput;
+        auto tpMin = ioInst.throughputMin;
+        auto tpMax = ioInst.throughputMax;
+        auto latencies = ioInst.latencies;
+        auto latency = ioInst.latency;
+        unsigned opcode = getEnv().getOpcode(ioInst.llvmName);
+        if (opcode == MAX_UNSIGNED) {
+            notReEncoded.emplace_back(ioInst.llvmName);
+            newIoInstructions.emplace_back(ioInst);
+            continue;
+        }
+        auto [EC, opInst] = createOpInstruction(getEnv().getOpcode(ioInst.llvmName));
+        if (EC != SUCCESS) return EC;
+        opInst.throughput = tp;
+        opInst.throughputMin = tpMin;
+        opInst.throughputMax = tpMax;
+        opInst.latencies = latencies;
+        opInst.latency = latency;
+        newIoInstructions.emplace_back(opInst);
+    }
+    if (!notReEncoded.empty()) {
+        out(std::cout, "WARNING: cannot find LLVM info for ", notReEncoded.size(),
+            " instructions. Leaving those unchanged.");
+        if (notReEncoded.size() <= 20) {
+            out(std::cout, notReEncoded);
+        }
+        if (notReEncoded.size() == ioFile.instructions.size()) {
+            out(std::cout, "No instruction was recognized, check if the ISA and microarchitecture "
+                           "identifiers in the database are correct.");
+            return E_GENERIC;
+        }
+        out(std::cout,
+            "This can happen if the instructions were removed/renamed in this LLVM "
+            "version. It is strongly recommended to do a fresh run with the newest WINIC "
+            "version.");
+    }
+
+    ioFile.instructions = newIoInstructions;
+    return SUCCESS;
+}
+
 ErrorCode saveYaml(std::string Path) {
     if (!keepEmptyEntries) stripOutputDatabase();
     // remove tabs from mnemonics
@@ -234,13 +257,13 @@ ErrorCode saveYaml(std::string Path) {
     ioFile.microArchitecture = getEnv().Machine->getTargetCPU().data();
     switch (getEnv().TargetTriple.getArch()) {
     case Triple::ArchType::x86_64:
-        ioFile.isa = "x86";
+        ioFile.isa = "x86_64";
         break;
     case Triple::ArchType::aarch64:
         ioFile.isa = "aarch64";
         break;
     case Triple::ArchType::riscv64:
-        ioFile.isa = "riscv";
+        ioFile.isa = "riscv64";
         break;
     default:
         out(std::cerr, "Unsupported architecture, this should be unreachable.");

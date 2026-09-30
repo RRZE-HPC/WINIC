@@ -1,9 +1,9 @@
 #ifndef TEMPLATES_H
 #define TEMPLATES_H
 
+#include "Globals.h"
 #include "llvm/MC/MCRegister.h"
 #include "llvm/TargetParser/Triple.h"
-#include <cstdint>
 #include <list>
 #include <set>
 #include <string>
@@ -18,7 +18,7 @@ struct RegInitTemplate {
     std::optional<llvm::MCRegister> dependencyReg;
 
   public:
-    string fillRegInitTemplate(llvm::MCRegister Reg, uint64_t Imm);
+    string fillRegInitTemplate(llvm::MCRegister Reg, initType Imm);
 };
 
 /**
@@ -28,13 +28,26 @@ struct RegInitTemplate {
  * regInitTemplates hold templates to initialize registers with a given value,
  */
 struct Template {
-    string prefix, preInit, postInit, preLoop, beginLoop, midLoop, endLoop, postLoop, suffix;
+    string prefix, preInit, postInit, preLoop, beginLoop, resetLoop, endLoop, postLoop, suffix;
     std::set<string> usedRegisters;
     std::list<RegInitTemplate> regInitTemplates;
+    llvm::MCRegister bufferEndReg; // Register holding the end address of the scratch memory area
+    string loadMemoryAddress; // Snippet loading the scratch memory area start address to a register
 
     Template(string Prefix, string PreInit, string PostInit, string PreLoop, string BeginLoop,
-             string EndLoop, string PostLoop, string Suffix, std::set<string> UsedRegisters,
-             std::list<RegInitTemplate> RegInitTemplates);
+             string ResetLoop, string EndLoop, string PostLoop, string Suffix,
+             std::set<string> UsedRegisters, std::list<RegInitTemplate> RegInitTemplates,
+             llvm::MCRegister BufferEndReg, string LoadMemoryAddress);
+
+    /**
+     * \brief Generate an assembly snippet that executes ResetCode if the content of CompareReg is
+     * greater or equal to the BufferEndReg. Used to reset memory base registers once they run past
+     * the buffer end.
+     * \param ResetCode Code to execute.
+     * \param CompareReg Register to use for checking if a reset is necessary.
+     * \return Assembly snippet
+     */
+    string genResetMemInLoopCode(string ResetCode, string CompareReg);
 
   private:
     void trimLeadingNewline(string &Str);
@@ -44,7 +57,7 @@ extern Template X86Template;
 extern Template AArch64Template;
 extern Template RISCVTemplate;
 
-Template getTemplate(llvm::Triple::ArchType Arch);
+Template getTemplate();
 
 } // namespace winic
 

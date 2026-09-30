@@ -9,13 +9,15 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 namespace llvm {
 class MCInstrDesc;
-}
+} // namespace llvm
 
 namespace winic {
 struct LatMeasurement;
 struct TPMeasurement;
+
 // serializable structs for yaml output
 
 /**
@@ -24,6 +26,7 @@ struct TPMeasurement;
 struct IOOperand {
     std::string opClass;             ///< Operand class (e.g., "register", "immediate")
     std::optional<std::string> name; ///< Optional operand name
+    std::optional<unsigned> width;   ///< Optional operand width
     bool read;                       ///< Is this operand read?
     bool write;                      ///< Is this operand written?
 };
@@ -59,20 +62,6 @@ struct IOFile {
 static IOFile ioFile;
 
 /**
- * \brief Converts an LLVM-style operand number to an asm-style operand number.
- *
- * LLVM operand layout looks like this:
- *   operands: [op0: reg(w), op1: reg(r), op2: imm(r)], numDefs: 1, constraints: [op0 == op1]
- * which corresponds to asm-style operand layout:
- *   operands: [op0: reg(rw), op1: imm(r)]
- *
- * \param OpNum The LLVM operand number.
- * \param Desc The instruction descriptor.
- * \return The corresponding asm-style operand number.
- */
-unsigned llvmOpNumToNormalOpNum(unsigned OpNum, const llvm::MCInstrDesc &Desc);
-
-/**
  * \brief Creates an IOInstruction from an opcode.
  * \param Opcode The instruction opcode.
  * \return Pair of ErrorCode and IOInstruction.
@@ -92,6 +81,24 @@ ErrorCode updateDatabaseEntryTP(TPMeasurement Measurement);
  * \return ErrorCode indicating success or failure.
  */
 ErrorCode updateDatabaseEntryLAT(LatMeasurement Measurement);
+
+/**
+ * \brief Get the CPU identifier in the loaded IOFile
+ */
+std::string getIOCpu();
+
+/**
+ * \brief Get the architecture in the loaded IOFile
+ */
+std::string getIOArchitecture();
+
+/**
+ * \brief Re-generates the operand info for each entry in the io database.
+ * this can be useful to upgrade an existing database if the output format changes but is compatible
+ * with the prior version.
+ * \return ErrorCode indicating success or failure.
+ */
+ErrorCode reEncodeDatabase();
 
 /**
  * \brief Loads a database from a YAML file into outputDatabase.
@@ -131,6 +138,7 @@ template <> struct MappingTraits<winic::IOOperand> {
     static void mapping(IO &Io, winic::IOOperand &Op) {
         Io.mapRequired("class", Op.opClass);
         Io.mapOptional("name", Op.name);
+        Io.mapOptional("width", Op.width);
         Io.mapRequired("read", Op.read);
         Io.mapRequired("write", Op.write);
     }
@@ -174,16 +182,18 @@ template <> struct ScalarTraits<std::optional<double>> {
         else
             Out << "null";
     }
+
     static StringRef input(StringRef Scalar, void *, std::optional<double> &Val) {
         if (Scalar == "null" || Scalar == "~" || Scalar.empty()) {
             Val.reset();
             return {};
         }
         double tmp;
-        auto Err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
-        if (Err.empty()) Val = tmp;
-        return Err;
+        StringRef err = ScalarTraits<double>::input(Scalar, nullptr, tmp);
+        if (err.empty()) Val = tmp;
+        return err;
     }
+
     static QuotingType mustQuote(StringRef S) {
         if (S == "null" || S == "~" || S.empty()) return QuotingType::None;
         return ScalarTraits<double>::mustQuote(S);

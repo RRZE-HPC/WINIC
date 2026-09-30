@@ -5,6 +5,7 @@ import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 dbg = False
+dbg_llvm_name = ""
 
 
 def debug(msg, level=0):
@@ -56,6 +57,20 @@ class Operand:
             and not ((len(self.regList) != len(value.regList)) and (len(self.regList) == 1 or len(value.regList) == 1))
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"Operand("
+            f"index={self.index!r}, "
+            f"type={self.type!r}, "
+            f"width={self.width!r}, "
+            f"read={self.read!r}, "
+            f"write={self.write!r}, "
+            f"suppressed={self.suppressed!r}, "
+            f"regList=..., "
+            f"metadata={self.metadata!r}"
+            f")"
+        )
+
 
 @dataclass
 class Latency:
@@ -80,17 +95,18 @@ class Throughput:
         self.cyclesMin = float(self.cyclesMin) if self.cyclesMin is not None else None
         self.cyclesMax = float(self.cyclesMax) if self.cyclesMax is not None else None
 
-def val_eq(val1: Latency | Throughput, val2: Latency| Throughput, tolerance: float):
-        v_tolerance = max(val1.cyclesMin, val2.cyclesMin) * tolerance
-        if abs(val1.cyclesMin - val2.cyclesMin) > v_tolerance:
-            return False
-        
-        v_tolerance = max(val1.cyclesMax, val2.cyclesMax) * tolerance
-        if abs(val1.cyclesMax - val2.cyclesMax) > v_tolerance:
-            return False
-        
 
-@dataclass
+def val_eq(val1: Latency | Throughput, val2: Latency | Throughput, tolerance: float):
+    v_tolerance = max(val1.cyclesMin, val2.cyclesMin) * tolerance
+    if abs(val1.cyclesMin - val2.cyclesMin) > v_tolerance:
+        return False
+
+    v_tolerance = max(val1.cyclesMax, val2.cyclesMax) * tolerance
+    if abs(val1.cyclesMax - val2.cyclesMax) > v_tolerance:
+        return False
+
+
+@dataclass(order=True)
 class Instruction:
     source: Literal["winic", "uops", "docs", "exegesis", "osaca"] = "winic"
     sourceName: str = ""
@@ -101,7 +117,6 @@ class Instruction:
     # throughput_upper: float = 0.0
     latencies: List[Latency] = field(default_factory=list)
     metadata: dict[str, bool] = field(default_factory=dict)  # additional info like AVX zeroing
-    roundc: bool = False  # AVX512 roundc
 
 
 # returns true if the metadata of the instructions does not conflict
@@ -111,11 +126,40 @@ def same_metadata(inst1: Instruction, inst2: Instruction):
             return False
     return len(inst1.metadata) == len(inst2.metadata)
 
+
 def has_lat(inst: Instruction) -> bool:
-    return any(v.cyclesMin is not None for v in inst.latencies )
+    return any(v.cyclesMin is not None for v in inst.latencies)
+
 
 def has_tp(inst: Instruction) -> bool:
     return any(v.cyclesMin is not None for v in inst.throughputs)
+
+
+def is_range(val):
+    return val.cyclesMin != val.cyclesMax
+
+
+# set tolerance here
+tolerance = 0.1
+
+
+def eq(v1: float, v2: float):
+    v_tolerance = max(v1, v2) * tolerance
+    return abs(v1 - v2) < v_tolerance
+
+
+def geq(v1: float, v2: float):
+    return v1 > v2 or eq(v1, v2)
+
+
+def leq(v1: float, v2: float):
+    return v1 < v2 or eq(v1, v2)
+
+
+def covers(val1, val2):
+    # returns True if val2 is fully contained in val1
+    return geq(val2.cyclesMin, val1.cyclesMin) and leq(val2.cyclesMax, val1.cyclesMax)
+
 
 # AI generated
 def progress_bar(current, total, bar_length=40, prefix="Progress", suffix=""):
@@ -136,6 +180,7 @@ def combine_dbs(dbs: List[List[Instruction]], mode: Literal["ReplaceNone", "Full
     def eq(v1: float, v2: float):
         v_tolerance = max(v1, v2) * 0.1
         return abs(v1 - v2) < v_tolerance
+
     print(f"combining {len(dbs)} databases")
     if len(dbs) == 1:
         return dbs[0]

@@ -2,7 +2,6 @@
 #define ASSEMBLY_FILE_H
 
 #include "ErrorCode.h"
-#include "llvm/TargetParser/Triple.h"
 #include <set>
 #include <string>
 
@@ -15,6 +14,7 @@ struct BenchFunction {
     std::string postLoopCode;
     /// this initfunction will be called before the benchmark
     std::string initFunction;
+    unsigned numInst;
 
     bool operator<(const BenchFunction &Other) const { return name < Other.name; }
 };
@@ -32,7 +32,7 @@ struct InitFunction {
  * \param Name The function name to insert.
  * \return Modified string with replacements.
  */
-std::string replaceFunctionName(std::string Str, const std::string Name);
+std::string replaceFunctionName(std::string Str, std::string Name);
 
 /**
  * \brief Replaces all instances of a substring in a string with another string.
@@ -41,16 +41,13 @@ std::string replaceFunctionName(std::string Str, const std::string Name);
  * \param Replacement The string to replace with.
  * \return Modified string with replacements.
  */
-std::string replaceAllInstances(std::string Str, std::string ToReplace,
-                                const std::string Replacement);
+std::string replaceAllInstances(std::string Str, std::string ToReplace, std::string Replacement);
 
 class AssemblyFile {
   public:
     AssemblyFile() = default;
-    AssemblyFile(llvm::Triple::ArchType Arch) { this->arch = Arch; }
-    ~AssemblyFile() = default;
 
-    void setArch(llvm::Triple::ArchType Arch) { this->arch = Arch; }
+    ~AssemblyFile() = default;
 
     /**
      * \brief Adds an initialization function to the assembly file.
@@ -69,8 +66,9 @@ class AssemblyFile {
      * \param InitFunction Name of the initialization function to run before this benchmark.
      * \return ErrorCode indicating success or failure.
      */
-    ErrorCode addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
-                               std::string PostLoopCode, std::string InitFunction);
+    ErrorCode
+    addBenchFunction(std::string Name, std::string PreLoopCode, std::string LoopCode,
+                     std::string PostLoopCode, std::string InitFunction, unsigned NumInst);
 
     /**
      * \brief Returns a set of all benchmark function names in the assembly file.
@@ -91,6 +89,8 @@ class AssemblyFile {
      */
     std::string getInitNameFor(std::string BenchName);
 
+    unsigned getNumInstFor(std::string BenchName);
+
     std::string getName() const { return name; }
 
     void setName(std::string Name) { this->name = Name; }
@@ -102,7 +102,6 @@ class AssemblyFile {
     std::string generateAssembly();
 
   private:
-    llvm::Triple::ArchType arch;
     std::string name;
     std::set<BenchFunction> benchFunctions;
     std::set<InitFunction> initFunctions;

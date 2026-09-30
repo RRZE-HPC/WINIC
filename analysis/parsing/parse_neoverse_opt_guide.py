@@ -1,4 +1,5 @@
 from analysis.globals import *
+from analysis.parsing.helper import remove_duplicates
 import pdfplumber
 from typing import List
 from dataclasses import replace
@@ -25,11 +26,11 @@ class TableEntry:
     pipelines: str
     notes: str
 
-
 def _extract_from_pdf():
     manual_path = "analysis/reference-files/arm_neoverse_v2_software_optimization_guide_109898_0300_01_en.pdf"
     table_entries: List[TableEntry] = []
     with pdfplumber.open(manual_path) as pdf:
+        # This is not working optimally, e.g. look at result for lines with STGP
         table_settings = {
             "vertical_strategy": "lines",
             "horizontal_strategy": "lines",
@@ -38,30 +39,45 @@ def _extract_from_pdf():
             "edge_min_length": 50,
         }
         tables = [page.extract_tables(table_settings=table_settings) for page in pdf.pages[14:54]]
-        table_lines = [
-            line
-            for page in tables
-            if page is not None
-            for table in page
-            if table is not None
-            for line in table
-            if line[0] != "Instruction Group" and line[1] != "Instructions"
-        ]
 
-        # remove duplicate lines
-        temp_lines = []
-        seen = set()
-        for line in table_lines:
-            tuple_line = tuple(line)
-            if tuple_line not in seen:
-                temp_lines.append(line)
-                seen.add(tuple_line)
-        table_lines = temp_lines
+    table_lines = [
+        line
+        for page in tables
+        if page is not None
+        for table in page
+        if table is not None
+        for line in table
+        if line[0] != "Instruction Group" and line[1] != "Instructions"
+    ]
 
-        # print(table_lines)
-        for line in table_lines:
-            if len(line) == 6:  # ignore tables that dont have instructions in them
-                table_entries.append(TableEntry(line[0], line[1], line[2], line[3], line[4], line[5]))
+    # remove duplicate lines
+    temp_lines = []
+    seen = set()
+    for line in table_lines:
+        tuple_line = tuple(line)
+        if tuple_line not in seen:
+            temp_lines.append(line)
+            seen.add(tuple_line)
+    table_lines = temp_lines
+
+    # print(table_lines)
+    for line in table_lines:
+        if len(line) != 6:  # ignore tables that dont have instructions in them
+            continue
+        # Handle multiline entries:
+        # PDF extract does not detect table fields but creates an entry for each line. 
+        # Sometimes the instruction group field makes the cell multiline, other times it is the Mnemonic field.
+        # A stable indicator for a new line is the Exec Latency field, so we use that
+        if line[2] is None or len(line[2].strip()) == 0:
+            # no new line, append content to last line
+            if line[0] is not None:
+                table_entries[-1].instGroup += line[0].strip()
+            if line[1] is not None:
+                table_entries[-1].name += line[1].strip()
+            # other fields are always single line
+        else:
+            table_entries.append(TableEntry(line[0], line[1], line[2], line[3], line[4], line[5]))
+
     return table_entries
 
 
@@ -79,6 +95,7 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
         with open("cache.pkl", "wb") as f2:
             pickle.dump(table_entries, f2, protocol=pickle.HIGHEST_PROTOCOL)
 
+    print(table_entries[:100])
     # propagate instruction group field
     lastEntry: TableEntry = table_entries[0]
     for entry in table_entries[1:]:
@@ -113,7 +130,11 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
             print(f"look at {entry}")
             continue
         inst.source = "docs"
+        inst.sourceName = entry.name
         inst.asmName = entry.name
+        # TODO there are also fields with "pre-index or post-index"
+        inst.metadata["pre_indexed_mem"] = "pre-index" in entry.instGroup
+        inst.metadata["post_indexed_mem"] = "post-index" in entry.instGroup
 
         # if table cell has instructions on multiple lines, parser generates lines without values for all but the first one
         values_missing = [value in [None, ""] for value in [entry.execLat, entry.execTP]]
@@ -175,15 +196,7 @@ def parse_neoverse_opt_guide() -> List[Instruction]:
     #     else:
     #         name_count[inst.asmName] = 1
 
-    # merge instructions with same name (add throughput values to one representative)
-    unified: dict[str, Instruction] = dict()
-    for inst in instructions:
-        if inst.asmName in unified.keys():
-            unified[inst.asmName].latencies += inst.latencies
-            unified[inst.asmName].throughputs += inst.throughputs
-        else:
-            unified[inst.asmName] = inst
-    instructions = list(unified.values())
+    instructions = remove_duplicates(instructions)
 
     # remove duplicate TP/LAT values
     for inst in instructions:

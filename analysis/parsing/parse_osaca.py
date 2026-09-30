@@ -2,6 +2,7 @@ import copy
 import itertools
 import yaml
 from analysis.globals import *
+from analysis.parsing.helper import remove_duplicates
 from typing import List
 
 
@@ -22,12 +23,12 @@ op_prefix_map = {  # AArch64
     "h": [Operand(-1, "reg", 16, metadata={"prefix": "h"})],
     "s": [Operand(-1, "reg", 32, metadata={"prefix": "s"})],
     "d": [Operand(-1, "reg", 64, metadata={"prefix": "d"})],
-    "q": [Operand(-1, "reg", 128)],
-    "z": [Operand(-1, "reg", 0)],
-    "p": [Operand(-1, "reg", 0)],
+    "q": [Operand(-1, "reg", 128, metadata={"prefix": "q"})],
+    "z": [Operand(-1, "reg", -1, metadata={"prefix": "z"})],
+    "p": [Operand(-1, "reg", -1, metadata={"prefix": "p"})],
     "v": [Operand(-1, "reg", -1, metadata={"prefix": "v"})],
     # "*": [Operand(-1, "reg", 16), Operand(-1, "reg", 32), Operand(-1, "reg", 64), Operand(-1, "reg", 128)],
-    "*": [Operand(-1, "reg", -1, metadata={"predicate": False})],
+    "*": [Operand(-1, "reg", -1)],
 }
 
 
@@ -50,7 +51,11 @@ def parse_osaca_database(path: str) -> List[Instruction]:
                     operand_lists.append([Operand(type="imm")])
                     continue
                 elif operand["class"] == "memory":
-                    operand_lists.append([Operand(type="mem")])
+                    pre_indexed = "pre_indexed" in operand and operand["pre_indexed"]
+                    post_indexed = "post_indexed" in operand and operand["post_indexed"]
+                    operand_lists.append(
+                        [Operand(type="mem", metadata={"pre_indexed": pre_indexed, "post_indexed": post_indexed})]
+                    )
                     continue
                 elif operand["class"] == "condition":
                     operand_lists.append([Operand(type="imm", width=4)])
@@ -71,18 +76,14 @@ def parse_osaca_database(path: str) -> List[Instruction]:
                 if "shape" in operand:
                     for dec in dec_operands:
                         dec.metadata["shape"] = operand["shape"]
-                if (
-                    "predication" in operand
-                ):  # TODO there is predication "*" or "m". what is the difference? -> handle in llvm parsing, too
-                    dec_operands.append(Operand(-1, "reg", 0, metadata={"predicate": True}))
-                    if name == "fmls":
-                        print(f"fmls: predicate added")
+
                 operand_lists.append(dec_operands)
 
                 # handle additional mask
                 if "mask" in operand and operand["mask"]:
                     # we currently dont use the mask operand type. TODO improve that
                     operand_lists.append([Operand(-1, "reg", 64)])
+
             # this creates a version for each possible width of generic "reg" operands
             for combination in itertools.product(*operand_lists):
                 inst: Instruction = Instruction()
@@ -93,25 +94,18 @@ def parse_osaca_database(path: str) -> List[Instruction]:
                 inst.latencies.append(Latency(None, None, entry["latency"], entry["latency"]))
                 inst.throughputs.append(Throughput(entry["throughput"], entry["throughput"]))
                 instructions.append(inst)
-                if inst.sourceName == "fmls":
-                    print(f"i created inst. {inst}")
 
     # remove any duplicate entries (e.g. because two gprs or duplicate entries in input)
-    id_set = set()
-    result = []
+    instructions = remove_duplicates(instructions)
+
+    # all read/write information we can get is that the last operand is written to on x86
     for inst in instructions:
-        if inst.sourceName == "fmls":
-            print(f"i still have inst. {inst}")
-        latencies = [f"{l.cyclesMin}" for l in inst.latencies]
-        throughputs = [f"{tp.cyclesMin}" for tp in inst.throughputs]
-        dec_operands = [f"{op.type}{op.width}{sorted(list(op.metadata))}" for op in inst.operands]
-        id = f"{inst.sourceName}{sorted(set(latencies))}{sorted(set(throughputs))}{sorted(set(dec_operands))}"
-        if id not in id_set:
-            result.append(inst)
-            id_set.add(id)
-            if inst.sourceName == "fmls":
-                print(f"i added inst. {inst} to result")
-    return result
+        if len(inst.operands) > 0:
+            if db["isa"] == "x64":
+                inst.operands[-1].write = True
+            if db["isa"] == "AArch64":
+                inst.operands[0].write = True
+    return instructions
 
 
 if __name__ == "__main__":

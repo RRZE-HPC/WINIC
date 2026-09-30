@@ -4,5 +4,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --cpu-freq=3200000-3200000:performance
 
-../../build-AArch64/winic -f 3.26 TP -o neoverse-v2.yaml > /dev/null
-../../build-AArch64/winic -f 3.26 LAT -o neoverse-v2.yaml > /dev/null
+module load likwid/grace
+
+likwid-pin -c 1 ../../build-Arch64-v22/winic -f 3.26 TP --memory=none  -o neoverse-v2.yaml > /dev/null
+likwid-pin -c 1 ../../build-Arch64-v22/winic -f 3.26 LAT --memory=none  -o neoverse-v2.yaml > /dev/null
